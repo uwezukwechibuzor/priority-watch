@@ -59,26 +59,6 @@ func makeHandler(method string, result any, callCount *atomic.Int64) http.Handle
 	}
 }
 
-// make429Handler returns a handler that responds 429 on the first n calls, then succeeds.
-func make429Handler(n int, result any, callCount *atomic.Int64) http.HandlerFunc {
-	var calls atomic.Int64
-	return func(w http.ResponseWriter, r *http.Request) {
-		callCount.Add(1)
-		c := int(calls.Add(1))
-
-		if c <= n {
-			w.WriteHeader(http.StatusTooManyRequests)
-			return
-		}
-
-		var req jrpcRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
-		resp := jrpcResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(resp)
-	}
-}
-
 // makeErrorHandler returns a handler that always responds with a JSON-RPC error.
 func makeErrorHandler(code int, msg string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

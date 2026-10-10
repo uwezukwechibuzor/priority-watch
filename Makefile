@@ -90,9 +90,11 @@ smoke:
 migrate: build
 	$(INGESTER) migrate
 
-## backfill: backfill blocks (usage: make backfill FROM=<block> TO=<block>)
+## backfill: backfill blocks (usage: make backfill FROM=<block|date> TO=<block|date|head> [CHUNK=2000] [CONCURRENCY=4])
+CHUNK       ?= 2000
+CONCURRENCY ?= 4
 backfill: build
-	$(INGESTER) backfill --from=$(FROM) --to=$(TO)
+	$(INGESTER) backfill --from=$(FROM) --to=$(TO) --chunk=$(CHUNK) --concurrency=$(CONCURRENCY)
 
 ## follow: start the live block follower (local, not via Docker)
 follow: build

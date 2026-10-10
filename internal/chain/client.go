@@ -98,6 +98,22 @@ func (c *Client) BlockWithTxs(ctx context.Context, number uint64) (*RPCBlock, er
 	return &block, nil
 }
 
+// BlockHeader fetches a block header (no transactions) by number.
+// Passing 0 returns the latest block.
+func (c *Client) BlockHeader(ctx context.Context, number uint64) (*RPCBlock, error) {
+	var tag any
+	if number == 0 {
+		tag = "latest"
+	} else {
+		tag = fmt.Sprintf("0x%x", number)
+	}
+	var block RPCBlock
+	if err := c.call(ctx, "eth_getBlockByNumber", &block, tag, false); err != nil {
+		return nil, err
+	}
+	return &block, nil
+}
+
 // Head returns the latest canonical block (no transactions).
 func (c *Client) Head(ctx context.Context) (*RPCBlock, error) {
 	var block RPCBlock
