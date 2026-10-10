@@ -1,5 +1,6 @@
 import { ContextBar } from "@/components/layout/ContextBar";
 import { TopBar } from "@/components/layout/TopBar";
+import { ContextBarExtraProvider, useContextBarExtra } from "@/lib/context-bar-extra";
 import {
   Outlet,
   createRootRoute,
@@ -13,11 +14,12 @@ export const rootRoute = createRootRoute({
   component: RootLayout,
 });
 
-function RootLayout() {
+function RootLayoutInner() {
+  const { extraRight } = useContextBarExtra();
   return (
     <>
       <TopBar />
-      <ContextBar />
+      <ContextBar extraRight={extraRight} />
       {/* Page content offset by top bar (48px) + context bar (36px) */}
       <main
         style={{
@@ -28,6 +30,14 @@ function RootLayout() {
         <Outlet />
       </main>
     </>
+  );
+}
+
+function RootLayout() {
+  return (
+    <ContextBarExtraProvider>
+      <RootLayoutInner />
+    </ContextBarExtraProvider>
   );
 }
 

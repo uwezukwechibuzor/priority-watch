@@ -19,6 +19,6 @@
 | 15 | Pricing models + simulator engine | ✅ | feat(models): pricing and simulator |
 | 16 | Web shell | ✅ | feat(web): app shell and design system |
 | 17 | /blocks page | ✅ | feat(web): blocks page |
-| 18 | /health page | ⬜ | |
+| 18 | /health page | ✅ | feat(web): health page |
 | 19 | /pricing, /opportunity, /simulator pages | ⬜ | |
 | 20 | Docs, hardening, launch | ⬜ | |

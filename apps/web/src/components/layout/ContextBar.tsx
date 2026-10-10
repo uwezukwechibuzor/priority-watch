@@ -1,10 +1,12 @@
 import { relativeTime } from "@/lib/formatters";
 import { ingesterStatusQuery } from "@/queries/health";
 import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 
 interface ContextBarProps {
   day?: string;
   onDayChange?: (day: string) => void;
+  extraRight?: ReactNode;
 }
 
 function pad(n: number): string {
@@ -32,7 +34,7 @@ function nextDay(dayStr: string): string {
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
 }
 
-export function ContextBar({ day, onDayChange }: ContextBarProps) {
+export function ContextBar({ day, onDayChange, extraRight }: ContextBarProps) {
   const currentDay = day ?? today();
   const { data: sources } = useQuery(ingesterStatusQuery);
   const chainSource = sources?.find((s) => s.source === "chain");
@@ -99,6 +101,13 @@ export function ContextBar({ day, onDayChange }: ContextBarProps) {
       />
       <ContextItem label="Block time" value="250ms" />
       <ContextItem label="PGA round" value="125ms" />
+
+      {extraRight && (
+        <>
+          <div style={{ marginLeft: "auto" }} />
+          {extraRight}
+        </>
+      )}
     </div>
   );
 }
