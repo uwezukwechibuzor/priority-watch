@@ -10,7 +10,7 @@
 | 6 | Live block follower | ✅ | feat(ingester): live follower with reorg handling |
 | 7 | Binance CEX prices | ✅ | feat(ingester): binance 1s klines |
 | 8 | Entity registries + Timeboost baseline + fee verification | ✅ | feat: verified registries and fee-mechanics analysis |
-| 9 | dbt staging layer | ⬜ | |
+| 9 | dbt staging layer | ✅ | feat(dbt): sources and staging |
 | 10 | dbt intermediate layer | ⬜ | |
 | 11 | dbt core marts | ⬜ | |
 | 12 | dbt opportunity marts | ⬜ | |

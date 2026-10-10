@@ -24,7 +24,7 @@ repos:
       - id: sqlfluff-lint
         name: sqlfluff lint
         language: system
-        entry: sqlfluff lint --dialect ansi
+        entry: sqlfluff lint --dialect clickhouse --templater dbt --profiles-dir ./dbt
         types: [sql]
         pass_filenames: true
 

@@ -1,0 +1,67 @@
+name: priority_watch
+version: "1.0.0"
+config-version: 2
+
+profile: priority_watch
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+analysis-paths: ["analyses"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  pga_activation_block: "{{ env_var('PGA_ACTIVATION_BLOCK', '0') | int }}"
+  uniswap_v3_swap_topic0: "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67"
+  aave_liquidation_topic0: "0xe413a321e8681d831f4dbccbeca18d89968b851ef0d8e3e8d1bf2af7c1c6efdf"
+  erc20_transfer_topic0: "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+  # Placeholder until AuctionResolved ABI is confirmed on-chain (task 8 part C).
+  timeboost_auction_resolved_topic0: "0x0000000000000000000000000000000000000000000000000000000000000000"
+  # From config/contracts.yaml; update once verified on Arbiscan.
+  express_lane_auction_address: "0x65f07c7d521164a4d5dac6eb8fac8da067a3b78f"
+
+models:
+  priority_watch:
+    staging:
+      +materialized: incremental
+      +incremental_strategy: append
+      +engine: "ReplacingMergeTree"
+      +schema: staging
+      +tags: ["staging"]
+    intermediate:
+      +materialized: incremental
+      +incremental_strategy: append
+      +engine: "ReplacingMergeTree"
+      +schema: intermediate
+      +tags: ["intermediate"]
+    marts:
+      +materialized: incremental
+      +incremental_strategy: append
+      +engine: "ReplacingMergeTree"
+      +schema: marts
+      +tags: ["marts"]
+
+seeds:
+  priority_watch:
+    +schema: meta
+    +tags: ["seed"]
+    pools:
+      +column_types:
+        fee: "UInt32"
+        tick_spacing: "Int32"
+        token0_decimals: "UInt8"
+        token1_decimals: "UInt8"
+        verified: "UInt8"
+    entities:
+      +column_types:
+        color_index: "UInt8"
+        verified: "UInt8"
+    contracts:
+      +column_types:
+        deployed_block: "UInt64"
+        verified: "UInt8"
+    events:
+      +column_types:
+        block: "Nullable(UInt64)"

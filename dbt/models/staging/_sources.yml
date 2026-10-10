@@ -1,0 +1,288 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Raw, lightly-processed data ingested by pw-ingester from Arbitrum One RPC
+      and Binance public APIs. All tables use ReplacingMergeTree(_version) for
+      idempotent re-ingestion; always read with FINAL for deduplicated results.
+    database: raw
+    schema: raw
+    loader: pw-ingester
+
+    tables:
+      - name: blocks
+        description: >
+          One row per Arbitrum One block. Primary source for base_fee_per_gas,
+          block timestamps, and tx_count. Deduplicated key: block_number.
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after:
+            count: 5
+            period: minute
+          error_after:
+            count: 30
+            period: minute
+        columns:
+          - name: block_number
+            description: Arbitrum One block height (monotonically increasing).
+          - name: block_hash
+            description: Block hash as lowercase 0x-prefixed hex (66 chars).
+          - name: parent_hash
+            description: Parent block hash.
+          - name: block_timestamp
+            description: Block production timestamp (UTC, millisecond precision).
+          - name: l1_block_number
+            description: Ethereum L1 block number referenced by this Arbitrum block.
+          - name: base_fee_per_gas
+            description: EIP-1559 base fee in wei (UInt256).
+          - name: gas_used
+            description: Total gas used across all transactions in the block.
+          - name: gas_limit
+            description: Block gas limit.
+          - name: tx_count
+            description: Number of transactions in the block including system transactions.
+          - name: size
+            description: Block size in bytes.
+          - name: _ingested_at
+            description: Timestamp when pw-ingester wrote this row.
+          - name: _version
+            description: Ingestion version for ReplacingMergeTree deduplication.
+
+      - name: transactions
+        description: >
+          One row per transaction. Covers EIP-2718 types 0–2 (user transactions)
+          and Arbitrum system types 0x64–0x6a. Deduplicated key: (block_number, tx_index).
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after:
+            count: 5
+            period: minute
+          error_after:
+            count: 30
+            period: minute
+        columns:
+          - name: block_number
+            description: Block containing this transaction.
+          - name: block_timestamp
+            description: Block timestamp (denormalised for partition pruning).
+          - name: tx_index
+            description: Position of the transaction within the block.
+          - name: tx_hash
+            description: Transaction hash (lowercase 0x-prefixed, 66 chars).
+          - name: tx_type
+            description: >
+              EIP-2718 transaction type. 0=legacy, 1=EIP-2930 access list,
+              2=EIP-1559 fee market. Arbitrum system types 100–106 (0x64–0x6a).
+          - name: from_address
+            description: Sender address (lowercase 0x-prefixed).
+          - name: to_address
+            description: Recipient address; empty for contract deployments.
+          - name: nonce
+            description: Sender nonce at time of transaction.
+          - name: value
+            description: ETH value transferred in wei (UInt256).
+          - name: gas_limit
+            description: Gas limit set by the sender.
+          - name: gas_price
+            description: Gas price for legacy/EIP-2930 txs (wei); set to effective_gas_price for EIP-1559.
+          - name: max_fee_per_gas
+            description: EIP-1559 max fee per gas (wei); NULL for non-EIP-1559 transactions.
+          - name: max_priority_fee_per_gas
+            description: EIP-1559 max priority fee per gas (wei); NULL for non-EIP-1559 transactions.
+          - name: input_selector
+            description: First 4 bytes of calldata as 0x-prefixed hex; empty if calldata < 4 bytes.
+          - name: input_size
+            description: Total calldata size in bytes.
+          - name: _ingested_at
+            description: Timestamp when pw-ingester wrote this row.
+          - name: _version
+            description: Ingestion version for ReplacingMergeTree deduplication.
+
+      - name: receipts
+        description: >
+          Transaction execution results. One row per transaction per block.
+          Deduplicated key: (block_number, tx_index).
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after:
+            count: 5
+            period: minute
+          error_after:
+            count: 30
+            period: minute
+        columns:
+          - name: block_number
+            description: Block containing this receipt.
+          - name: block_timestamp
+            description: Block timestamp (denormalised for partition pruning).
+          - name: tx_index
+            description: Position of the transaction within the block.
+          - name: tx_hash
+            description: Transaction hash.
+          - name: status
+            description: Execution status. 1=success, 0=reverted.
+          - name: gas_used
+            description: Total gas consumed by the transaction (L1 + L2 portions).
+          - name: gas_used_for_l1
+            description: Portion of gas_used attributed to L1 calldata cost (Arbitrum-specific).
+          - name: effective_gas_price
+            description: Actual wei per gas paid (min(max_fee, base_fee + max_priority_fee)).
+          - name: cumulative_gas_used
+            description: Cumulative gas used up to and including this transaction in the block.
+          - name: contract_address
+            description: Deployed contract address for contract-creation transactions; empty otherwise.
+          - name: log_count
+            description: Number of logs emitted by this transaction.
+          - name: _ingested_at
+            description: Timestamp when pw-ingester wrote this row.
+          - name: _version
+            description: Ingestion version for ReplacingMergeTree deduplication.
+
+      - name: logs
+        description: >
+          Filtered event logs from configured contract addresses (config/contracts.yaml
+          and config/pools.yaml). One row per log. Deduplicated key: (block_number, log_index).
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after:
+            count: 5
+            period: minute
+          error_after:
+            count: 30
+            period: minute
+        columns:
+          - name: block_number
+            description: Block containing this log.
+          - name: block_timestamp
+            description: Block timestamp.
+          - name: tx_index
+            description: Position of the emitting transaction.
+          - name: tx_hash
+            description: Emitting transaction hash.
+          - name: log_index
+            description: Global log index within the block.
+          - name: address
+            description: Contract address that emitted the log (lowercase 0x-prefixed).
+          - name: topic0
+            description: First topic (event signature hash), always present (66-char FixedString).
+          - name: topic1
+            description: Second topic (first indexed parameter); empty string if absent.
+          - name: topic2
+            description: Third topic (second indexed parameter); empty string if absent.
+          - name: topic3
+            description: Fourth topic (third indexed parameter); empty string if absent.
+          - name: data
+            description: ABI-encoded non-indexed event parameters as hex (0x-prefixed).
+          - name: _ingested_at
+            description: Timestamp when pw-ingester wrote this row.
+          - name: _version
+            description: Ingestion version for ReplacingMergeTree deduplication.
+
+      - name: cex_klines_1s
+        description: >
+          Binance 1-second OHLCV klines for ETH/USD (and other pairs) used for
+          USD price conversion. Populated by pw-ingester cex backfill and cex follow.
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after:
+            count: 5
+            period: minute
+        columns:
+          - name: venue
+            description: Exchange name. Currently always 'binance'.
+          - name: symbol
+            description: Trading pair symbol, e.g. 'ETHUSDT'.
+          - name: open_time
+            description: Kline open timestamp (UTC, 1-second granularity).
+          - name: open
+            description: Opening price in USD (Float64).
+          - name: high
+            description: High price in USD.
+          - name: low
+            description: Low price in USD.
+          - name: close
+            description: Closing price in USD.
+          - name: volume
+            description: Base asset volume during the 1-second window.
+          - name: trades
+            description: Number of trades during the window.
+          - name: _ingested_at
+            description: Timestamp when pw-ingester wrote this row.
+          - name: _version
+            description: Ingestion version for ReplacingMergeTree deduplication.
+
+      - name: balance_snapshots
+        description: >
+          Hourly ETH balance snapshots for fee-recipient addresses (NetworkFeeAccount,
+          InfraFeeAccount). Used to verify DAO treasury accumulation against computed tips.
+        loaded_at_field: _ingested_at
+        freshness:
+          warn_after:
+            count: 2
+            period: hour
+          error_after:
+            count: 6
+            period: hour
+        columns:
+          - name: address
+            description: Fee-recipient address being snapshotted.
+          - name: block_number
+            description: Block at which the balance was sampled.
+          - name: block_timestamp
+            description: Block timestamp.
+          - name: balance_wei
+            description: ETH balance at the snapshot block in wei (UInt256).
+          - name: _ingested_at
+            description: Timestamp when pw-ingester wrote this row.
+          - name: _version
+            description: Ingestion version for ReplacingMergeTree deduplication.
+
+      - name: timeboost_bids_ext
+        description: >
+          Timeboost express-lane auction bids imported from timeboost.app public export
+          (Apache-2.0). Covers the Timeboost era (2025-04-17 – ~2026-09-24).
+          Used by /compare for Timeboost vs PGA revenue analysis.
+        columns:
+          - name: round
+            description: Timeboost auction round number.
+          - name: bidder
+            description: Bidder address (lowercase 0x-prefixed).
+          - name: express_lane_controller
+            description: Address that would receive express-lane rights if this bid won.
+          - name: amount_wei
+            description: Bid amount in wei (UInt256 decimal string).
+          - name: bid_timestamp
+            description: Timestamp of the bid submission.
+          - name: source
+            description: Import date string (YYYY-MM-DD) identifying the source file.
+          - name: _ingested_at
+            description: Timestamp when pw-ingester wrote this row.
+          - name: _version
+            description: Ingestion version for ReplacingMergeTree deduplication.
+
+      - name: timeboost_auction_results_ext
+        description: >
+          Timeboost auction outcomes imported from timeboost.app.
+          One row per round: winner, express-lane controller, first and second prices.
+        columns:
+          - name: round
+            description: Timeboost auction round number.
+          - name: winner
+            description: Winning bidder address.
+          - name: express_lane_controller
+            description: Address granted express-lane rights for this round.
+          - name: first_price_wei
+            description: Winning bid amount in wei.
+          - name: second_price_wei
+            description: Second-highest bid amount in wei (Vickrey clearing price).
+          - name: round_start
+            description: Round start timestamp.
+          - name: round_end
+            description: Round end timestamp.
+          - name: source
+            description: Import date string identifying the source file.
+          - name: _ingested_at
+            description: Timestamp when pw-ingester wrote this row.
+          - name: _version
+            description: Ingestion version for ReplacingMergeTree deduplication.

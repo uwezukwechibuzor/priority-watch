@@ -1,0 +1,35 @@
+[sqlfluff]
+dialect = clickhouse
+templater = dbt
+runaway_limit = 10
+max_line_length = 120
+output_line_length = 120
+# Ignore analyses and target directories
+ignore_paths = dbt/target,dbt/dbt_packages
+
+[sqlfluff:templater:dbt]
+project_dir = ./dbt
+profiles_dir = ./dbt
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.identifiers]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.types]
+capitalisation_policy = upper
+
+[sqlfluff:rules:convention.select_trailing_comma]
+select_clause_trailing_comma = forbid
+
+[sqlfluff:rules:layout.indent]
+indent_unit = space
+tab_space_size = 4
+
+# ClickHouse-specific engine keywords and column types not in the standard dialect.
+[sqlfluff:rules:references.keywords]
+ignore_words_regex = FINAL|ENGINE|CODEC|ZSTD|Delta|GRANULARITY|LowCardinality|FixedString|DateTime64|UInt256|UInt128|UInt64|UInt32|UInt8|Int256|Int128|Int64|Float64|ReplacingMergeTree|ReplacingMergeTree|MergeTree|index_granularity|subtractHours|toYYYYMM|nullIf|argMax

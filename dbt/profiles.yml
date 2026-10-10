@@ -1,0 +1,34 @@
+priority_watch:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      driver: native
+      host: "{{ env_var('CLICKHOUSE_HOST', 'localhost') }}"
+      port: "{{ env_var('CLICKHOUSE_PORT', '9000') | int }}"
+      user: "{{ env_var('CLICKHOUSE_USER', 'default') }}"
+      password: "{{ env_var('CLICKHOUSE_PASSWORD', '') }}"
+      schema: staging
+      secure: false
+      verify: false
+      connect_timeout: 10
+      send_receive_timeout: 300
+      sync_request_timeout: 5
+      compress_block_size: 1048576
+      compression: lz4
+
+    prod:
+      type: clickhouse
+      driver: native
+      host: "{{ env_var('CLICKHOUSE_HOST') }}"
+      port: "{{ env_var('CLICKHOUSE_PORT', '9000') | int }}"
+      user: "{{ env_var('CLICKHOUSE_RO_USER', 'pw_reader') }}"
+      password: "{{ env_var('CLICKHOUSE_RO_PASSWORD') }}"
+      schema: staging
+      secure: false
+      verify: false
+      connect_timeout: 10
+      send_receive_timeout: 300
+      sync_request_timeout: 5
+      compress_block_size: 1048576
+      compression: lz4

@@ -1,0 +1,5 @@
+entity_name,entity_type,color_index,address,address_label,verified,source_url
+Kairos Research,searcher,0,,,0,https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942
+Wintermute,market_maker,1,,,0,https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942
+Selini Capital,market_maker,2,,,0,https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942
+Uniswap Labs,protocol,3,0x1f98431c8ad98523631ae4a59f267346ea31f984,Uniswap V3 Factory,1,https://docs.uniswap.org/contracts/v3/reference/deployments

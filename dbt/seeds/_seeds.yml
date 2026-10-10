@@ -1,0 +1,95 @@
+version: 2
+
+seeds:
+  - name: pools
+    description: >
+      Known DEX liquidity pool addresses on Arbitrum One used for Swap event decoding
+      and DEX flow analysis. Generated from config/pools.yaml by scripts/yaml_to_seeds.py.
+      Empty addresses are pools whose on-chain address has not yet been verified;
+      they are excluded from the ingester log filter and will produce no swap rows.
+    columns:
+      - name: address
+        description: Pool contract address (lowercase 0x-prefixed); empty if unverified.
+      - name: dex
+        description: DEX identifier (e.g. 'uniswap_v3', 'camelot_v3', 'sushiswap_v3').
+      - name: event_type
+        description: Primary event type emitted by this pool (e.g. 'Swap').
+      - name: token0_address
+        description: Token0 contract address.
+      - name: token0_symbol
+        description: Token0 ticker symbol (e.g. 'WETH', 'USDC.e').
+      - name: token0_decimals
+        description: Token0 decimal places.
+      - name: token1_address
+        description: Token1 contract address.
+      - name: token1_symbol
+        description: Token1 ticker symbol.
+      - name: token1_decimals
+        description: Token1 decimal places.
+      - name: fee
+        description: "Pool fee tier (Uniswap V3 units: 500 = 0.05%, 3000 = 0.3%)."
+      - name: tick_spacing
+        description: Tick spacing corresponding to the fee tier.
+      - name: cex_symbol
+        description: Binance pair symbol used for USD price lookup (e.g. 'ETHUSDT').
+      - name: verified
+        description: 1 if the address has been confirmed on-chain; 0 otherwise.
+      - name: source_url
+        description: Primary source URL for verification.
+
+  - name: entities
+    description: >
+      Known entity labels mapping Arbitrum One addresses to named participants
+      (searchers, market makers, protocols). Generated from config/entities.yaml.
+      Entities without verified on-chain addresses have a single row with empty address.
+    columns:
+      - name: entity_name
+        description: Human-readable entity name (e.g. 'Kairos Research').
+      - name: entity_type
+        description: Entity category (e.g. 'searcher', 'market_maker', 'protocol').
+      - name: color_index
+        description: Colour assignment index for chart rendering (0-based).
+      - name: address
+        description: Verified on-chain address associated with this entity; empty if unknown.
+      - name: address_label
+        description: Short label for this specific address (e.g. 'Uniswap V3 Factory').
+      - name: verified
+        description: 1 if the address has been confirmed from a primary source; 0 otherwise.
+      - name: source_url
+        description: Primary source URL for the entity or address attribution.
+
+  - name: contracts
+    description: >
+      Reference contract addresses for Arbitrum One relevant to PGA analytics.
+      Generated from config/contracts.yaml by scripts/yaml_to_seeds.py.
+    columns:
+      - name: name
+        description: Contract identifier (e.g. 'ExpressLaneAuction', 'AaveV3Pool').
+      - name: address
+        description: Contract address (lowercase 0x-prefixed); empty if unverified.
+      - name: deployed_block
+        description: Block at which the contract was deployed; 0 if not yet determined.
+      - name: verified
+        description: 1 if the address has been confirmed on-chain; 0 otherwise.
+      - name: source_url
+        description: Primary source URL (official docs, Arbiscan, deployment announcement).
+      - name: note
+        description: Free-text note on verification status or usage.
+
+  - name: events
+    description: >
+      On-chain and governance events displayed as chart markers on all time-series
+      dashboards. Generated from config/events.yaml by scripts/yaml_to_seeds.py.
+    columns:
+      - name: id
+        description: Stable event identifier used as a foreign key in chart configs.
+      - name: label
+        description: Short human-readable label shown on chart markers.
+      - name: event_date
+        description: Calendar date of the event (YYYY-MM-DD); empty if not yet confirmed.
+      - name: block
+        description: Exact block number of the event; empty if not yet determined.
+      - name: description
+        description: Optional longer description of what the event represents.
+      - name: source_url
+        description: Primary source URL (governance forum post, block explorer, docs).

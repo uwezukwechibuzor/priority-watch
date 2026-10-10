@@ -1,0 +1,609 @@
+version: 2
+
+models:
+  - name: stg_blocks
+    description: >
+      One typed, deduplicated row per Arbitrum One block. Source:
+      raw.blocks (ReplacingMergeTree). Adds base_fee_per_gas_gwei and
+      gas_utilisation derived columns. FINAL is used on the source because
+      the incremental window (last 1 hour) is always a small fraction of the
+      full blocks table, so FINAL is fast. argMax would require enumerating
+      every column explicitly and adds no benefit here.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: block_number
+        description: Arbitrum One block height (monotonically increasing).
+        tests:
+          - unique
+          - not_null
+      - name: block_hash
+        description: Block hash as lowercase 0x-prefixed hex (66 chars).
+        tests:
+          - not_null
+      - name: parent_hash
+        description: Parent block hash.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block production timestamp (UTC, millisecond precision).
+        tests:
+          - not_null
+      - name: l1_block_number
+        description: Ethereum L1 block number referenced by this Arbitrum block.
+        tests:
+          - not_null
+      - name: base_fee_per_gas
+        description: EIP-1559 base fee in wei (UInt256).
+        tests:
+          - not_null
+      - name: base_fee_per_gas_gwei
+        description: base_fee_per_gas converted to Gwei (Float64, display only).
+      - name: gas_used
+        description: Total gas used across all transactions in the block.
+        tests:
+          - not_null
+      - name: gas_limit
+        description: Block gas limit.
+        tests:
+          - not_null
+      - name: gas_utilisation
+        description: gas_used / gas_limit ratio (0.0–1.0). NULL when gas_limit = 0.
+      - name: tx_count
+        description: Number of transactions in the block including system transactions.
+        tests:
+          - not_null
+      - name: block_size_bytes
+        description: Serialised block size in bytes.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source row.
+        tests:
+          - not_null
+
+  - name: stg_transactions
+    description: >
+      User-initiated transactions only: EIP-2718 types 0 (legacy), 1 (EIP-2930),
+      2 (EIP-1559). Arbitrum system types (>= 100) are in stg_system_transactions.
+      max_fee_per_gas and max_priority_fee_per_gas are coalesced so all tx types
+      share a uniform schema; the actual priority_fee_per_gas (which needs base_fee
+      from blocks) is computed in the intermediate layer.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: block_number
+        description: Block containing this transaction.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block timestamp.
+        tests:
+          - not_null
+      - name: tx_index
+        description: Position of the transaction within the block.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash (lowercase 0x-prefixed, 66 chars).
+        tests:
+          - not_null
+      - name: tx_type
+        description: EIP-2718 type. 0=legacy, 1=EIP-2930, 2=EIP-1559.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1, 2]
+      - name: from_address
+        description: Sender address (lowercase 0x-prefixed).
+        tests:
+          - not_null
+      - name: to_address
+        description: Recipient address; empty string for contract deployments.
+      - name: nonce
+        description: Sender nonce.
+      - name: value_wei
+        description: ETH value transferred in wei.
+      - name: gas_limit
+        description: Gas limit set by the sender.
+      - name: gas_price
+        description: Gas price for legacy/EIP-2930 transactions; effective_gas_price for EIP-1559.
+      - name: max_fee_per_gas
+        description: >
+          EIP-1559 max total fee per gas (wei). Coalesced to gas_price for legacy/EIP-2930
+          so downstream models can treat all types uniformly.
+      - name: max_priority_fee_per_gas
+        description: >
+          EIP-1559 max priority fee per gas (wei). Coalesced to 0 for legacy/EIP-2930
+          transactions that have no explicit priority fee field.
+      - name: input_selector
+        description: First 4 bytes of calldata as 0x-prefixed hex.
+      - name: input_size
+        description: Total calldata size in bytes.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["block_number", "tx_index"]
+
+  - name: stg_system_transactions
+    description: >
+      Arbitrum internal/system transactions (tx_type >= 100, i.e. 0x64–0x6a).
+      These are Nitro-generated entries for L1→L2 messages, retryables, fee collection
+      and other protocol operations; they do not originate from user wallets and do
+      not carry priority fees. Separated so user-fee models can reference stg_transactions
+      directly without filtering.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: block_number
+        description: Block containing this system transaction.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block timestamp.
+        tests:
+          - not_null
+      - name: tx_index
+        description: Position within the block.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+      - name: tx_type
+        description: Arbitrum system transaction type (100–106).
+        tests:
+          - not_null
+      - name: from_address
+        description: System sender address.
+      - name: to_address
+        description: Recipient address.
+      - name: nonce
+        description: Sender nonce.
+      - name: value_wei
+        description: ETH value transferred in wei.
+      - name: gas_limit
+        description: Gas limit.
+      - name: gas_price
+        description: Gas price in wei.
+      - name: input_selector
+        description: First 4 bytes of calldata.
+      - name: input_size
+        description: Calldata size in bytes.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["block_number", "tx_index"]
+
+  - name: stg_receipts
+    description: >
+      Transaction execution results with Arbitrum-specific L1/L2 gas decomposition.
+      gas_used_for_l2 = gas_used - gas_used_for_l1 is the L2-execution gas used to
+      compute PGA tip revenue (hypothesis H1 per CLAUDE.md §11):
+        tip = priority_fee_per_gas * gas_used_for_l2
+      Both L1 and L2 portions are retained so H2 (tip on total gas) can also be tested.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: block_number
+        description: Block containing this receipt.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block timestamp.
+        tests:
+          - not_null
+      - name: tx_index
+        description: Position of the transaction.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_transactions')
+              field: tx_hash
+              severity: warn
+      - name: status
+        description: Execution status. 1=success, 0=reverted.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+      - name: gas_used
+        description: Total gas consumed (L1 + L2 portions).
+        tests:
+          - not_null
+      - name: gas_used_for_l1
+        description: Gas portion attributed to L1 calldata cost (Arbitrum-specific).
+        tests:
+          - not_null
+      - name: gas_used_for_l2
+        description: >
+          gas_used - gas_used_for_l1. The L2-execution gas that drives PGA tip revenue
+          under hypothesis H1.
+        tests:
+          - not_null
+      - name: effective_gas_price
+        description: Actual wei per gas paid by the transaction.
+        tests:
+          - not_null
+      - name: effective_gas_price_gwei
+        description: effective_gas_price converted to Gwei (Float64, display only).
+      - name: cumulative_gas_used
+        description: Cumulative gas used up to and including this transaction in the block.
+      - name: contract_address
+        description: Deployed contract address for contract-creation transactions; empty otherwise.
+      - name: log_count
+        description: Number of logs emitted.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["block_number", "tx_index"]
+      - receipts_match_block_tx_count:
+          column_name: tx_hash
+          severity: warn
+
+  - name: stg_logs
+    description: >
+      Normalised event logs from all configured contract/pool addresses. Raw topic
+      and data fields are preserved in hex for downstream decoding models. All
+      addresses and topics are lower-cased for consistent JOIN keys.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: block_number
+        description: Block containing this log.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block timestamp.
+        tests:
+          - not_null
+      - name: tx_index
+        description: Transaction position within the block.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Emitting transaction hash.
+        tests:
+          - not_null
+      - name: log_index
+        description: Global log index within the block.
+        tests:
+          - not_null
+      - name: address
+        description: Emitting contract address (lowercase 0x-prefixed).
+        tests:
+          - not_null
+      - name: topic0
+        description: Event signature hash (keccak256 of the event ABI string).
+        tests:
+          - not_null
+      - name: topic1
+        description: First indexed parameter; empty string if absent.
+      - name: topic2
+        description: Second indexed parameter; empty string if absent.
+      - name: topic3
+        description: Third indexed parameter; empty string if absent.
+      - name: data
+        description: ABI-encoded non-indexed event parameters as 0x-prefixed hex.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["block_number", "log_index"]
+
+  - name: stg_dex_swaps
+    description: >
+      Decoded Uniswap V3 and Algebra (Camelot V3) Swap events with decimal-adjusted
+      token amounts and execution price. Both protocols share the same Swap event
+      ABI signature (topic0 0xc42079...ca67); pool address distinguishes protocol.
+      exec_price_token1_per_token0 is computed from sqrtPriceX96 per the Uniswap V3
+      price formula: price = (sqrtPriceX96/2^96)^2 * 10^decimals0 / 10^decimals1.
+      Requires pools seed to be loaded (run `dbt seed` before this model).
+    config:
+      tags: ["staging"]
+    columns:
+      - name: block_number
+        description: Block containing the swap.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block timestamp.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+      - name: log_index
+        description: Log index of the Swap event.
+        tests:
+          - not_null
+      - name: pool_address
+        description: Liquidity pool contract address.
+        tests:
+          - not_null
+      - name: sender
+        description: Address that initiated the swap (first indexed topic).
+      - name: recipient
+        description: Address that received the output tokens (second indexed topic).
+      - name: amount0_raw
+        description: Token0 amount flow (Int256). Negative = token0 out of pool (sold).
+      - name: amount1_raw
+        description: Token1 amount flow (Int256). Negative = token1 out of pool (sold).
+      - name: sqrt_price_x96
+        description: sqrtPriceX96 after the swap (UInt256). Uniswap V3 Q64.96 fixed-point.
+      - name: dex
+        description: DEX identifier from pools seed (e.g. 'uniswap_v3', 'camelot_v3').
+      - name: token0_symbol
+        description: Symbol of token0 from pools seed.
+      - name: token0_decimals
+        description: Decimal places for token0.
+      - name: token1_symbol
+        description: Symbol of token1 from pools seed.
+      - name: token1_decimals
+        description: Decimal places for token1.
+      - name: pool_fee
+        description: Pool fee tier in basis-points * 100 (e.g. 500 = 0.05%).
+      - name: cex_symbol
+        description: Binance pair symbol for USD price lookup.
+      - name: amount0
+        description: amount0_raw / 10^token0_decimals (decimal-adjusted Float64).
+      - name: amount1
+        description: amount1_raw / 10^token1_decimals (decimal-adjusted Float64).
+      - name: exec_price_token1_per_token0
+        description: >
+          Human-readable execution price: token1 units per 1 token0 unit.
+          Computed from sqrtPriceX96 at the slot after the swap.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source log row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["block_number", "log_index"]
+
+  - name: stg_aave_liquidations
+    description: >
+      Decoded Aave V3 LiquidationCall events from the AaveV3Pool contract.
+      Source address: 0x794a61358d6845594f94dc1db02a252b5b4814ad.
+      topic0: keccak256("LiquidationCall(address,address,address,uint256,uint256,address,bool)")
+            = 0xe413a321e8681d831f4dbccbeca18d89968b851ef0d8e3e8d1bf2af7c1c6efdf.
+      All amounts are in the smallest unit of each token; decimal adjustment is done
+      in the intermediate layer using the contracts/entities reference data.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: block_number
+        description: Block containing the liquidation.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block timestamp.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+      - name: log_index
+        description: Log index.
+        tests:
+          - not_null
+      - name: collateral_asset
+        description: Address of the collateral asset being seized.
+      - name: debt_asset
+        description: Address of the debt asset being repaid.
+      - name: user_address
+        description: Address of the borrower being liquidated.
+      - name: debt_to_cover_wei
+        description: Amount of debt repaid by the liquidator (in debt asset smallest units).
+      - name: liquidated_collateral_amount_wei
+        description: Amount of collateral seized from the borrower (in collateral asset smallest units).
+      - name: liquidator
+        description: Address that performed the liquidation.
+      - name: receive_a_token
+        description: 1 if the liquidator received aTokens instead of the underlying asset.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source log row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["block_number", "log_index"]
+
+  - name: stg_erc20_transfers
+    description: >
+      Decoded ERC-20 Transfer events from raw.logs.
+      topic0 = keccak256("Transfer(address,address,uint256)")
+             = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+      NOTE: This model will be empty until token contract addresses (WETH, USDC, etc.)
+      are added to the ingester address filter (config/contracts.yaml). The model is
+      included for forward compatibility.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: block_number
+        description: Block containing the transfer.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block timestamp.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+      - name: log_index
+        description: Log index.
+        tests:
+          - not_null
+      - name: token_address
+        description: ERC-20 token contract address.
+        tests:
+          - not_null
+      - name: from_address
+        description: Sender address (zero address for mints).
+      - name: to_address
+        description: Recipient address (zero address for burns).
+      - name: value_raw
+        description: Token amount in smallest units (UInt256). No decimal adjustment applied.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source log row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["block_number", "log_index"]
+
+  - name: stg_timeboost_auction_resolved
+    description: >
+      On-chain AuctionResolved events from the ExpressLaneAuction contract.
+      The topic0 is a placeholder (all zeros) until the contract ABI is confirmed
+      on Arbiscan (see CLAUDE.md §11 and timeboost_auction_resolved_topic0 in
+      dbt_project.yml). This model returns zero rows until the variable is updated.
+      Raw topic and data fields are carried forward; ABI decoding happens in the
+      intermediate layer once the ABI is confirmed.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: block_number
+        description: Block containing the AuctionResolved event.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block timestamp.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+      - name: log_index
+        description: Log index.
+        tests:
+          - not_null
+      - name: contract_address
+        description: ExpressLaneAuction contract address.
+      - name: topic0
+        description: Event signature hash (placeholder until ABI confirmed).
+      - name: topic1_raw
+        description: First indexed parameter (raw hex; decoded in intermediate layer).
+      - name: topic2_raw
+        description: Second indexed parameter (raw hex).
+      - name: topic3_raw
+        description: Third indexed parameter (raw hex).
+      - name: data_raw
+        description: Non-indexed ABI-encoded data (raw hex; decoded in intermediate layer).
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source log row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["block_number", "log_index"]
+
+  - name: stg_timeboost_bids_ext
+    description: >
+      Typed and normalised Timeboost auction bids from the timeboost.app public
+      export (Apache-2.0). Covers the Timeboost era 2025-04-17 – ~2026-09-24.
+      amount_eth is Float64 for display; use amount_wei for accounting totals.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: round
+        description: Timeboost auction round number.
+        tests:
+          - not_null
+      - name: bidder
+        description: Bidder address (lowercase 0x-prefixed).
+        tests:
+          - not_null
+      - name: express_lane_controller
+        description: Address that would receive express-lane rights if this bid won.
+      - name: amount_wei
+        description: Bid amount in wei.
+        tests:
+          - not_null
+      - name: amount_eth
+        description: Bid amount in ETH (Float64, display only).
+      - name: bid_timestamp
+        description: Timestamp of the bid submission.
+        tests:
+          - not_null
+      - name: source
+        description: Import date string (YYYY-MM-DD) identifying the source file.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["round", "bidder"]
+
+  - name: stg_cex_klines
+    description: >
+      Typed and renamed Binance 1-second OHLCV klines. Columns are prefixed with
+      price_ to make the USD denomination explicit. Used by intermediate models to
+      convert wei tip amounts to USD equivalents via a nearest-second join.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: venue
+        description: Exchange identifier. Currently always 'binance'.
+        tests:
+          - not_null
+      - name: symbol
+        description: Trading pair symbol, e.g. 'ETHUSDT'.
+        tests:
+          - not_null
+      - name: open_time
+        description: Kline open timestamp (UTC, 1-second granularity).
+        tests:
+          - not_null
+      - name: price_open_usd
+        description: Opening price in USD.
+      - name: price_high_usd
+        description: High price in USD.
+      - name: price_low_usd
+        description: Low price in USD.
+      - name: price_close_usd
+        description: Closing price in USD.
+      - name: volume
+        description: Base asset volume during the 1-second window.
+      - name: trades
+        description: Number of trades during the window.
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["venue", "symbol", "open_time"]
+
+  - name: stg_balance_snapshots
+    description: >
+      Hourly ETH balance snapshots for fee-recipient addresses (NetworkFeeAccount
+      and InfraFeeAccount, addresses filled in task 8 part C).
+      balance_eth is Float64 for display; balance_wei (UInt256) must be used for
+      accounting and reconciliation against computed tip revenue.
+    config:
+      tags: ["staging"]
+    columns:
+      - name: address
+        description: Fee-recipient address (lowercase 0x-prefixed).
+        tests:
+          - not_null
+      - name: block_number
+        description: Block at which the balance was sampled.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block timestamp.
+        tests:
+          - not_null
+      - name: balance_wei
+        description: ETH balance at the snapshot block in wei (UInt256).
+        tests:
+          - not_null
+      - name: balance_eth
+        description: balance_wei / 1e18 (Float64, display only).
+      - name: _ingested_at
+        description: Timestamp when pw-ingester wrote the source row.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: ["address", "block_number"]

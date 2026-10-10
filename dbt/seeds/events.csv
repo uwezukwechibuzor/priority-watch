@@ -1,0 +1,5 @@
+id,label,event_date,block,description,source_url
+timeboost_launch,Timeboost launch,2025-04-17,,,https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942
+arbos_60_elara,ArbOS 60 Elara,,,ArbOS 60 (Elara) upgrade enabling PGA mechanics.,https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942
+pga_activation,PGA activation,2026-09-24,,,https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942
+security_council_pause,Security Council pause,2026-10-02,,Security Council paused new Stylus contract activations and added BoLD one-step-proof guard. No change to fee mechanics.,https://docs.arbitrum.io/for-users/security-council
