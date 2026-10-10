@@ -1,0 +1,16 @@
+[
+  {
+    "type": "event",
+    "name": "LiquidationCall",
+    "anonymous": false,
+    "inputs": [
+      { "name": "collateralAsset",             "type": "address", "indexed": true  },
+      { "name": "debtAsset",                   "type": "address", "indexed": true  },
+      { "name": "user",                        "type": "address", "indexed": true  },
+      { "name": "debtToCover",                 "type": "uint256", "indexed": false },
+      { "name": "liquidatedCollateralAmount",  "type": "uint256", "indexed": false },
+      { "name": "liquidator",                  "type": "address", "indexed": false },
+      { "name": "receiveAToken",               "type": "bool",    "indexed": false }
+    ]
+  }
+]

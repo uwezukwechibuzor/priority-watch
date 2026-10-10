@@ -1,0 +1,58 @@
+[
+  {
+    "type": "event",
+    "name": "AuctionResolved",
+    "anonymous": false,
+    "inputs": [
+      { "name": "isMultiBidAuction",             "type": "bool",    "indexed": true  },
+      { "name": "round",                         "type": "uint64",  "indexed": false },
+      { "name": "firstPriceBidder",              "type": "address", "indexed": true  },
+      { "name": "firstPriceExpressLaneController","type": "address", "indexed": true  },
+      { "name": "firstPriceAmount",              "type": "uint256", "indexed": false },
+      { "name": "price",                         "type": "uint256", "indexed": false },
+      { "name": "roundStartTimestamp",           "type": "uint64",  "indexed": false },
+      { "name": "roundEndTimestamp",             "type": "uint64",  "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "Deposit",
+    "anonymous": false,
+    "inputs": [
+      { "name": "account", "type": "address", "indexed": true  },
+      { "name": "amount",  "type": "uint256", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "WithdrawalInitiated",
+    "anonymous": false,
+    "inputs": [
+      { "name": "account",          "type": "address", "indexed": true  },
+      { "name": "withdrawalAmount", "type": "uint256", "indexed": false },
+      { "name": "roundWithdrawable","type": "uint256", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "WithdrawalFinalized",
+    "anonymous": false,
+    "inputs": [
+      { "name": "account",          "type": "address", "indexed": true  },
+      { "name": "withdrawalAmount", "type": "uint256", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "SetExpressLaneController",
+    "anonymous": false,
+    "inputs": [
+      { "name": "round",                      "type": "uint64",  "indexed": false },
+      { "name": "previousExpressLaneController","type":"address", "indexed": true  },
+      { "name": "newExpressLaneController",   "type": "address", "indexed": true  },
+      { "name": "transferor",                 "type": "address", "indexed": true  },
+      { "name": "startTimestamp",             "type": "uint64",  "indexed": false },
+      { "name": "endTimestamp",               "type": "uint64",  "indexed": false }
+    ]
+  }
+]

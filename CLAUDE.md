@@ -321,7 +321,7 @@ A task is done when ALL of the following are true:
 | 1 | Scaffold, master spec, UI reference | ✅ |
 | 2 | Docker Compose infra (ClickHouse, Postgres, Airflow, Caddy, Prometheus, Grafana) | ✅ |
 | 3 | ClickHouse schema (raw.*, meta.* tables, migrations) | ✅ |
-| 4 | Go core packages (config, obs, chain, store) | ⬜ |
+| 4 | Go core packages (config, obs, chain, store) | ✅ |
 | 5 | Block backfill ingester (idempotent, reorg-safe, any range) | ⬜ |
 | 6 | Live block follower (supervised, lag alerting) | ⬜ |
 | 7 | Binance CEX prices (WebSocket forward-fill + daily catch-up) | ⬜ |
