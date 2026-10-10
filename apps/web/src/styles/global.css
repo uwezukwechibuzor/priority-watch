@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+@theme {
+  /* Background */
+  --color-bg-base: #0b0c0e;
+  --color-bg-panel: #111318;
+
+  /* Borders */
+  --color-border: #1f2329;
+  --color-border-hover: #2d3340;
+
+  /* Text */
+  --color-text-primary: #f0f2f5;
+  --color-text-muted: #6b7280;
+  --color-text-dim: #4b5563;
+
+  /* Accent / status */
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-green: #22c55e;
+  --color-amber: #f59e0b;
+  --color-red: #ef4444;
+  --color-purple: #a855f7;
+
+  /* Entity palette (index 0-7) */
+  --color-entity-0: #3b82f6;
+  --color-entity-1: #f59e0b;
+  --color-entity-2: #a855f7;
+  --color-entity-3: #22c55e;
+  --color-entity-4: #ef4444;
+  --color-entity-5: #ec4899;
+  --color-entity-6: #14b8a6;
+  --color-entity-7: #f97316;
+
+  /* Fonts */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", monospace;
+
+  /* Spacing */
+  --spacing-panel: 16px;
+  --spacing-row: 36px;
+
+  /* Radii */
+  --radius-panel: 6px;
+  --radius-badge: 4px;
+}
+
+/* ── Base styles ─────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tabular numerals for all data cells */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Uppercase muted labels */
+.label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* Monospace for addresses and hashes */
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* Scrollbar theming */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-panel) 25%,
+    var(--color-border) 50%,
+    var(--color-bg-panel) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-badge);
+}
+
+/* Pulsing live indicator */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}

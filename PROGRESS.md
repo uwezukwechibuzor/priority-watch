@@ -17,7 +17,7 @@
 | 13 | Airflow DAGs | ✅ | feat(airflow): orchestration dags |
 | 14 | pw-api | ✅ | feat(api): rest api |
 | 15 | Pricing models + simulator engine | ✅ | feat(models): pricing and simulator |
-| 16 | Web shell | ⬜ | |
+| 16 | Web shell | ✅ | feat(web): app shell and design system |
 | 17 | /blocks page | ⬜ | |
 | 18 | /health page | ⬜ | |
 | 19 | /pricing, /opportunity, /simulator pages | ⬜ | |
