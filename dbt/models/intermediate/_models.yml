@@ -1,0 +1,516 @@
+version: 2
+
+models:
+  - name: int_tx_fees
+    description: >
+      Fee breakdown per transaction using the canonical PGA formula from CLAUDE.md §11.
+      H1 hypothesis: tip = priority_fee_per_gas * gas_used_for_l2 (L2 gas only).
+      ETH/USD conversion via ASOF JOIN to nearest preceding Binance 1s kline.
+      Era is 'pga' if block_number >= pga_activation_block variable; else 'timeboost'.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: block_timestamp
+        description: Block production timestamp (UTC).
+        tests:
+          - not_null
+      - name: tx_index
+        description: Transaction position within the block (0-based).
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash (lowercase 0x-prefixed).
+        tests:
+          - not_null
+      - name: tx_type
+        description: EIP-2718 transaction type (0 legacy, 1 EIP-2930, 2 EIP-1559).
+      - name: from_address
+        description: Sender address (lowercase 0x-prefixed).
+      - name: to_address
+        description: Recipient or contract address (lowercase 0x-prefixed).
+      - name: gas_used
+        description: Total gas consumed by this transaction.
+      - name: gas_used_for_l1
+        description: Gas portion attributed to L1 calldata cost (Arbitrum-specific).
+      - name: gas_used_for_l2
+        description: gas_used minus gas_used_for_l1; the L2-execution gas used for tip calculation.
+      - name: base_fee_per_gas
+        description: Block base fee per gas in wei.
+      - name: base_fee_per_gas_gwei
+        description: Block base fee per gas in Gwei (display only).
+      - name: effective_gas_price
+        description: Actual gas price paid by this transaction in wei.
+      - name: priority_fee_per_gas
+        description: >
+          Priority fee per gas in wei. Canonical formula: for type-2,
+          min(maxPriorityFeePerGas, maxFeePerGas - baseFee); for type 0/1,
+          effective_gas_price - base_fee (or 0 if negative).
+      - name: priority_fee_per_gas_gwei
+        description: priority_fee_per_gas in Gwei (display only).
+      - name: tip_paid_wei
+        description: Total priority fee paid in wei (priority_fee_per_gas * gas_used_for_l2, H1).
+      - name: tip_paid_eth
+        description: tip_paid_wei in ETH (Float64, display only).
+      - name: base_fee_paid_wei
+        description: Base fee portion of total transaction cost in wei.
+      - name: base_fee_paid_eth
+        description: base_fee_paid_wei in ETH (display only).
+      - name: total_fee_wei
+        description: Total fee paid in wei (effective_gas_price * gas_used).
+      - name: total_fee_eth
+        description: total_fee_wei in ETH (display only).
+      - name: eth_price_usd
+        description: ETH/USD close price from nearest preceding Binance 1s kline; 0 if no kline available.
+      - name: tip_paid_usd
+        description: tip_paid_eth * eth_price_usd (display only).
+      - name: total_fee_usd
+        description: total_fee_eth * eth_price_usd (display only).
+      - name: era
+        description: "'pga' if block_number >= pga_activation_block variable; 'timeboost' otherwise."
+
+  - name: int_block_ordering
+    description: >
+      Per-transaction ordering metrics with block-level statistics denormalized.
+      tip_rank is the dense rank of a transaction's priority fee within its block
+      (1 = highest fee, 0 = untipped). ordering_score is the Spearman rank correlation
+      between tip_rank and tx_index for tipped transactions per block (+1.0 = perfect
+      fee-descending order). estimated_rounds approximates PGA round boundaries by
+      counting fee-order restarts; documented as estimation only since round boundaries
+      are private mempool data and not observable on chain.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: tx_index
+        description: Transaction position within the block.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+      - name: tip_rank
+        description: Dense rank of this tx by priority fee descending within the block; 0 if untipped.
+      - name: tipped_tx_count
+        description: Count of tipped transactions in this block.
+      - name: distinct_tippers
+        description: Count of distinct sender addresses that paid a non-zero priority fee.
+      - name: block_type
+        description: "'untipped' (0 tippers), 'single' (1 tipper), 'contested' (2+ tippers)."
+      - name: top_fee_gwei
+        description: Highest priority fee per gas in this block (Gwei).
+      - name: second_fee_gwei
+        description: Second distinct priority fee per gas in this block (Gwei); 0 if fewer than 2 tippers.
+      - name: second_to_first_ratio
+        description: second_fee / top_fee; 0 if fewer than 2 distinct tipped fee levels.
+      - name: ordering_score
+        description: Spearman correlation of tip_rank vs tx_index for tipped txs; 0 if fewer than 2 tipped txs.
+      - name: estimated_rounds
+        description: >
+          Estimated number of PGA rounds in this block based on fee-order restarts.
+          This is an approximation only; actual 125ms round boundaries are not observable on chain.
+      - name: has_anomaly
+        description: "1 if estimated_rounds > 4 (suspected ordering anomaly); 0 otherwise."
+
+  - name: int_tx_classification
+    description: >
+      Transaction type classification for PGA analytics. Priority order:
+      liquidation > atomic_arb_candidate > dex_swap > simple_transfer > other.
+      atomic_arb_candidate is a simplified heuristic (2+ distinct pool swaps in the same tx);
+      it does not verify net-zero token flow cycles, which would require ERC-20 transfer analysis.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+      - name: swap_count
+        description: Number of distinct DEX pool swaps in this transaction.
+      - name: is_liquidation
+        description: 1 if this tx contains an Aave V3 LiquidationCall event; 0 otherwise.
+      - name: tx_class
+        description: >
+          Transaction category: 'liquidation', 'atomic_arb_candidate', 'dex_swap',
+          'simple_transfer', or 'other'.
+      - name: era
+        description: Era inherited from int_tx_fees.
+
+  - name: int_entities
+    description: >
+      Entity address map combining seed data (entities, pools, contracts) and a
+      heuristic bot detector. Materialized as a full table (not incremental) since
+      seed data changes infrequently and heuristic bot detection benefits from full-table
+      GROUP BY. label_source distinguishes 'seed' (verified) from 'heuristic' (EOA burst pattern).
+      confidence is 1.0 for seed rows, 0.5 for heuristic rows.
+    columns:
+      - name: address
+        description: Ethereum address (lowercase 0x-prefixed).
+        tests:
+          - unique
+          - not_null
+      - name: entity_name
+        description: Human-readable entity or pool name.
+        tests:
+          - not_null
+      - name: entity_type
+        description: Entity category (searcher, market_maker, protocol, etc.).
+      - name: color_index
+        description: Chart colour index (0-based integer); 0 for heuristic rows.
+      - name: address_label
+        description: Short label for this specific address.
+      - name: verified
+        description: 1 if the address is from a verified seed source; 0 for heuristic rows.
+      - name: label_source
+        description: "'seed' or 'heuristic'."
+      - name: confidence
+        description: Confidence score (1.0 for seed, 0.5 for heuristic).
+
+  - name: int_spam_signals
+    description: >
+      Spam and revert signals for tipped transactions only.
+      is_reverted_tipped: transaction paid a tip but the EVM execution reverted.
+      is_burst_candidate: transaction belongs to a group where the same
+      (from_address, to_address, input_selector, block_number) had 3+ reverts,
+      indicating possible duplicate-intent firing or over-bidding.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+      - name: is_reverted_tipped
+        description: 1 if status = 0 (reverted) and priority_fee_per_gas > 0; else 0.
+      - name: tip_wasted_wei
+        description: tip_paid_wei for reverted transactions; 0 for successful ones.
+      - name: is_burst_candidate
+        description: 1 if this tx belongs to a (sender, contract, selector, block) group with 3+ reverts.
+
+  - name: int_timeboost_rounds
+    description: >
+      Per-round Timeboost auction statistics from the external bids import (pw-ingester
+      import-timeboost). Provides the baseline for the /compare dashboard: Timeboost
+      clearing prices vs PGA tip revenue. clearing_price_wei is the second-highest
+      bid (Vickrey auction). winner_entity is resolved from the entities seed.
+    columns:
+      - name: round
+        description: Timeboost round number (sequential integer).
+        tests:
+          - unique
+          - not_null
+      - name: bid_count
+        description: Total number of bids submitted in this round.
+      - name: first_bid_wei
+        description: Highest bid amount in wei.
+      - name: clearing_price_wei
+        description: Auction clearing price in wei (2nd-highest bid; equals 1st if only one bid).
+      - name: clearing_price_eth
+        description: clearing_price_wei in ETH (display only).
+      - name: second_to_first_ratio
+        description: clearing_price / first_bid (contestedness proxy; 1.0 = perfectly competitive).
+      - name: winner_address
+        description: Address of the round winner from auction results; NULL if no result row.
+      - name: winner_entity
+        description: Entity name resolved from the entities seed; NULL if address not labelled.
+      - name: winner_entity_type
+        description: Entity type of the winner.
+
+unit_tests:
+  - name: test_tip_formula_type2
+    description: Type-2 tx priority fee = min(maxPriorityFee, maxFee - baseFee); tip = priority_fee * gas_used_for_l2
+    model: int_tx_fees
+    overrides:
+      vars:
+        pga_activation_block: 0
+    given:
+      - input: ref('stg_transactions')
+        rows:
+          - block_number: 1
+            block_timestamp: "2026-01-01 00:00:00"
+            tx_index: 0
+            tx_hash: "0xaaa"
+            tx_type: 2
+            from_address: "0xsender"
+            to_address: "0xrecipient"
+            value_wei: 0
+            gas_limit: 100000
+            input_selector: "0x12345678"
+            input_size: 4
+            max_fee_per_gas: 20000000000
+            max_priority_fee_per_gas: 10000000000
+            gas_price: 20000000000
+            _ingested_at: "2026-01-01 00:00:00"
+      - input: ref('stg_blocks')
+        rows:
+          - block_number: 1
+            block_timestamp: "2026-01-01 00:00:00"
+            block_hash: "0xbbb"
+            parent_hash: "0xccc"
+            l1_block_number: 100
+            base_fee_per_gas: 5000000000
+            base_fee_per_gas_gwei: 5.0
+            gas_used: 1000000
+            gas_limit: 30000000
+            gas_utilisation: 0.033
+            tx_count: 1
+            block_size_bytes: 500
+            _ingested_at: "2026-01-01 00:00:00"
+      - input: ref('stg_receipts')
+        rows:
+          - block_number: 1
+            block_timestamp: "2026-01-01 00:00:00"
+            tx_index: 0
+            tx_hash: "0xaaa"
+            status: 1
+            gas_used: 30000
+            gas_used_for_l1: 9000
+            gas_used_for_l2: 21000
+            effective_gas_price: 15000000000
+            effective_gas_price_gwei: 15.0
+            cumulative_gas_used: 30000
+            contract_address: ""
+            log_count: 0
+            _ingested_at: "2026-01-01 00:00:00"
+      - input: ref('stg_cex_klines')
+        rows:
+          - venue: "binance"
+            symbol: "ETHUSDT"
+            open_time: "2025-12-31 23:59:59"
+            price_open_usd: 3000.0
+            price_high_usd: 3000.0
+            price_low_usd: 3000.0
+            price_close_usd: 3000.0
+            volume: 100.0
+            trades: 50
+            _ingested_at: "2026-01-01 00:00:00"
+    expect:
+      rows:
+        - tx_hash: "0xaaa"
+          priority_fee_per_gas: 10000000000
+          tip_paid_wei: 210000000000000
+          era: "timeboost"
+
+  - name: test_tip_formula_type0
+    description: Type-0 tx priority fee = effective_gas_price - base_fee
+    model: int_tx_fees
+    overrides:
+      vars:
+        pga_activation_block: 0
+    given:
+      - input: ref('stg_transactions')
+        rows:
+          - block_number: 2
+            block_timestamp: "2026-01-01 00:00:01"
+            tx_index: 0
+            tx_hash: "0xddd"
+            tx_type: 0
+            from_address: "0xsender2"
+            to_address: "0xrecipient2"
+            value_wei: 0
+            gas_limit: 50000
+            input_selector: "0xabcdef12"
+            input_size: 4
+            max_fee_per_gas: 12000000000
+            max_priority_fee_per_gas: 0
+            gas_price: 12000000000
+            _ingested_at: "2026-01-01 00:00:01"
+      - input: ref('stg_blocks')
+        rows:
+          - block_number: 2
+            block_timestamp: "2026-01-01 00:00:01"
+            block_hash: "0xeee"
+            parent_hash: "0xbbb"
+            l1_block_number: 101
+            base_fee_per_gas: 5000000000
+            base_fee_per_gas_gwei: 5.0
+            gas_used: 50000
+            gas_limit: 30000000
+            gas_utilisation: 0.002
+            tx_count: 1
+            block_size_bytes: 200
+            _ingested_at: "2026-01-01 00:00:01"
+      - input: ref('stg_receipts')
+        rows:
+          - block_number: 2
+            block_timestamp: "2026-01-01 00:00:01"
+            tx_index: 0
+            tx_hash: "0xddd"
+            status: 1
+            gas_used: 21000
+            gas_used_for_l1: 1000
+            gas_used_for_l2: 20000
+            effective_gas_price: 12000000000
+            effective_gas_price_gwei: 12.0
+            cumulative_gas_used: 21000
+            contract_address: ""
+            log_count: 0
+            _ingested_at: "2026-01-01 00:00:01"
+      - input: ref('stg_cex_klines')
+        rows:
+          - venue: "binance"
+            symbol: "ETHUSDT"
+            open_time: "2025-12-31 23:59:59"
+            price_close_usd: 3000.0
+            price_open_usd: 3000.0
+            price_high_usd: 3000.0
+            price_low_usd: 3000.0
+            volume: 100.0
+            trades: 50
+            _ingested_at: "2026-01-01 00:00:00"
+    expect:
+      rows:
+        - tx_hash: "0xddd"
+          priority_fee_per_gas: 7000000000
+          tip_paid_wei: 140000000000000
+
+  - name: test_era_pga
+    description: Transaction at or above pga_activation_block gets era = 'pga'
+    model: int_tx_fees
+    overrides:
+      vars:
+        pga_activation_block: 100
+    given:
+      - input: ref('stg_transactions')
+        rows:
+          - block_number: 100
+            block_timestamp: "2026-09-24 00:00:00"
+            tx_index: 0
+            tx_hash: "0xfff"
+            tx_type: 2
+            from_address: "0xsender"
+            to_address: "0xrecipient"
+            value_wei: 0
+            gas_limit: 21000
+            input_selector: ""
+            input_size: 0
+            max_fee_per_gas: 10000000000
+            max_priority_fee_per_gas: 2000000000
+            gas_price: 10000000000
+            _ingested_at: "2026-09-24 00:00:00"
+      - input: ref('stg_blocks')
+        rows:
+          - block_number: 100
+            block_timestamp: "2026-09-24 00:00:00"
+            block_hash: "0x100"
+            parent_hash: "0x099"
+            l1_block_number: 200
+            base_fee_per_gas: 3000000000
+            base_fee_per_gas_gwei: 3.0
+            gas_used: 21000
+            gas_limit: 30000000
+            gas_utilisation: 0.001
+            tx_count: 1
+            block_size_bytes: 100
+            _ingested_at: "2026-09-24 00:00:00"
+      - input: ref('stg_receipts')
+        rows:
+          - block_number: 100
+            block_timestamp: "2026-09-24 00:00:00"
+            tx_index: 0
+            tx_hash: "0xfff"
+            status: 1
+            gas_used: 21000
+            gas_used_for_l1: 500
+            gas_used_for_l2: 20500
+            effective_gas_price: 5000000000
+            effective_gas_price_gwei: 5.0
+            cumulative_gas_used: 21000
+            contract_address: ""
+            log_count: 0
+            _ingested_at: "2026-09-24 00:00:00"
+      - input: ref('stg_cex_klines')
+        rows:
+          - venue: "binance"
+            symbol: "ETHUSDT"
+            open_time: "2026-09-23 23:59:59"
+            price_close_usd: 3500.0
+            price_open_usd: 3500.0
+            price_high_usd: 3500.0
+            price_low_usd: 3500.0
+            volume: 200.0
+            trades: 100
+            _ingested_at: "2026-09-24 00:00:00"
+    expect:
+      rows:
+        - tx_hash: "0xfff"
+          era: "pga"
+
+  - name: test_era_timeboost
+    description: Transaction below pga_activation_block gets era = 'timeboost'
+    model: int_tx_fees
+    overrides:
+      vars:
+        pga_activation_block: 200
+    given:
+      - input: ref('stg_transactions')
+        rows:
+          - block_number: 100
+            block_timestamp: "2026-09-24 00:00:00"
+            tx_index: 0
+            tx_hash: "0xggg"
+            tx_type: 2
+            from_address: "0xsender"
+            to_address: "0xrecipient"
+            value_wei: 0
+            gas_limit: 21000
+            input_selector: ""
+            input_size: 0
+            max_fee_per_gas: 10000000000
+            max_priority_fee_per_gas: 2000000000
+            gas_price: 10000000000
+            _ingested_at: "2026-09-24 00:00:00"
+      - input: ref('stg_blocks')
+        rows:
+          - block_number: 100
+            block_timestamp: "2026-09-24 00:00:00"
+            block_hash: "0x100b"
+            parent_hash: "0x099b"
+            l1_block_number: 200
+            base_fee_per_gas: 3000000000
+            base_fee_per_gas_gwei: 3.0
+            gas_used: 21000
+            gas_limit: 30000000
+            gas_utilisation: 0.001
+            tx_count: 1
+            block_size_bytes: 100
+            _ingested_at: "2026-09-24 00:00:00"
+      - input: ref('stg_receipts')
+        rows:
+          - block_number: 100
+            block_timestamp: "2026-09-24 00:00:00"
+            tx_index: 0
+            tx_hash: "0xggg"
+            status: 1
+            gas_used: 21000
+            gas_used_for_l1: 500
+            gas_used_for_l2: 20500
+            effective_gas_price: 5000000000
+            effective_gas_price_gwei: 5.0
+            cumulative_gas_used: 21000
+            contract_address: ""
+            log_count: 0
+            _ingested_at: "2026-09-24 00:00:00"
+      - input: ref('stg_cex_klines')
+        rows:
+          - venue: "binance"
+            symbol: "ETHUSDT"
+            open_time: "2026-09-23 23:59:59"
+            price_close_usd: 3500.0
+            price_open_usd: 3500.0
+            price_high_usd: 3500.0
+            price_low_usd: 3500.0
+            volume: 200.0
+            trades: 100
+            _ingested_at: "2026-09-24 00:00:00"
+    expect:
+      rows:
+        - tx_hash: "0xggg"
+          era: "timeboost"

@@ -327,7 +327,7 @@ A task is done when ALL of the following are true:
 | 7 | Binance CEX prices (WebSocket forward-fill + daily catch-up) | ✅ |
 | 8 | Entity registries + Timeboost baseline + fee verification | ✅ |
 | 9 | dbt staging layer | ✅ |
-| 10 | dbt intermediate layer | ⬜ |
+| 10 | dbt intermediate layer | ✅ |
 | 11 | dbt core marts (blocks, revenue, payer share, treasury) | ⬜ |
 | 12 | dbt opportunity marts (markout, capture rate, HHI) | ⬜ |
 | 13 | Airflow DAGs (backfill, dbt via Cosmos, monitoring, backup) | ⬜ |

@@ -11,7 +11,7 @@
 | 7 | Binance CEX prices | ✅ | feat(ingester): binance 1s klines |
 | 8 | Entity registries + Timeboost baseline + fee verification | ✅ | feat: verified registries and fee-mechanics analysis |
 | 9 | dbt staging layer | ✅ | feat(dbt): sources and staging |
-| 10 | dbt intermediate layer | ⬜ | |
+| 10 | dbt intermediate layer | ✅ | feat(dbt): intermediate models |
 | 11 | dbt core marts | ⬜ | |
 | 12 | dbt opportunity marts | ⬜ | |
 | 13 | Airflow DAGs | ⬜ | |
