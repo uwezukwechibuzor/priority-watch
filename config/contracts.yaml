@@ -1,4 +1,37 @@
 # Contract addresses on Arbitrum One relevant to PGA analytics.
 # Never invent addresses — verify from official Arbitrum docs or on-chain deployment.
-# Format: { name, address, abi_file, deployed_block, source_url }
-contracts: []
+contracts:
+  - name: "ExpressLaneAuction"
+    address: "0x65f07c7d521164a4d5dac6eb8fac8da067a3b78f"
+    abi_file: "timeboost_auction.json"
+    deployed_block: 0   # filled in task 8 after on-chain check
+    verified: false
+    source_url: "https://github.com/OffchainLabs/nitro-contracts/tree/11f6b90bd3322992c36d9f0549f82a6f92e14e6f/src/express-lane-auction"
+    note: "Timeboost Express Lane Auction on Arbitrum One. Verify address on Arbiscan."
+
+  - name: "AaveV3Pool"
+    address: "0x794a61358d6845594f94dc1db02a252b5b4814ad"
+    abi_file: "aave_v3_pool.json"
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.aave.com/developers/deployed-contracts/v3-mainnet/arbitrum"
+    note: ""
+
+  # Fee-recipient addresses discovered in task 8 part C; filled after chain analysis.
+  # Call ArbOwnerPublic.GetNetworkFeeAccount() and GetInfraFeeAccount() via eth_call,
+  # then run analyses/fee_mechanics/03_fee_recipients.sql.
+  - name: "NetworkFeeAccount"
+    address: ""
+    abi_file: ""
+    deployed_block: 0
+    verified: false
+    note: "ArbOwnerPublic.GetNetworkFeeAccount() result — fill after running analyses/fee_mechanics/03_fee_recipients.sql"
+    source_url: "https://github.com/OffchainLabs/nitro/blob/master/precompiles/ArbOwnerPublic.go"
+
+  - name: "InfraFeeAccount"
+    address: ""
+    abi_file: ""
+    deployed_block: 0
+    verified: false
+    note: "ArbOwnerPublic.GetInfraFeeAccount() result — fill after running analyses/fee_mechanics/03_fee_recipients.sql"
+    source_url: "https://github.com/OffchainLabs/nitro/blob/master/precompiles/ArbOwnerPublic.go"

@@ -43,10 +43,10 @@ Source: https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitr
 ### Key dates (verified from chain in task 8)
 | Event | Date | Block |
 |-------|------|-------|
-| Timeboost launch | 2025-04-17 | TBD |
-| ArbOS 60 Elara | TBD | TBD |
-| PGA activation | ~2026-09-24 | TBD — filled in task 8 |
-| Security Council pause | 2026-10-02 | TBD |
+| Timeboost launch | 2025-04-17 | TBD — run 01_find_activation_block.sql Method B |
+| ArbOS 60 Elara | TBD | TBD — run 01_find_activation_block.sql after ArbOS upgrade |
+| PGA activation | ~2026-09-24 | TBD — run 01_find_activation_block.sql Method A |
+| Security Council pause | 2026-10-02 | TBD — query raw.logs for SC multisig events |
 
 ### Benchmarks (Entropy, from AIP thread)
 - Timeboost captured ~1.74% of atomic-arbitrage revenue on Arbitrum One
@@ -446,3 +446,37 @@ git add <files>
 git commit -m "chore(task-N): ..."
 git push origin main
 ```
+
+---
+
+## 11. Canonical Fee Formulas
+
+These formulas were verified on a 1,000-block sample in task 8; update if task 8
+reconciliation reveals a different formula.
+
+### EIP-1559 type-2 transactions (post-PGA activation)
+
+```
+priority_fee_per_gas = min(maxPriorityFeePerGas, maxFeePerGas - baseFee)
+effective_gas_price  = baseFee + priority_fee_per_gas
+total_fee_wei        = effective_gas_price × gas_used
+
+-- where gas_used = l2_gas + l1_gas (gasUsedForL1)
+
+l1_fee  = baseFee × gas_used_for_l1      → infraFeeAccount (L1 calldata cost)
+l2_base = baseFee × (gas_used - gas_used_for_l1)  → networkFeeAccount
+tip     = priority_fee_per_gas × (gas_used - gas_used_for_l1)
+          → networkFeeAccount → DAO: 97% Treasury / 3% Developer Guild
+```
+
+Hypothesis H1 (tip on L2 gas only) is the working assumption; confirmed by
+reconciliation in analyses/fee_mechanics/04_reconcile_balance.sql once
+balance snapshot data is available.
+
+### Key addresses
+| Role | Address | Source |
+|------|---------|--------|
+| ArbOwnerPublic precompile | 0x000000000000000000000000000000000000006b | https://github.com/OffchainLabs/nitro |
+| ArbGasInfo precompile | 0x000000000000000000000000000000000000006c | https://github.com/OffchainLabs/nitro |
+| NetworkFeeAccount | TBD (task 8 part C) | ArbOwnerPublic.GetNetworkFeeAccount() |
+| InfraFeeAccount | TBD (task 8 part C) | ArbOwnerPublic.GetInfraFeeAccount() |

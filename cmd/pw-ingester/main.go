@@ -27,6 +27,7 @@ import (
 	"github.com/uwezukwechibuzor/priority-watch/internal/ingest"
 	"github.com/uwezukwechibuzor/priority-watch/internal/obs"
 	"github.com/uwezukwechibuzor/priority-watch/internal/store"
+	"github.com/uwezukwechibuzor/priority-watch/internal/timeboost"
 )
 
 func main() {
@@ -611,14 +612,73 @@ func runCEXFollow(ctx context.Context, log *slog.Logger, symbolsFlag string) err
 }
 
 func newImportTimeboostCmd(ctx context.Context) *cobra.Command {
-	return &cobra.Command{
+	var fromFlag, toFlag string
+	cmd := &cobra.Command{
 		Use:   "import-timeboost",
-		Short: "Import Timeboost baseline (task 8)",
+		Short: "Download timeboost.app Parquet baseline into raw.timeboost_bids_ext",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			newLogger().InfoContext(ctx, "import-timeboost: implemented in task 8")
-			return nil
+			return runImportTimeboost(ctx, newLogger(), fromFlag, toFlag)
 		},
 	}
+	cmd.Flags().StringVar(&fromFlag, "from", "", "start date YYYY-MM-DD (required)")
+	cmd.Flags().StringVar(&toFlag, "to", "", "end date YYYY-MM-DD (required)")
+	_ = cmd.MarkFlagRequired("from")
+	_ = cmd.MarkFlagRequired("to")
+	return cmd
+}
+
+func runImportTimeboost(ctx context.Context, log *slog.Logger, fromStr, toStr string) error {
+	from, err := time.ParseInLocation("2006-01-02", fromStr, time.UTC)
+	if err != nil {
+		return fmt.Errorf("parse --from %q: %w", fromStr, err)
+	}
+	to, err := time.ParseInLocation("2006-01-02", toStr, time.UTC)
+	if err != nil {
+		return fmt.Errorf("parse --to %q: %w", toStr, err)
+	}
+	if from.After(to) {
+		return fmt.Errorf("--from %s is after --to %s", fromStr, toStr)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	conn, err := clickhouse.Open(&clickhouse.Options{
+		Addr:     []string{cfg.ClickHouseAddr},
+		Auth:     clickhouse.Auth{Username: cfg.ClickHouseUser, Password: cfg.ClickHousePassword},
+		Settings: clickhouse.Settings{"max_execution_time": 120},
+	})
+	if err != nil {
+		return fmt.Errorf("open clickhouse: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+	if err := conn.Ping(ctx); err != nil {
+		return fmt.Errorf("ping clickhouse: %w", err)
+	}
+
+	reg := prometheus.NewRegistry()
+	bidsWriter := store.NewBatchWriter(conn, timeboost.InsertBidSQL,
+		cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_timeboost_bids_ext"))
+	resultsWriter := store.NewBatchWriter(conn, timeboost.InsertResultSQL,
+		cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_timeboost_auction_results_ext"))
+
+	importCfg := timeboost.Config{
+		BidsURL:    envOr("TIMEBOOST_BIDS_URL", "https://timeboost.app/api/bids/"),
+		ResultsURL: envOr("TIMEBOOST_RESULTS_URL", "https://timeboost.app/api/results/"),
+		RateLimit:  60,
+		From:       from,
+		To:         to,
+	}
+
+	imp := timeboost.NewImporter(importCfg, bidsWriter, resultsWriter, nil, log)
+	if err := imp.Run(ctx); err != nil {
+		return fmt.Errorf("import-timeboost run: %w", err)
+	}
+
+	log.InfoContext(ctx, "import-timeboost complete", "from", fromStr, "to", toStr)
+	return nil
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────

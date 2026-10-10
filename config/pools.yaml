@@ -1,4 +1,177 @@
 # Known liquidity pool addresses on Arbitrum One used for DEX flow analysis.
 # Source: verify each address against the protocol's official documentation before adding.
-# Format: { name, protocol, token0, token1, fee_tier, address }
-pools: []
+# Empty addresses are skipped by the log filter — correct behaviour until verified.
+pools:
+  # Pool 1: Uniswap V3 WETH/USDC.e 0.05%
+  # Source: https://info.uniswap.org/#/arbitrum/pools/0xc6962004f452be9203591991d15f6b388e09e8d0
+  - address: "0xc6962004f452be9203591991d15f6b388e09e8d0"
+    dex: "uniswap_v3"
+    event_type: "Swap"
+    token0:
+      address: "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8"
+      symbol: "USDC.e"
+      decimals: 6
+      # Source: https://bridge.arbitrum.io/
+    token1:
+      address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      symbol: "WETH"
+      decimals: 18
+      # Source: https://bridge.arbitrum.io/
+    fee: 500
+    tick_spacing: 10
+    cex_symbol: "ETHUSDT"
+    verified: true
+    source_url: "https://info.uniswap.org/#/arbitrum/pools/0xc6962004f452be9203591991d15f6b388e09e8d0"
+
+  # Pool 2: Uniswap V3 WETH/USDC (native) 0.05%
+  # Address needs on-chain verification via Uniswap V3 factory getPool call.
+  - address: "0xC31E54c7a869B9FcBEcc14363CF510d1c41fa443"
+    dex: "uniswap_v3"
+    event_type: "Swap"
+    token0:
+      address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      symbol: "WETH"
+      decimals: 18
+      # Source: https://bridge.arbitrum.io/
+    token1:
+      address: "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+      symbol: "USDC"
+      decimals: 6
+      # Source: https://www.circle.com/en/usdc/arbitrum
+    fee: 500
+    tick_spacing: 10
+    cex_symbol: "ETHUSDT"
+    verified: false
+    source_url: "https://info.uniswap.org/#/arbitrum/pools/0xC31E54c7a869B9FcBEcc14363CF510d1c41fa443"
+
+  # Pool 3: Uniswap V3 WETH/ARB 0.05%
+  # Address needs on-chain verification via Uniswap V3 factory getPool call.
+  - address: "0x92c63d0e701CAAe670C9415d91C474F686298f00"
+    dex: "uniswap_v3"
+    event_type: "Swap"
+    token0:
+      address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      symbol: "WETH"
+      decimals: 18
+      # Source: https://bridge.arbitrum.io/
+    token1:
+      address: "0x912ce59144191c1204e64559fe8253a0e49e6548"
+      symbol: "ARB"
+      decimals: 18
+      # Source: https://docs.arbitrum.io/
+    fee: 500
+    tick_spacing: 10
+    cex_symbol: "ETHUSDT"
+    verified: false
+    source_url: "https://info.uniswap.org/#/arbitrum/pools/0x92c63d0e701CAAe670C9415d91C474F686298f00"
+
+  # Pool 4: Uniswap V3 WETH/USDT 0.05%
+  # Address needs on-chain verification via Uniswap V3 factory getPool call.
+  - address: "0x641C00A822e8b671738d32a431a4Fb6074E5c79d"
+    dex: "uniswap_v3"
+    event_type: "Swap"
+    token0:
+      address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      symbol: "WETH"
+      decimals: 18
+      # Source: https://bridge.arbitrum.io/
+    token1:
+      address: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"
+      symbol: "USDT"
+      decimals: 6
+      # Source: https://bridge.arbitrum.io/
+    fee: 500
+    tick_spacing: 10
+    cex_symbol: "ETHUSDT"
+    verified: false
+    source_url: "https://info.uniswap.org/#/arbitrum/pools/0x641C00A822e8b671738d32a431a4Fb6074E5c79d"
+
+  # Pool 5: Uniswap V3 WETH/WBTC 0.05%
+  # Address needs on-chain verification via Uniswap V3 factory getPool call.
+  - address: "0x2f5e87C9312fa29aed5c179E456625D79015299c"
+    dex: "uniswap_v3"
+    event_type: "Swap"
+    token0:
+      address: "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f"
+      symbol: "WBTC"
+      decimals: 8
+      # Source: https://bridge.arbitrum.io/
+    token1:
+      address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      symbol: "WETH"
+      decimals: 18
+      # Source: https://bridge.arbitrum.io/
+    fee: 500
+    tick_spacing: 10
+    cex_symbol: "ETHUSDT"
+    verified: false
+    source_url: "https://info.uniswap.org/#/arbitrum/pools/0x2f5e87C9312fa29aed5c179E456625D79015299c"
+
+  # Pool 6: Camelot V3 (Algebra) WETH/USDC
+  # Address must be discovered via Algebra factory poolByPair(token0, token1).
+  # Factory: 0x1a3c9B1d2F0529D97f2afC5136Cc23e58f1FD35d (needs verification)
+  # Run scripts/verify_pools/main.go to populate this address.
+  - address: ""
+    dex: "camelot_v3"
+    event_type: "Swap"
+    token0:
+      address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      symbol: "WETH"
+      decimals: 18
+      # Source: https://bridge.arbitrum.io/
+    token1:
+      address: "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+      symbol: "USDC"
+      decimals: 6
+      # Source: https://www.circle.com/en/usdc/arbitrum
+    fee: 0
+    tick_spacing: 0
+    cex_symbol: "ETHUSDT"
+    verified: false
+    source_url: "https://app.camelot.exchange/"
+
+  # Pool 7: Camelot V3 (Algebra) WETH/ARB
+  # Address must be discovered via Algebra factory poolByPair(token0, token1).
+  # Factory: 0x1a3c9B1d2F0529D97f2afC5136Cc23e58f1FD35d (needs verification)
+  # Run scripts/verify_pools/main.go to populate this address.
+  - address: ""
+    dex: "camelot_v3"
+    event_type: "Swap"
+    token0:
+      address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      symbol: "WETH"
+      decimals: 18
+      # Source: https://bridge.arbitrum.io/
+    token1:
+      address: "0x912ce59144191c1204e64559fe8253a0e49e6548"
+      symbol: "ARB"
+      decimals: 18
+      # Source: https://docs.arbitrum.io/
+    fee: 0
+    tick_spacing: 0
+    cex_symbol: "ETHUSDT"
+    verified: false
+    source_url: "https://app.camelot.exchange/"
+
+  # Pool 8: SushiSwap V3 WETH/USDC
+  # Address must be discovered via SushiSwap V3 factory.
+  # Factory: 0x1af415a1eba07a4986a52b6f2e7de7003d82231e (needs verification)
+  # Run scripts/verify_pools/main.go to populate this address.
+  - address: ""
+    dex: "sushiswap_v3"
+    event_type: "Swap"
+    token0:
+      address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      symbol: "WETH"
+      decimals: 18
+      # Source: https://bridge.arbitrum.io/
+    token1:
+      address: "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+      symbol: "USDC"
+      decimals: 6
+      # Source: https://www.circle.com/en/usdc/arbitrum
+    fee: 500
+    tick_spacing: 10
+    cex_symbol: "ETHUSDT"
+    verified: false
+    source_url: "https://www.sushi.com/arbitrum/pool/v3"

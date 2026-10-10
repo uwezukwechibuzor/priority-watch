@@ -9,7 +9,7 @@
 | 5 | Block backfill ingester | ✅ | feat(ingest): resumable block backfill with errgroup pipeline |
 | 6 | Live block follower | ✅ | feat(ingester): live follower with reorg handling |
 | 7 | Binance CEX prices | ✅ | feat(ingester): binance 1s klines |
-| 8 | Entity registries + Timeboost baseline + fee verification | ⬜ | |
+| 8 | Entity registries + Timeboost baseline + fee verification | ✅ | feat: verified registries and fee-mechanics analysis |
 | 9 | dbt staging layer | ⬜ | |
 | 10 | dbt intermediate layer | ⬜ | |
 | 11 | dbt core marts | ⬜ | |

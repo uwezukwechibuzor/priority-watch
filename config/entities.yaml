@@ -1,4 +1,35 @@
 # Known entity labels for Arbitrum One addresses (searchers, market makers, protocols).
 # Never invent labels — verify each from a primary source (Etherscan tag, official announcement).
-# Format: { name, addresses: [...], type, source_url }
-entities: []
+# Empty addresses lists are intentional: on-chain address mapping requires further attribution work.
+entities:
+  - name: "Kairos Research"
+    type: "searcher"
+    color_index: 0
+    addresses: []
+    note: "Won ~70%+ of Timeboost express-lane auctions per Entropy Advisors analysis."
+    source_url: "https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942"
+
+  - name: "Wintermute"
+    type: "market_maker"
+    color_index: 1
+    addresses: []
+    note: "Named in Entropy Advisors Timeboost analysis as a top participant."
+    source_url: "https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942"
+
+  - name: "Selini Capital"
+    type: "market_maker"
+    color_index: 2
+    addresses: []
+    note: "Named in Entropy Advisors Timeboost analysis."
+    source_url: "https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942"
+
+  - name: "Uniswap Labs"
+    type: "protocol"
+    color_index: 3
+    addresses:
+      - address: "0x1f98431c8ad98523631ae4a59f267346ea31f984"
+        label: "Uniswap V3 Factory"
+        verified: true
+        source_url: "https://docs.uniswap.org/contracts/v3/reference/deployments"
+    note: ""
+    source_url: "https://docs.uniswap.org/contracts/v3/reference/deployments"
