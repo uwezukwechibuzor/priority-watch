@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Reject commit messages containing Co-authored-by lines or AI attribution.
+set -euo pipefail
+
+MSG_FILE="$1"
+
+if grep -qiE '(co-authored-by|generated with|claude|anthropic|openai|chatgpt|copilot)' "$MSG_FILE"; then
+  echo "ERROR: Commit message contains forbidden AI attribution or co-author line."
+  echo "       Remove any 'Co-authored-by:', 'Generated with', or AI tool mentions."
+  exit 1
+fi

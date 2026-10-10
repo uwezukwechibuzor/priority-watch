@@ -1,0 +1,24 @@
+# Progress
+
+| # | Task | Status | Commit |
+|---|------|--------|--------|
+| 1 | Scaffold, master spec, UI reference | ✅ | chore: scaffold priority-watch |
+| 2 | Docker Compose infra | ⬜ | |
+| 3 | ClickHouse schema | ⬜ | |
+| 4 | Go core packages | ⬜ | |
+| 5 | Block backfill ingester | ⬜ | |
+| 6 | Live block follower | ⬜ | |
+| 7 | Binance CEX prices | ⬜ | |
+| 8 | Entity registries + Timeboost baseline + fee verification | ⬜ | |
+| 9 | dbt staging layer | ⬜ | |
+| 10 | dbt intermediate layer | ⬜ | |
+| 11 | dbt core marts | ⬜ | |
+| 12 | dbt opportunity marts | ⬜ | |
+| 13 | Airflow DAGs | ⬜ | |
+| 14 | pw-api | ⬜ | |
+| 15 | Pricing models + simulator engine | ⬜ | |
+| 16 | Web shell | ⬜ | |
+| 17 | /blocks page | ⬜ | |
+| 18 | /health page | ⬜ | |
+| 19 | /pricing, /opportunity, /simulator pages | ⬜ | |
+| 20 | Docs, hardening, launch | ⬜ | |

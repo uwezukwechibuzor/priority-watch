@@ -1,0 +1,4 @@
+# Known liquidity pool addresses on Arbitrum One used for DEX flow analysis.
+# Source: verify each address against the protocol's official documentation before adding.
+# Format: { name, protocol, token0, token1, fee_tier, address }
+pools: []

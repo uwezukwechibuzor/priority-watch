@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Fail if git user.name is not uwezukwechibuzor.
+set -euo pipefail
+
+AUTHOR_NAME=$(git config user.name 2>/dev/null || true)
+EXPECTED="uwezukwechibuzor"
+
+if [ "$AUTHOR_NAME" != "$EXPECTED" ]; then
+  echo "ERROR: git user.name is '$AUTHOR_NAME', expected '$EXPECTED'."
+  echo "       Run: git config user.name '$EXPECTED'"
+  exit 1
+fi

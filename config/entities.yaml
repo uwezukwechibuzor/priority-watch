@@ -1,0 +1,4 @@
+# Known entity labels for Arbitrum One addresses (searchers, market makers, protocols).
+# Never invent labels — verify each from a primary source (Etherscan tag, official announcement).
+# Format: { name, addresses: [...], type, source_url }
+entities: []

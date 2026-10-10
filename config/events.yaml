@@ -1,0 +1,20 @@
+# On-chain and governance events shown as vertical markers on all time-series charts.
+# source_url must point to a primary source (forum post, block explorer, official announcement).
+events:
+  - id: timeboost_launch
+    label: "Timeboost launch"
+    date: "2025-04-17"
+    source_url: "https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942"
+
+  - id: pga_activation
+    label: "PGA activation"
+    date: "2026-09-24"
+    # Exact activation block filled in task 8 after on-chain verification
+    block: null
+    source_url: "https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitrum-one-ordering-policy-to-priority-gas-auctions-pga/30942"
+
+  - id: security_council_pause
+    label: "Security Council pause"
+    date: "2026-10-02"
+    description: "Security Council paused new Stylus contract activations and added BoLD one-step-proof guard. No change to fee mechanics."
+    source_url: ""

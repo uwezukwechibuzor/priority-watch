@@ -1,0 +1,4 @@
+# Contract addresses on Arbitrum One relevant to PGA analytics.
+# Never invent addresses — verify from official Arbitrum docs or on-chain deployment.
+# Format: { name, address, abi_file, deployed_block, source_url }
+contracts: []

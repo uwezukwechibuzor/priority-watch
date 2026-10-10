@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Verify every outgoing commit's author and committer name is uwezukwechibuzor.
+set -euo pipefail
+
+EXPECTED="uwezukwechibuzor"
+REMOTE="$1"
+URL="$2"
+
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+    continue  # deletion; skip
+  fi
+
+  RANGE=""
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    RANGE="$local_sha"
+  else
+    RANGE="${remote_sha}..${local_sha}"
+  fi
+
+  # Check author names
+  BAD=$(git log --format="%H %an" $RANGE | grep -v " $EXPECTED$" || true)
+  if [ -n "$BAD" ]; then
+    echo "ERROR: Outgoing commits with unexpected author name:"
+    echo "$BAD"
+    echo "All commits must be authored by '$EXPECTED'."
+    exit 1
+  fi
+
+  # Check committer names
+  BAD=$(git log --format="%H %cn" $RANGE | grep -v " $EXPECTED$" || true)
+  if [ -n "$BAD" ]; then
+    echo "ERROR: Outgoing commits with unexpected committer name:"
+    echo "$BAD"
+    echo "All commits must be committed by '$EXPECTED'."
+    exit 1
+  fi
+done

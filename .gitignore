@@ -1,0 +1,46 @@
+# Environment — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Go build artefacts
+/bin/
+*.test
+*.prof
+coverage.out
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# Airflow
+airflow/logs/
+airflow/__pycache__/
+airflow/**/__pycache__/
+
+# Node / frontend
+apps/web/node_modules/
+apps/web/dist/
+apps/web/.vite/
+
+# MkDocs
+site/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# ClickHouse local data (Docker volume mounts)
+infra/clickhouse/data/
+
+# Grafana provisioning secrets
+infra/grafana/grafana.ini
+
+# Testcontainers cache
+.testcontainers.properties
