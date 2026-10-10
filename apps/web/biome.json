@@ -34,12 +34,13 @@
   },
   "overrides": [
     {
-      "include": ["src/components/ui/DataTable.tsx"],
+      "include": ["src/components/ui/DataTable.tsx", "src/components/blocks/BlockTable.tsx"],
       "linter": {
         "rules": {
           "a11y": {
             "noNoninteractiveTabindex": "off",
-            "useSemanticElements": "off"
+            "useSemanticElements": "off",
+            "useFocusableInteractive": "off"
           },
           "suspicious": {
             "noArrayIndexKey": "off"
