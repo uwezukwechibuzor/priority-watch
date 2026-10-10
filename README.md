@@ -129,6 +129,20 @@ See [CLAUDE.md](CLAUDE.md) for the full architecture and engineering spec.
 
 ---
 
+## Acknowledgements
+
+The screen design, dashboard routes, API shape, and README format are faithful translations
+of **[timeboost.app](https://timeboost.app)** (MIT-licensed,
+[source](https://github.com/justmert/timeboost-analytics) by
+[justmert](https://github.com/justmert)) from the Timeboost express-lane auction to the
+PGA ordering policy.
+
+The `pw-ingester import-timeboost` command downloads historical Timeboost baseline data
+from the timeboost.app public export (Apache-2.0). Data is attributed to that source in
+`raw.timeboost_bids_ext.source` and `raw.timeboost_auction_results_ext.source`.
+
+---
+
 ## License
 
 Apache 2.0 — see [LICENSE](LICENSE).
