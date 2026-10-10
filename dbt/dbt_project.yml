@@ -67,3 +67,6 @@ seeds:
     events:
       +column_types:
         block: "Nullable(UInt64)"
+    benchmarks:
+      +column_types:
+        value: "Float64"

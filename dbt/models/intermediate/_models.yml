@@ -223,6 +223,41 @@ models:
       - name: winner_entity_type
         description: Entity type of the winner.
 
+  - name: int_cex_mid_at_block
+    description: >
+      CEX mid price matched to each block via ClickHouse ASOF JOIN to Binance 1s klines.
+      LIMITATION: up to 4 consecutive Arbitrum blocks (250ms each) share the same
+      1-second kline, so sub-second spread resolution is not possible from this source.
+      mid_price_usd = (open + close) / 2 within the kline second.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: cex_symbol
+        description: Binance pair symbol (e.g. 'ETHUSDT').
+      - name: mid_price_usd
+        description: (price_open + price_close) / 2 for the kline second containing the block.
+      - name: kline_open_time
+        description: Start of the 1s kline bucket used for this block's price lookup.
+
+  - name: int_dex_price_per_block
+    description: >
+      Last DEX execution price per pool per block (argMax over log_index).
+      dex_price_usd normalises to USD per ETH for ETH/stablecoin pools.
+      has_usd_normalisation = 1 when normalisation was possible; 0 for non-stablecoin pairs.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: pool_address
+        description: DEX pool contract address.
+      - name: dex_price_usd
+        description: Last execution price normalised to USD per ETH; 0 for non-stablecoin pairs.
+      - name: has_usd_normalisation
+        description: 1 if dex_price_usd is valid; 0 for non-stablecoin pairs.
+
 unit_tests:
   - name: test_tip_formula_type2
     description: Type-2 tx priority fee = min(maxPriorityFee, maxFee - baseFee); tip = priority_fee * gas_used_for_l2

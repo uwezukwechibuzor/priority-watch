@@ -428,3 +428,194 @@ exposures:
       - ref('fct_treasury_daily')
       - ref('agg_era_comparison')
       - ref('dim_entities')
+
+  - name: fct_spread_per_block
+    description: >
+      DEX vs CEX signed spread in basis points per pool per block.
+      Named dataset: cex_dex_spread_per_block.
+      spread_bps = (dex_price_usd - cex_mid_usd) / cex_mid_usd × 10000.
+      Only pools with has_usd_normalisation = 1 and cex_symbol != '' are included.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: pool_address
+        description: DEX pool address.
+        tests:
+          - not_null
+      - name: spread_bps
+        description: Signed CEX-DEX spread in basis points. Positive = DEX above CEX mid.
+      - name: abs_spread_bps
+        description: Absolute spread in basis points.
+
+  - name: fct_swap_markouts
+    description: >
+      Per-swap markout P&L at 6 horizons (1s, 5s, 10s, 30s, 60s, 300s).
+      Named dataset: swap_markouts.
+      markout_usd_Ns = eth_delta × (cex_price_at_(t+N) − exec_price_usd).
+      Positive markout = informed trade (price moved in trader's favour).
+      NULL when the horizon kline is not yet available (ingestion frontier).
+      Only ETH/stablecoin pools included.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: log_index
+        description: Log index of the swap event within the block.
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+      - name: eth_delta
+        description: Net ETH received by the trader (positive = bought ETH from pool).
+      - name: exec_price_usd
+        description: DEX execution price normalised to USD per ETH.
+      - name: markout_usd_1s
+        description: USD markout at 1 second horizon (NULL if kline unavailable).
+      - name: markout_usd_300s
+        description: USD markout at 300 second horizon (NULL if kline unavailable).
+
+  - name: fct_arb_capture
+    description: >
+      Per-atomic-arb-candidate transaction: estimated gross arb profit, tip paid, and
+      capture rate. Named dataset: arb_capture.
+      gross_profit_usd_est = Σ(-stablecoin_delta_i) across all swaps in the tx.
+      capture_rate = tip_paid_usd / gross_profit_usd_est (NULL if gross ≤ 0).
+      is_negative_profit = 1 flags heuristic mis-classifications for monitoring.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash.
+        tests:
+          - not_null
+          - unique
+      - name: gross_profit_usd_est
+        description: Estimated gross arb profit from net stablecoin flows (see methodology doc).
+      - name: capture_rate
+        description: tip_paid_usd / gross_profit_usd_est; NULL when gross ≤ 0.
+      - name: is_negative_profit
+        description: 1 when gross_profit_usd_est ≤ 0 (likely heuristic over-classification).
+
+  - name: agg_entity_position_daily
+    description: >
+      Per-entity daily ordering efficiency metrics for the /opportunity Entity Position
+      Leaderboard. delta_rank_vs_position > 0 means entity consistently lands later than
+      their fee rank implies (ordering inefficiency or private mempool effects).
+    columns:
+      - name: date
+        description: Calendar date.
+        tests:
+          - not_null
+      - name: entity_name
+        description: Entity name or from_address if unlabelled.
+        tests:
+          - not_null
+      - name: avg_fee_gwei
+        description: Average priority fee paid by this entity (Gwei, tipped txs only).
+      - name: avg_tip_rank
+        description: Average fee-based rank within block (1 = highest fee).
+      - name: delta_rank_vs_position
+        description: avg_tip_rank minus avg_tx_index. Positive = lands behind expected position.
+      - name: top3_position_share
+        description: Fraction of tipped txs landing in the first 3 positions of the block (0-1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+      - name: fee_efficiency
+        description: Top-3 position wins per total Gwei spent; higher = more efficient.
+
+  - name: fct_execution_quality_daily
+    description: >
+      Per-entity per-day execution quality: tx/revert counts, wasted tips, and average
+      markout P&L at 6 horizons. Named dataset: execution_quality_daily.
+    columns:
+      - name: date
+        description: Calendar date.
+        tests:
+          - not_null
+      - name: entity_name
+        description: Entity name or from_address if unlabelled.
+        tests:
+          - not_null
+      - name: revert_rate
+        description: Fraction of tipped txs that reverted (0-1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+      - name: avg_markout_usd_1s
+        description: Average markout at 1s horizon in USD (NULL if no kline data).
+      - name: avg_markout_usd_300s
+        description: Average markout at 300s horizon in USD.
+
+  - name: agg_spread_heatmap
+    description: >
+      Spread heatmap: median spread (bps) per pool × hour-of-day × day-of-week.
+      Powers the /opportunity Spread Heatmap panel. Materialized as a table.
+    columns:
+      - name: pool_address
+        description: DEX pool address.
+        tests:
+          - not_null
+      - name: hour_of_day
+        description: Hour of day (0-23, UTC).
+      - name: day_of_week
+        description: ISO day of week (1=Monday ... 7=Sunday).
+      - name: median_spread_bps
+        description: Median signed spread in bps for this pool / time bucket.
+
+  - name: agg_spread_histogram
+    description: >
+      Spread histogram: block count per spread-bps bucket per pool.
+      Powers the /opportunity Spread Histogram panel. Materialized as a table.
+    columns:
+      - name: pool_address
+        description: DEX pool address.
+        tests:
+          - not_null
+      - name: spread_bin
+        description: Spread bin label (e.g. '0 to 10' means 0–10 bps).
+      - name: block_count
+        description: Number of blocks in this spread bin.
+      - name: block_pct
+        description: Fraction of blocks in this bin for this pool / era.
+
+exposures:
+  - name: opportunity_page
+    type: dashboard
+    description: >
+      /opportunity page: Spread heatmap, Spread histogram, 6-horizon markout scatter,
+      Entity Position Leaderboard, Execution table.
+    owner:
+      name: priority-watch
+    depends_on:
+      - ref('fct_spread_per_block')
+      - ref('fct_swap_markouts')
+      - ref('fct_arb_capture')
+      - ref('agg_entity_position_daily')
+      - ref('fct_execution_quality_daily')
+      - ref('agg_spread_heatmap')
+      - ref('agg_spread_histogram')
+      - ref('dim_entities')
+
+  - name: opportunity_api
+    type: application
+    description: >
+      pw-api /api/v1/opportunity endpoint group: spread, markout, capture rate,
+      entity position leaderboard, execution quality.
+    owner:
+      name: priority-watch
+    depends_on:
+      - ref('fct_spread_per_block')
+      - ref('fct_swap_markouts')
+      - ref('fct_arb_capture')
+      - ref('agg_entity_position_daily')
+      - ref('fct_execution_quality_daily')

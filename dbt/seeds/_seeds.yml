@@ -93,3 +93,30 @@ seeds:
         description: Optional longer description of what the event represents.
       - name: source_url
         description: Primary source URL (governance forum post, block explorer, docs).
+
+  - name: benchmarks
+    description: >
+      Published benchmark figures from Entropy Advisors (March 2026) for atomic-arbitrage
+      capture rates on Arbitrum One (Timeboost era), Ethereum PoS, and Base.
+      Used as reference lines on the /opportunity capture rate chart.
+      NOTE: different methodology to Priority Watch on-chain heuristic — see
+      docs/methodology/arbitrage.md §5 for a full comparison.
+    columns:
+      - name: benchmark_id
+        description: Stable identifier for the benchmark row.
+      - name: chain
+        description: Chain or network (e.g. 'arbitrum_one', 'ethereum', 'base').
+      - name: protocol
+        description: Ordering protocol (e.g. 'timeboost', 'pos', 'base').
+      - name: metric
+        description: Metric name (e.g. 'arb_capture_rate').
+      - name: value
+        description: Numeric value of the benchmark (e.g. 1.74 for 1.74%).
+      - name: unit
+        description: Unit of the value (e.g. 'pct_of_atomic_arb_revenue').
+      - name: methodology_note
+        description: Short note on methodology differences vs Priority Watch.
+      - name: source_url
+        description: Primary source URL (Entropy Advisors AIP forum post).
+      - name: published_date
+        description: Approximate publication date (YYYY-MM-DD).

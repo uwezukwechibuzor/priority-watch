@@ -329,7 +329,7 @@ A task is done when ALL of the following are true:
 | 9 | dbt staging layer | ✅ |
 | 10 | dbt intermediate layer | ✅ |
 | 11 | dbt core marts (blocks, revenue, payer share, treasury) | ✅ |
-| 12 | dbt opportunity marts (markout, capture rate, HHI) | ⬜ |
+| 12 | dbt opportunity marts (markout, capture rate, HHI) | ✅ |
 | 13 | Airflow DAGs (backfill, dbt via Cosmos, monitoring, backup) | ⬜ |
 | 14 | pw-api (all endpoint groups, OpenAPI, Scalar UI) | ⬜ |
 | 15 | Pricing models + simulator engine | ⬜ |
