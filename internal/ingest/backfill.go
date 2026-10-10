@@ -33,6 +33,12 @@ const (
 	InsertLogSQL = `INSERT INTO raw.logs
 		(block_number, block_timestamp, tx_index, tx_hash, log_index,
 		 address, topic0, topic1, topic2, topic3, data, _ingested_at, _version)`
+
+	InsertReorgLogSQL = `INSERT INTO raw.reorg_log
+		(detected_at, fork_block, old_hash, new_hash, depth)`
+
+	InsertBalanceSnapshotSQL = `INSERT INTO raw.balance_snapshots
+		(address, block_number, block_timestamp, balance_wei, _ingested_at, _version)`
 )
 
 // ChainClient is the minimal interface required by BackfillRunner.
@@ -59,6 +65,7 @@ type BackfillConfig struct {
 	ChunkSize    uint64
 	Concurrency  int
 	LogAddresses []string // pool + contract addresses to filter logs; empty = all
+	LogsOnly     bool     // only fetch and store logs; skip blocks/txs/receipts
 }
 
 // BackfillRunner performs a resumable, idempotent backfill of a block range.
@@ -161,7 +168,7 @@ func (r *BackfillRunner) runChunk(ctx context.Context, c Chunk, cfg BackfillConf
 	// Workers: each goroutine consumes from blockNums.
 	for range cfg.Concurrency {
 		eg.Go(func() error {
-			return r.worker(egCtx, c, blockNums, cfg.LogAddresses)
+			return r.worker(egCtx, c, blockNums, cfg.LogAddresses, cfg.LogsOnly)
 		})
 	}
 
@@ -171,7 +178,7 @@ func (r *BackfillRunner) runChunk(ctx context.Context, c Chunk, cfg BackfillConf
 	}
 
 	elapsed := time.Since(start).Seconds()
-	blocks := float64(c.To-c.From+1)
+	blocks := float64(c.To - c.From + 1)
 	if r.metrics != nil {
 		r.metrics.ChunkDuration.Observe(elapsed)
 		if elapsed > 0 {
@@ -197,6 +204,7 @@ func (r *BackfillRunner) worker(
 	c Chunk,
 	nums <-chan uint64,
 	logAddresses []string,
+	logsOnly bool,
 ) error {
 	now := time.Now().UTC()
 
@@ -208,7 +216,7 @@ func (r *BackfillRunner) worker(
 			if !ok {
 				return nil
 			}
-			if err := r.ingestBlock(ctx, n, logAddresses, now); err != nil {
+			if err := Block(ctx, r.chain, r.writers, n, logAddresses, now, logsOnly); err != nil {
 				return fmt.Errorf("block %d: %w", n, err)
 			}
 			if r.metrics != nil {
@@ -219,30 +227,37 @@ func (r *BackfillRunner) worker(
 	}
 }
 
-// ingestBlock fetches, validates, transforms, and writes a single block.
-func (r *BackfillRunner) ingestBlock(
+// Block fetches, validates, transforms and writes one block to the four raw tables.
+// It is called by BackfillRunner and the live Follower.
+// When logsOnly is true, only raw.logs is written (blocks/txs/receipts are skipped).
+func Block(
 	ctx context.Context,
+	c ChainClient,
+	w *Writers,
 	n uint64,
 	logAddresses []string,
 	now time.Time,
+	logsOnly bool,
 ) error {
-	block, err := r.chain.BlockWithTxs(ctx, n)
+	block, err := c.BlockWithTxs(ctx, n)
 	if err != nil {
 		return fmt.Errorf("fetch block: %w", err)
 	}
 
-	receipts, err := r.chain.BlockReceipts(ctx, block.Hash)
-	if err != nil {
-		return fmt.Errorf("fetch receipts: %w", err)
-	}
-
-	if err := ValidateBlock(block, receipts); err != nil {
-		return err
+	var receipts []chain.RPCReceipt
+	if !logsOnly {
+		receipts, err = c.BlockReceipts(ctx, block.Hash)
+		if err != nil {
+			return fmt.Errorf("fetch receipts: %w", err)
+		}
+		if err := ValidateBlock(block, receipts); err != nil {
+			return err
+		}
 	}
 
 	var logs []chain.RPCLog
 	if len(logAddresses) > 0 {
-		logs, err = r.chain.Logs(ctx, chain.LogFilter{
+		logs, err = c.Logs(ctx, chain.LogFilter{
 			FromBlock: fmt.Sprintf("0x%x", n),
 			ToBlock:   fmt.Sprintf("0x%x", n),
 			Address:   logAddresses,
@@ -254,30 +269,32 @@ func (r *BackfillRunner) ingestBlock(
 
 	blk, txs, rcpts, evts := TransformBlock(block, receipts, logs, now)
 
-	if err := r.appendBlock(ctx, blk); err != nil {
-		return fmt.Errorf("append block: %w", err)
-	}
-	for _, tx := range txs {
-		if err := r.appendTx(ctx, tx); err != nil {
-			return fmt.Errorf("append tx: %w", err)
+	if !logsOnly {
+		if err := appendBlockRow(ctx, w.Blocks, blk); err != nil {
+			return fmt.Errorf("append block: %w", err)
 		}
-	}
-	for _, rc := range rcpts {
-		if err := r.appendReceipt(ctx, rc); err != nil {
-			return fmt.Errorf("append receipt: %w", err)
+		for _, tx := range txs {
+			if err := appendTxRow(ctx, w.Txs, tx); err != nil {
+				return fmt.Errorf("append tx: %w", err)
+			}
+		}
+		for _, rc := range rcpts {
+			if err := appendReceiptRow(ctx, w.Receipts, rc); err != nil {
+				return fmt.Errorf("append receipt: %w", err)
+			}
 		}
 	}
 	for _, ev := range evts {
-		if err := r.appendLog(ctx, ev); err != nil {
+		if err := appendLogRow(ctx, w.Logs, ev); err != nil {
 			return fmt.Errorf("append log: %w", err)
 		}
 	}
 	return nil
 }
 
-// appendBlock writes one BlockRow to the blocks batch writer.
-func (r *BackfillRunner) appendBlock(ctx context.Context, b BlockRow) error {
-	return r.writers.Blocks.Append(ctx,
+// appendBlockRow writes one BlockRow to w.
+func appendBlockRow(ctx context.Context, w *store.BatchWriter, b BlockRow) error {
+	return w.Append(ctx,
 		b.BlockNumber, b.BlockHash, b.ParentHash,
 		b.BlockTimestamp, b.L1BlockNumber, b.BaseFeePerGas,
 		b.GasUsed, b.GasLimit, b.TxCount, b.Size,
@@ -285,9 +302,9 @@ func (r *BackfillRunner) appendBlock(ctx context.Context, b BlockRow) error {
 	)
 }
 
-// appendTx writes one TxRow to the transactions batch writer.
-func (r *BackfillRunner) appendTx(ctx context.Context, t TxRow) error {
-	return r.writers.Txs.Append(ctx,
+// appendTxRow writes one TxRow to w.
+func appendTxRow(ctx context.Context, w *store.BatchWriter, t TxRow) error {
+	return w.Append(ctx,
 		t.BlockNumber, t.BlockTimestamp, t.TxIndex, t.TxHash, t.TxType,
 		t.FromAddress, t.ToAddress, t.Nonce, t.Value, t.GasLimit, t.GasPrice,
 		t.MaxFeePerGas, t.MaxPriorityFeePerGas, t.InputSelector, t.InputSize,
@@ -295,9 +312,9 @@ func (r *BackfillRunner) appendTx(ctx context.Context, t TxRow) error {
 	)
 }
 
-// appendReceipt writes one ReceiptRow to the receipts batch writer.
-func (r *BackfillRunner) appendReceipt(ctx context.Context, rc ReceiptRow) error {
-	return r.writers.Receipts.Append(ctx,
+// appendReceiptRow writes one ReceiptRow to w.
+func appendReceiptRow(ctx context.Context, w *store.BatchWriter, rc ReceiptRow) error {
+	return w.Append(ctx,
 		rc.BlockNumber, rc.BlockTimestamp, rc.TxIndex, rc.TxHash, rc.Status,
 		rc.GasUsed, rc.GasUsedForL1, rc.EffectiveGasPrice, rc.CumulativeGasUsed,
 		rc.ContractAddress, rc.LogCount,
@@ -305,9 +322,9 @@ func (r *BackfillRunner) appendReceipt(ctx context.Context, rc ReceiptRow) error
 	)
 }
 
-// appendLog writes one LogRow to the logs batch writer.
-func (r *BackfillRunner) appendLog(ctx context.Context, l LogRow) error {
-	return r.writers.Logs.Append(ctx,
+// appendLogRow writes one LogRow to w.
+func appendLogRow(ctx context.Context, w *store.BatchWriter, l LogRow) error {
+	return w.Append(ctx,
 		l.BlockNumber, l.BlockTimestamp, l.TxIndex, l.TxHash, l.LogIndex,
 		l.Address, l.Topic0, l.Topic1, l.Topic2, l.Topic3, l.Data,
 		l.IngestedAt, l.Version,

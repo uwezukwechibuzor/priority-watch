@@ -24,7 +24,7 @@ func TransformBlock(
 	now time.Time,
 ) (blk BlockRow, txs []TxRow, rcpts []ReceiptRow, evts []LogRow) {
 	ver := uint64(now.UnixMilli())
-	ts := time.Unix(int64(block.Timestamp), 0).UTC()
+	ts := time.Unix(int64(block.Timestamp), 0).UTC() //nolint:gosec
 
 	blk = BlockRow{
 		BlockNumber:    uint64(block.Number),
@@ -35,8 +35,8 @@ func TransformBlock(
 		BaseFeePerGas:  hexBigOrZero(block.BaseFeePerGas),
 		GasUsed:        uint64(block.GasUsed),
 		GasLimit:       uint64(block.GasLimit),
-		TxCount:        uint32(len(block.Transactions)),
-		Size:           uint32(block.Size),
+		TxCount:        uint32(len(block.Transactions)), //nolint:gosec
+		Size:           uint32(block.Size),              //nolint:gosec
 		IngestedAt:     now.UTC(),
 		Version:        ver,
 	}
@@ -45,9 +45,9 @@ func TransformBlock(
 	rcpts = make([]ReceiptRow, 0, len(receipts))
 
 	for i, tx := range block.Transactions {
-		idx := uint32(i)
+		idx := uint32(i) //nolint:gosec
 		if tx.TransactionIndex != nil {
-			idx = uint32(*tx.TransactionIndex)
+			idx = uint32(*tx.TransactionIndex) //nolint:gosec
 		}
 		txs = append(txs, transformTx(block, &tx, idx, ts, now, ver))
 		if i < len(receipts) {
@@ -91,7 +91,7 @@ func transformTx(
 		BlockTimestamp:       ts,
 		TxIndex:              txIndex,
 		TxHash:               tx.Hash.Hex(),
-		TxType:               uint8(tx.Type),
+		TxType:               uint8(tx.Type), //nolint:gosec
 		FromAddress:          strings.ToLower(tx.From.Hex()),
 		ToAddress:            toAddr,
 		Nonce:                uint64(tx.Nonce),
@@ -101,7 +101,7 @@ func transformTx(
 		MaxFeePerGas:         maxFee,
 		MaxPriorityFeePerGas: maxTip,
 		InputSelector:        inputSelector(tx.Input),
-		InputSize:            uint32(len(tx.Input)),
+		InputSize:            uint32(len(tx.Input)), //nolint:gosec
 		IngestedAt:           now.UTC(),
 		Version:              ver,
 	}
@@ -124,13 +124,13 @@ func transformReceipt(
 		BlockTimestamp:    ts,
 		TxIndex:           txIndex,
 		TxHash:            r.TransactionHash.Hex(),
-		Status:            uint8(r.Status),
+		Status:            uint8(r.Status), //nolint:gosec
 		GasUsed:           uint64(r.GasUsed),
 		GasUsedForL1:      uint64(r.GasUsedForL1),
 		EffectiveGasPrice: hexBigOrZero(r.EffectiveGasPrice),
 		CumulativeGasUsed: uint64(r.CumulativeGasUsed),
 		ContractAddress:   contractAddr,
-		LogCount:          uint32(len(r.Logs)),
+		LogCount:          uint32(len(r.Logs)), //nolint:gosec
 		IngestedAt:        now.UTC(),
 		Version:           ver,
 	}
@@ -140,9 +140,9 @@ func transformLog(block *chain.RPCBlock, l *chain.RPCLog, ts, now time.Time, ver
 	return LogRow{
 		BlockNumber:    uint64(block.Number),
 		BlockTimestamp: ts,
-		TxIndex:        uint32(l.TransactionIndex),
+		TxIndex:        uint32(l.TransactionIndex), //nolint:gosec
 		TxHash:         l.TransactionHash.Hex(),
-		LogIndex:       uint32(l.LogIndex),
+		LogIndex:       uint32(l.LogIndex), //nolint:gosec
 		Address:        strings.ToLower(l.Address.Hex()),
 		Topic0:         topicOrEmpty(l.Topics, 0),
 		Topic1:         topicOrEmpty(l.Topics, 1),

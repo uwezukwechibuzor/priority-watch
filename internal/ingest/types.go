@@ -8,6 +8,7 @@ import (
 // ChunkStatus represents the state of a backfill chunk in meta.ingest_cursors.
 type ChunkStatus string
 
+// Chunk lifecycle states stored in meta.ingest_cursors.
 const (
 	StatusPending ChunkStatus = "pending"
 	StatusRunning ChunkStatus = "running"
@@ -46,7 +47,7 @@ type TxRow struct {
 	TxHash               string
 	TxType               uint8
 	FromAddress          string
-	ToAddress            string   // empty for contract creation
+	ToAddress            string // empty for contract creation
 	Nonce                uint64
 	Value                *big.Int
 	GasLimit             uint64
@@ -75,6 +76,25 @@ type ReceiptRow struct {
 	LogCount          uint32
 	IngestedAt        time.Time
 	Version           uint64
+}
+
+// ReorgLogRow matches raw.reorg_log column order exactly.
+type ReorgLogRow struct {
+	DetectedAt time.Time
+	ForkBlock  uint64
+	OldHash    string
+	NewHash    string
+	Depth      uint32
+}
+
+// BalanceSnapshotRow matches raw.balance_snapshots column order exactly.
+type BalanceSnapshotRow struct {
+	Address        string
+	BlockNumber    uint64
+	BlockTimestamp time.Time
+	BalanceWei     *big.Int
+	IngestedAt     time.Time
+	Version        uint64
 }
 
 // LogRow matches raw.logs column order exactly.

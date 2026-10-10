@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,10 +20,11 @@ import (
 // Server bundles a slog logger, a Prometheus registry, and an HTTP server
 // that serves /healthz and /metrics on a single address.
 type Server struct {
-	log  *slog.Logger
-	reg  *prometheus.Registry
-	mux  *http.ServeMux
-	addr string
+	log      *slog.Logger
+	reg      *prometheus.Registry
+	mux      *http.ServeMux
+	addr     string
+	healthFn atomic.Pointer[func() error]
 }
 
 // New creates a Server. addr is the TCP address to listen on (e.g. ":9091").
@@ -34,20 +36,35 @@ func New(addr, level string) *Server {
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	)
 
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+	s := &Server{
+		log:  newLogger(level),
+		reg:  reg,
+		mux:  http.NewServeMux(),
+		addr: addr,
+	}
+
+	s.mux.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+	s.mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
+		if fn := s.healthFn.Load(); fn != nil {
+			if err := (*fn)(); err != nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte(err.Error()))
+				return
+			}
+		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	return &Server{
-		log:  newLogger(level),
-		reg:  reg,
-		mux:  mux,
-		addr: addr,
-	}
+	return s
+}
+
+// SetHealthCheck installs a dynamic health-check function.
+// The function is called on every /healthz request; returning a non-nil error
+// causes a 503 response with the error message as the body.
+func (s *Server) SetHealthCheck(fn func() error) {
+	s.healthFn.Store(&fn)
 }
 
 // Logger returns the structured JSON logger.
@@ -66,7 +83,8 @@ func (s *Server) Serve(ctx context.Context) error {
 		ReadTimeout: 5 * time.Second,
 	}
 
-	ln, err := net.Listen("tcp", s.addr)
+	lc := net.ListenConfig{}
+	ln, err := lc.Listen(ctx, "tcp", s.addr)
 	if err != nil {
 		return err
 	}

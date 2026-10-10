@@ -107,11 +107,12 @@ func TestHealthzEndpoint(t *testing.T) {
 	go func() { _ = srv.Serve(ctx) }()
 	time.Sleep(80 * time.Millisecond)
 
-	resp, err := http.Get("http://127.0.0.1:19999/healthz")
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://127.0.0.1:19999/healthz", nil)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Skipf("could not reach test server: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("healthz: want 200, got %d", resp.StatusCode)

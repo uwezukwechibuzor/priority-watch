@@ -32,14 +32,14 @@ func (b *fakeBatch) Append(v ...any) error {
 	return nil
 }
 
-func (b *fakeBatch) AppendStruct(_ any) error              { return nil }
-func (b *fakeBatch) Column(_ int) driver.BatchColumn       { return nil }
-func (b *fakeBatch) Flush() error                          { return b.Send() }
-func (b *fakeBatch) Abort() error                          { return nil }
-func (b *fakeBatch) Close() error                          { return nil }
-func (b *fakeBatch) IsSent() bool                          { return false }
-func (b *fakeBatch) Rows() int                             { return len(b.rows) }
-func (b *fakeBatch) Columns() []column.Interface           { return nil }
+func (b *fakeBatch) AppendStruct(_ any) error        { return nil }
+func (b *fakeBatch) Column(_ int) driver.BatchColumn { return nil }
+func (b *fakeBatch) Flush() error                    { return b.Send() }
+func (b *fakeBatch) Abort() error                    { return nil }
+func (b *fakeBatch) Close() error                    { return nil }
+func (b *fakeBatch) IsSent() bool                    { return false }
+func (b *fakeBatch) Rows() int                       { return len(b.rows) }
+func (b *fakeBatch) Columns() []column.Interface     { return nil }
 
 func (b *fakeBatch) Send() error {
 	if b.sendFn != nil {

@@ -18,27 +18,27 @@ import (
 
 // Arbitrum system transaction type identifiers (not decoded by go-ethereum).
 const (
-	ArbitrumDepositTxType             = 0x64
-	ArbitrumUnsignedTxType            = 0x65
-	ArbitrumContractTxType            = 0x66
-	ArbitrumRetryTxType               = 0x68
-	ArbitrumSubmitRetryableTxType     = 0x69
-	ArbitrumInternalTxType            = 0x6a
+	ArbitrumDepositTxType         = 0x64
+	ArbitrumUnsignedTxType        = 0x65
+	ArbitrumContractTxType        = 0x66
+	ArbitrumRetryTxType           = 0x68
+	ArbitrumSubmitRetryableTxType = 0x69
+	ArbitrumInternalTxType        = 0x6a
 )
 
 // RPCBlock is the raw JSON-RPC response for eth_getBlockByHash /
 // eth_getBlockByNumber with full transaction objects (second arg = true).
 // Arbitrum-specific: l1BlockNumber is present on all blocks.
 type RPCBlock struct {
-	Number        hexutil.Uint64  `json:"number"`
-	Hash          common.Hash     `json:"hash"`
-	ParentHash    common.Hash     `json:"parentHash"`
-	Timestamp     hexutil.Uint64  `json:"timestamp"`
-	L1BlockNumber hexutil.Uint64  `json:"l1BlockNumber"`
-	BaseFeePerGas *hexutil.Big    `json:"baseFeePerGas"`
-	GasUsed       hexutil.Uint64  `json:"gasUsed"`
-	GasLimit      hexutil.Uint64  `json:"gasLimit"`
-	Size          hexutil.Uint64  `json:"size"`
+	Number        hexutil.Uint64   `json:"number"`
+	Hash          common.Hash      `json:"hash"`
+	ParentHash    common.Hash      `json:"parentHash"`
+	Timestamp     hexutil.Uint64   `json:"timestamp"`
+	L1BlockNumber hexutil.Uint64   `json:"l1BlockNumber"`
+	BaseFeePerGas *hexutil.Big     `json:"baseFeePerGas"`
+	GasUsed       hexutil.Uint64   `json:"gasUsed"`
+	GasLimit      hexutil.Uint64   `json:"gasLimit"`
+	Size          hexutil.Uint64   `json:"size"`
 	Transactions  []RPCTransaction `json:"transactions"`
 }
 
@@ -66,7 +66,7 @@ type RPCTransaction struct {
 // IsSystemTx returns true for Arbitrum internal transaction types that are
 // not user-submitted and carry no priority fee.
 func (tx *RPCTransaction) IsSystemTx() bool {
-	t := uint8(tx.Type)
+	t := uint8(tx.Type) //nolint:gosec
 	return t >= ArbitrumDepositTxType && t <= ArbitrumInternalTxType
 }
 

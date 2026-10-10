@@ -185,9 +185,9 @@ func TestPriorityFeePerGas(t *testing.T) {
 	baseFee := big.NewInt(100_000_000) // 0x5f5e100
 
 	tests := []struct {
-		name     string
-		txJSON   string
-		wantWei  int64
+		name    string
+		txJSON  string
+		wantWei int64
 	}{
 		{
 			name:    "tip bounded by maxPriorityFeePerGas when cap is generous",

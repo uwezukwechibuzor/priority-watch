@@ -16,11 +16,13 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 
 	pwmigrations "github.com/uwezukwechibuzor/priority-watch/infra/clickhouse/migrations"
 	"github.com/uwezukwechibuzor/priority-watch/internal/chain"
 	"github.com/uwezukwechibuzor/priority-watch/internal/config"
 	"github.com/uwezukwechibuzor/priority-watch/internal/ingest"
+	"github.com/uwezukwechibuzor/priority-watch/internal/obs"
 	"github.com/uwezukwechibuzor/priority-watch/internal/store"
 )
 
@@ -138,7 +140,7 @@ func runBackfill(
 	fromStr, toStr string,
 	chunkSize uint64,
 	concurrency int,
-	_ bool, // logsOnly — reserved
+	logsOnly bool,
 	extraAddr string,
 ) error {
 	cfg, err := config.Load()
@@ -232,6 +234,7 @@ func runBackfill(
 		ChunkSize:    chunkSize,
 		Concurrency:  concurrency,
 		LogAddresses: logAddrs,
+		LogsOnly:     logsOnly,
 	}
 
 	if err := runner.Run(ctx, backfillCfg); err != nil {
@@ -261,13 +264,13 @@ func resolveBlock(ctx context.Context, s string, r *ingest.DateResolver) (uint64
 	return r.Resolve(ctx, t)
 }
 
+// headQuerier is the subset of chain.Client used by resolveBlockTo.
+type headQuerier interface {
+	Head(ctx context.Context) (*chain.RPCBlock, error)
+}
+
 // resolveBlockTo resolves --to (block number, date, or "head").
-func resolveBlockTo(
-	ctx context.Context,
-	s string,
-	r *ingest.DateResolver,
-	c interface{ Head(ctx context.Context) (*chain.RPCBlock, error) },
-) (uint64, error) {
+func resolveBlockTo(ctx context.Context, s string, r *ingest.DateResolver, c headQuerier) (uint64, error) {
 	if s == "head" {
 		blk, err := c.Head(ctx)
 		if err != nil {
@@ -288,17 +291,129 @@ func configPath(rel string) string {
 	return filepath.Join(wd, rel)
 }
 
-// ── stubs ─────────────────────────────────────────────────────────────────────
+// ── follow ────────────────────────────────────────────────────────────────────
 
 func newFollowCmd(ctx context.Context) *cobra.Command {
 	return &cobra.Command{
 		Use:   "follow",
-		Short: "Live block follower (task 6)",
+		Short: "Live block follower — subscribes to new heads and ingests each block",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			newLogger().InfoContext(ctx, "follow: implemented in task 6")
-			return nil
+			log := newLogger()
+			return runFollow(ctx, log)
 		},
 	}
+}
+
+func runFollow(ctx context.Context, log *slog.Logger) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	// ── chain HTTP client ─────────────────────────────────────────────────────
+	reg := prometheus.NewRegistry()
+	chainClient, err := chain.New(ctx, chain.ClientConfig{
+		PrimaryURL:   cfg.ArbitrumRPCURL,
+		FallbackURLs: cfg.ArbitrumRPCFallbackURLs,
+		RPS:          cfg.ArbitrumRPCRPS,
+		Logger:       log,
+		Registry:     reg,
+	})
+	if err != nil {
+		return fmt.Errorf("dial rpc: %w", err)
+	}
+	defer chainClient.Close()
+
+	// ── optional WS client for newHeads subscription ──────────────────────────
+	var wsClient *chain.Client
+	if cfg.ArbitrumWSURL != "" {
+		wsClient, err = chain.New(ctx, chain.ClientConfig{
+			PrimaryURL: cfg.ArbitrumWSURL,
+			RPS:        cfg.ArbitrumRPCRPS,
+			Logger:     log,
+			Registry:   prometheus.NewRegistry(),
+		})
+		if err != nil {
+			log.WarnContext(ctx, "dial WS failed, will poll", "err", err)
+			wsClient = nil
+		} else {
+			defer wsClient.Close()
+		}
+	}
+
+	// ── ClickHouse ────────────────────────────────────────────────────────────
+	conn, err := clickhouse.Open(&clickhouse.Options{
+		Addr: []string{cfg.ClickHouseAddr},
+		Auth: clickhouse.Auth{
+			Username: cfg.ClickHouseUser,
+			Password: cfg.ClickHousePassword,
+		},
+		Settings: clickhouse.Settings{"max_execution_time": 120},
+	})
+	if err != nil {
+		return fmt.Errorf("open clickhouse: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+	if err := conn.Ping(ctx); err != nil {
+		return fmt.Errorf("ping clickhouse: %w", err)
+	}
+
+	// ── log filter addresses ──────────────────────────────────────────────────
+	logAddrs, err := ingest.LoadLogFilterAddresses(
+		configPath("config/pools.yaml"),
+		configPath("config/contracts.yaml"),
+	)
+	if err != nil {
+		log.WarnContext(ctx, "could not load filter addresses; ingesting all logs", "err", err)
+	}
+
+	// ── batch writers ─────────────────────────────────────────────────────────
+	fw := &ingest.FollowerWriters{
+		Blocks: store.NewBatchWriter(conn, ingest.InsertBlockSQL,
+			cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_blocks")),
+		Txs: store.NewBatchWriter(conn, ingest.InsertTxSQL,
+			cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_transactions")),
+		Receipts: store.NewBatchWriter(conn, ingest.InsertReceiptSQL,
+			cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_receipts")),
+		Logs: store.NewBatchWriter(conn, ingest.InsertLogSQL,
+			cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_logs")),
+		ReorgLog: store.NewBatchWriter(conn, ingest.InsertReorgLogSQL,
+			cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_reorg_log")),
+		Balances: store.NewBatchWriter(conn, ingest.InsertBalanceSnapshotSQL,
+			cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_balance_snapshots")),
+		StatusUpsert: store.NewSourceStatusUpsert(conn),
+	}
+
+	cursors := ingest.NewCursorStore(conn, "follower")
+	metrics := ingest.NewFollowerMetrics(reg)
+
+	followerCfg := ingest.FollowerConfig{
+		LogAddresses: logAddrs,
+		GapThreshold: cfg.GapThreshold,
+	}
+
+	follower := ingest.NewFollower(chainClient, wsClient, cursors, fw, metrics, followerCfg, log)
+
+	// ── obs server ─────────────────────────────────────────────────────────────
+	obsServer := obs.New(cfg.MetricsAddr, cfg.LogLevel)
+	obsServer.SetHealthCheck(follower.HealthFunc())
+
+	// ── run all services ──────────────────────────────────────────────────────
+	eg, egCtx := errgroup.WithContext(ctx)
+
+	eg.Go(func() error { return obsServer.Serve(egCtx) })
+	eg.Go(func() error { return fw.Blocks.Run(egCtx) })
+	eg.Go(func() error { return fw.Txs.Run(egCtx) })
+	eg.Go(func() error { return fw.Receipts.Run(egCtx) })
+	eg.Go(func() error { return fw.Logs.Run(egCtx) })
+	eg.Go(func() error { return fw.ReorgLog.Run(egCtx) })
+	eg.Go(func() error { return fw.Balances.Run(egCtx) })
+	eg.Go(func() error { return follower.Run(egCtx) })
+
+	if err := eg.Wait(); err != nil && err != context.Canceled {
+		return err
+	}
+	return nil
 }
 
 func newCEXCmd(ctx context.Context) *cobra.Command {

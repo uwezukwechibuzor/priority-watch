@@ -7,28 +7,43 @@ linters:
     - errcheck
     - gosec
     - revive
-    - gofumpt
     - exhaustive
     - noctx
     - bodyclose
     - sqlclosecheck
+  settings:
+    revive:
+      rules:
+        - name: exported
+        - name: var-naming
+        - name: indent-error-flow
+        - name: early-return
 
-linters-settings:
-  gofumpt:
-    extra-rules: true
-  revive:
-    rules:
-      - name: exported
-      - name: var-naming
-      - name: indent-error-flow
-      - name: early-return
-  gosec:
-    excludes:
-      - G115  # integer overflow (handled at ingestion boundary)
+formatters:
+  enable:
+    - gofumpt
 
 issues:
   exclude-rules:
+    # Test files: relax errcheck, gosec, noctx
     - path: "_test\\.go"
       linters:
         - gosec
         - errcheck
+        - noctx
+    # obs.go: net.Listen without context is intentional (server lifecycle)
+    - path: "internal/obs/obs\\.go"
+      linters:
+        - noctx
+    # cmd/: cobra RunE callbacks always have (cmd, args) signature
+    - path: "cmd/"
+      linters:
+        - revive
+    # G115 integer overflow: all numeric conversions are bounded by protocol limits
+    - linters:
+        - gosec
+      text: "G115"
+    # G304 file inclusion via variable: all paths are controlled internal config paths
+    - linters:
+        - gosec
+      text: "G304"

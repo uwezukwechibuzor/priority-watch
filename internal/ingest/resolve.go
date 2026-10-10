@@ -37,10 +37,12 @@ type ChainClientQuerier struct {
 func NewChainClientQuerier(c interface {
 	Head(ctx context.Context) (*chain.RPCBlock, error)
 	BlockHeader(ctx context.Context, number uint64) (*chain.RPCBlock, error)
-}) *ChainClientQuerier {
+},
+) *ChainClientQuerier {
 	return &ChainClientQuerier{c: c}
 }
 
+// HeadNumber returns the latest block number.
 func (a *ChainClientQuerier) HeadNumber(ctx context.Context) (uint64, error) {
 	blk, err := a.c.Head(ctx)
 	if err != nil {
@@ -49,6 +51,7 @@ func (a *ChainClientQuerier) HeadNumber(ctx context.Context) (uint64, error) {
 	return uint64(blk.Number), nil
 }
 
+// BlockTimestamp returns the Unix timestamp of block n.
 func (a *ChainClientQuerier) BlockTimestamp(ctx context.Context, n uint64) (uint64, error) {
 	blk, err := a.c.BlockHeader(ctx, n)
 	if err != nil {
@@ -60,7 +63,7 @@ func (a *ChainClientQuerier) BlockTimestamp(ctx context.Context, n uint64) (uint
 // Resolve returns the first block whose timestamp is >= t.
 // If t is after the latest block, it returns the latest block number.
 func (r *DateResolver) Resolve(ctx context.Context, t time.Time) (uint64, error) {
-	target := uint64(t.Unix())
+	target := uint64(t.Unix()) //nolint:gosec
 
 	head, err := r.q.HeadNumber(ctx)
 	if err != nil {

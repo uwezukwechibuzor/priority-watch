@@ -179,12 +179,11 @@ func (b *BatchWriter) Run(ctx context.Context) error {
 
 // SourceStatusRow is a row for meta.source_status.
 type SourceStatusRow struct {
-	Source      string
-	LastBlockAt time.Time
-	LastBlock   uint64
-	Lag         float64
-	IsHealthy   bool
-	UpdatedAt   time.Time
+	Source          string
+	Rows            uint64
+	LatestPosition  string    // e.g. block number as decimal string
+	LatestTimestamp time.Time // timestamp of the latest row
+	UpdatedAt       time.Time
 }
 
 // SourceStatusUpsert writes a single SourceStatusRow to meta.source_status.
@@ -198,7 +197,8 @@ type SourceStatusUpsert struct {
 // NewSourceStatusUpsert creates a SourceStatusUpsert.
 func NewSourceStatusUpsert(conn interface {
 	Exec(ctx context.Context, query string, args ...any) error
-}) *SourceStatusUpsert {
+},
+) *SourceStatusUpsert {
 	return &SourceStatusUpsert{conn: conn}
 }
 
@@ -209,13 +209,12 @@ func (u *SourceStatusUpsert) Upsert(ctx context.Context, row SourceStatusRow) er
 	}
 	return u.conn.Exec(ctx,
 		`INSERT INTO meta.source_status
-		 (source, last_block_at, last_block, lag_seconds, is_healthy, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
+		 (source, rows, latest_position, latest_timestamp, updated_at)
+		 VALUES (?, ?, ?, ?, ?)`,
 		row.Source,
-		row.LastBlockAt.UTC(),
-		row.LastBlock,
-		row.Lag,
-		row.IsHealthy,
+		row.Rows,
+		row.LatestPosition,
+		row.LatestTimestamp.UTC(),
 		row.UpdatedAt,
 	)
 }

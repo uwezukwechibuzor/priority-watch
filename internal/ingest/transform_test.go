@@ -31,9 +31,9 @@ func mustBig(s string) *hexutil.Big {
 	return b
 }
 
-func hexU64(n uint64) hexutil.Uint64 { return hexutil.Uint64(n) }
+func hexU64(n uint64) hexutil.Uint64  { return hexutil.Uint64(n) }
 func hexAddr(s string) common.Address { return common.HexToAddress(s) }
-func hexHash(s string) common.Hash   { return common.HexToHash(s) }
+func hexHash(s string) common.Hash    { return common.HexToHash(s) }
 
 func makeMinimalBlock() *chain.RPCBlock {
 	idx := hexutil.Uint64(0)
@@ -49,16 +49,16 @@ func makeMinimalBlock() *chain.RPCBlock {
 		Size:          hexU64(512),
 		Transactions: []chain.RPCTransaction{
 			{
-				Hash:             hexHash("0x111"),
-				TransactionIndex: &idx,
-				From:             hexAddr("0xaaa"),
-				To:               &[]common.Address{hexAddr("0xbbb")}[0],
-				Value:            mustBig("1000000000000000000"),
-				Gas:              hexU64(21000),
-				GasPrice:         mustBig("2000000000"),
-				Type:             hexU64(2),
-				Nonce:            hexU64(42),
-				Input:             hexutil.Bytes{0xde, 0xad, 0xbe, 0xef, 0x01},
+				Hash:                 hexHash("0x111"),
+				TransactionIndex:     &idx,
+				From:                 hexAddr("0xaaa"),
+				To:                   &[]common.Address{hexAddr("0xbbb")}[0],
+				Value:                mustBig("1000000000000000000"),
+				Gas:                  hexU64(21000),
+				GasPrice:             mustBig("2000000000"),
+				Type:                 hexU64(2),
+				Nonce:                hexU64(42),
+				Input:                hexutil.Bytes{0xde, 0xad, 0xbe, 0xef, 0x01},
 				MaxFeePerGas:         mustBig("3000000000"),
 				MaxPriorityFeePerGas: mustBig("500000000"),
 			},

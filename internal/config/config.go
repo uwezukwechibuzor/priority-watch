@@ -13,9 +13,15 @@ import (
 type Config struct {
 	// Chain ─────────────────────────────────────────────────────────────────
 	ArbitrumRPCURL          string   `env:"ARBITRUM_RPC_URL"`
+	ArbitrumWSURL           string   `env:"ARBITRUM_WS_URL"`
 	ArbitrumRPCFallbackURLs []string `env:"ARBITRUM_RPC_FALLBACK_URLS"    envSeparator:","`
 	ArbitrumRPCRPS          float64  `env:"ARBITRUM_RPC_RPS"              envDefault:"25"`
 	ArbitrumChainID         uint64   `env:"ARBITRUM_CHAIN_ID"             envDefault:"42161"`
+
+	// Follower ────────────────────────────────────────────────────────────────
+	// GapThreshold is the number of missed blocks that triggers a backfill
+	// catch-up instead of block-by-block ingestion on follower start.
+	GapThreshold uint64 `env:"FOLLOWER_GAP_THRESHOLD" envDefault:"1000"`
 
 	// ClickHouse ─────────────────────────────────────────────────────────────
 	ClickHouseAddr     string `env:"CLICKHOUSE_ADDR"     envDefault:"localhost:9000"`

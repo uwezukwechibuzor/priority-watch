@@ -233,6 +233,24 @@ func (c *Client) logsRecursive(ctx context.Context, filter LogFilter) ([]RPCLog,
 	return append(loLogs, hiLogs...), nil
 }
 
+// HeadSubscription is returned by SubscribeNewHeads.
+// *gethRPC.ClientSubscription satisfies this interface.
+type HeadSubscription interface {
+	Err() <-chan error
+	Unsubscribe()
+}
+
+// SubscribeNewHeads subscribes to new block headers via Ethereum pub/sub.
+// The connection must be a WebSocket (wss:// or ws://) endpoint.
+// Notifications are decoded into *RPCBlock and sent to ch.
+func (c *Client) SubscribeNewHeads(ctx context.Context, ch chan<- *RPCBlock) (HeadSubscription, error) {
+	sub, err := c.conn.EthSubscribe(ctx, ch, "newHeads")
+	if err != nil {
+		return nil, fmt.Errorf("chain: subscribe newHeads: %w", err)
+	}
+	return sub, nil
+}
+
 // Balance returns the ETH balance of addr at blockNumber (hex-encoded).
 // Pass "latest" for the current balance.
 func (c *Client) Balance(ctx context.Context, addr common.Address, blockTag string) (*big.Int, error) {

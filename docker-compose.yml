@@ -176,7 +176,7 @@ services:
     networks:
       - pw-net
 
-  # ── pw-follower placeholder (task 6) ─────────────────────────────────────────
+  # ── pw-follower (task 6) ─────────────────────────────────────────────────────
   follower:
     build:
       context: .
@@ -184,12 +184,24 @@ services:
         SERVICE: pw-ingester
     container_name: pw-follower
     command: ["follow"]
+    ports:
+      - "9091:9091"
     environment:
       ARBITRUM_RPC_URL: ${ARBITRUM_RPC_URL:-}
       ARBITRUM_WS_URL: ${ARBITRUM_WS_URL:-}
+      ARBITRUM_RPC_RPS: ${ARBITRUM_RPC_RPS:-25}
       CLICKHOUSE_ADDR: ${CLICKHOUSE_ADDR:-clickhouse:9000}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-admin}
+      METRICS_ADDR: ":9091"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      FOLLOWER_GAP_THRESHOLD: ${FOLLOWER_GAP_THRESHOLD:-1000}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9091/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     depends_on:
       clickhouse:
         condition: service_healthy

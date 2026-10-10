@@ -24,26 +24,28 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// FS is the embedded filesystem containing all ABI JSON files.
+//
 //go:embed *.json
 var FS embed.FS
 
 // Loaded ABIs — parsed once at init.
 var (
-	UniswapV3Pool     gethABI.ABI
-	AlgebraPool       gethABI.ABI
-	AaveV3Pool        gethABI.ABI
-	ERC20             gethABI.ABI
-	TimeboostAuction  gethABI.ABI
+	UniswapV3Pool    gethABI.ABI
+	AlgebraPool      gethABI.ABI
+	AaveV3Pool       gethABI.ABI
+	ERC20            gethABI.ABI
+	TimeboostAuction gethABI.ABI
 )
 
 // Event topic0 hashes — used for fast log routing without ABI parsing.
 var (
-	TopicUniswapV3Swap           common.Hash
-	TopicAlgebraSwap             common.Hash
-	TopicAaveV3LiquidationCall   common.Hash
-	TopicERC20Transfer           common.Hash
+	TopicUniswapV3Swap            common.Hash
+	TopicAlgebraSwap              common.Hash
+	TopicAaveV3LiquidationCall    common.Hash
+	TopicERC20Transfer            common.Hash
 	TopicTimeboostAuctionResolved common.Hash
-	TopicTimeboostDeposit        common.Hash
+	TopicTimeboostDeposit         common.Hash
 )
 
 func init() {
@@ -78,13 +80,13 @@ func init() {
 
 // UniswapV3SwapEvent contains decoded fields from a Uniswap V3 Swap log.
 type UniswapV3SwapEvent struct {
-	Sender      common.Address
-	Recipient   common.Address
-	Amount0     *big.Int
-	Amount1     *big.Int
+	Sender       common.Address
+	Recipient    common.Address
+	Amount0      *big.Int
+	Amount1      *big.Int
 	SqrtPriceX96 *big.Int
-	Liquidity   *big.Int
-	Tick        int32
+	Liquidity    *big.Int
+	Tick         int32
 }
 
 // AlgebraSwapEvent contains decoded fields from an Algebra (Camelot V3) Swap log.
@@ -120,14 +122,14 @@ type ERC20TransferEvent struct {
 
 // TimeboostAuctionResolvedEvent contains decoded fields from an AuctionResolved log.
 type TimeboostAuctionResolvedEvent struct {
-	IsMultiBidAuction              bool
-	Round                          uint64
-	FirstPriceBidder               common.Address
+	IsMultiBidAuction               bool
+	Round                           uint64
+	FirstPriceBidder                common.Address
 	FirstPriceExpressLaneController common.Address
-	FirstPriceAmount               *big.Int
-	Price                          *big.Int
-	RoundStartTimestamp            uint64
-	RoundEndTimestamp              uint64
+	FirstPriceAmount                *big.Int
+	Price                           *big.Int
+	RoundStartTimestamp             uint64
+	RoundEndTimestamp               uint64
 }
 
 // TimeboostDepositEvent contains decoded fields from a Deposit log.

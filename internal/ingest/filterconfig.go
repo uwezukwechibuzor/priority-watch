@@ -39,7 +39,7 @@ func LoadLogFilterAddresses(poolsPath, contractsPath string) ([]string, error) {
 }
 
 func loadPoolAddresses(path string, seen map[string]struct{}, out *[]string) error {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func loadPoolAddresses(path string, seen map[string]struct{}, out *[]string) err
 }
 
 func loadContractAddresses(path string, seen map[string]struct{}, out *[]string) error {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		return err
 	}

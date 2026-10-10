@@ -49,6 +49,26 @@ func (s *CursorStore) Register(ctx context.Context, c Chunk) error {
 	)
 }
 
+// HighestDoneBlock returns the highest range_end among all done cursors for this
+// job prefix, or 0 if no done cursors exist. Used by the follower to detect gaps.
+func (s *CursorStore) HighestDoneBlock(ctx context.Context) (uint64, error) {
+	var result []struct {
+		Max uint64 `ch:"max_end"`
+	}
+	if err := s.conn.Select(ctx, &result,
+		`SELECT max(range_end) AS max_end
+		 FROM meta.ingest_cursors FINAL
+		 WHERE job LIKE ? AND status = ?`,
+		s.jobPrefix+":%", string(StatusDone),
+	); err != nil {
+		return 0, fmt.Errorf("highest done block: %w", err)
+	}
+	if len(result) == 0 {
+		return 0, nil
+	}
+	return result[0].Max, nil
+}
+
 // LoadDone returns the set of cursor keys that have status=done.
 func (s *CursorStore) LoadDone(ctx context.Context) (map[string]struct{}, error) {
 	var rows []cursorRow

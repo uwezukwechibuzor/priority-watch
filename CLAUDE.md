@@ -323,7 +323,7 @@ A task is done when ALL of the following are true:
 | 3 | ClickHouse schema (raw.*, meta.* tables, migrations) | ✅ |
 | 4 | Go core packages (config, obs, chain, store) | ✅ |
 | 5 | Block backfill ingester (idempotent, reorg-safe, any range) | ✅ |
-| 6 | Live block follower (supervised, lag alerting) | ⬜ |
+| 6 | Live block follower (supervised, lag alerting) | ✅ |
 | 7 | Binance CEX prices (WebSocket forward-fill + daily catch-up) | ⬜ |
 | 8 | Entity registries + Timeboost baseline + fee verification | ⬜ |
 | 9 | dbt staging layer | ⬜ |

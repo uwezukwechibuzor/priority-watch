@@ -7,9 +7,9 @@ import (
 
 // BackfillMetrics holds Prometheus counters and histograms for the backfill runner.
 type BackfillMetrics struct {
-	BlocksIngested   prometheus.Counter
-	ChunkDuration    prometheus.Histogram
-	BlocksPerSecond  prometheus.Gauge
+	BlocksIngested  prometheus.Counter
+	ChunkDuration   prometheus.Histogram
+	BlocksPerSecond prometheus.Gauge
 }
 
 // NewBackfillMetrics registers and returns backfill metrics in reg.
