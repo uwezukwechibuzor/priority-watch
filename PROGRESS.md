@@ -4,7 +4,7 @@
 |---|------|--------|--------|
 | 1 | Scaffold, master spec, UI reference | ✅ | chore: scaffold priority-watch |
 | 2 | Docker Compose infra | ✅ | feat(infra): docker compose stack |
-| 3 | ClickHouse schema | ⬜ | |
+| 3 | ClickHouse schema | ✅ | feat(clickhouse): raw schema and migrations |
 | 4 | Go core packages | ⬜ | |
 | 5 | Block backfill ingester | ⬜ | |
 | 6 | Live block follower | ⬜ | |

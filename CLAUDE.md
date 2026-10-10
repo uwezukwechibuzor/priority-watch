@@ -195,8 +195,26 @@ priority-watch/
   decimal strings in JSON (no floating-point loss)
 - **Timestamps** as `DateTime64(3)` UTC in ClickHouse; RFC 3339 strings in JSON
 - **Addresses** lowercase hex with `0x` prefix
-- **Raw tables** use `ReplacingMergeTree` with `_ingested_at DateTime64(3)` and
-  `_version UInt64`; all writes are idempotent (upsert by primary key)
+- **Raw tables** use `ReplacingMergeTree(_version)` with `_ingested_at DateTime64(3,'UTC') DEFAULT now64(3)`
+  and `_version UInt64`; all writes are idempotent (upsert by primary key)
+- **ClickHouse column syntax**: `DEFAULT expr` must come before `CODEC(...)` in column definitions
+- **Nullable(UInt256)** is valid in ClickHouse 25.x and used for EIP-1559 optional fields
+  (`max_fee_per_gas`, `max_priority_fee_per_gas`) in `raw.transactions`
+
+### Migration system
+
+Migrations live in `infra/clickhouse/migrations/*.sql` (embedded via `//go:embed *.sql` in
+`infra/clickhouse/migrations/embed.go`) and are applied by `internal/store.Migrator`.
+
+| Detail | Value |
+|--------|-------|
+| Runner | `store.NewMigrator(conn, migrations.FS).Run(ctx)` |
+| Tracking | `meta.schema_migrations` (bootstrapped before first migration) |
+| Idempotency | SHA-256 checksum per file; refuses if applied file changed |
+| Statement splitting | Strips `--` comment lines first, then splits on `;` |
+| CLI | `pw-ingester migrate` (env: `CLICKHOUSE_ADDR`, `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`) |
+| Makefile | `make migrate` |
+| Schema docs | `docs/data/raw-schema.md` |
 - **dbt models** are incremental (`is_incremental()`) unless stated otherwise
 - **Never invent** addresses, labels, ABIs or numbers — verify from a primary
   source and cite the URL in a code comment or config file
@@ -301,8 +319,8 @@ A task is done when ALL of the following are true:
 | # | Task | Status |
 |---|------|--------|
 | 1 | Scaffold, master spec, UI reference | ✅ |
-| 2 | Docker Compose infra (ClickHouse, Postgres, Airflow, Caddy, Prometheus, Grafana) | ⬜ |
-| 3 | ClickHouse schema (raw.*, meta.* tables, migrations) | ⬜ |
+| 2 | Docker Compose infra (ClickHouse, Postgres, Airflow, Caddy, Prometheus, Grafana) | ✅ |
+| 3 | ClickHouse schema (raw.*, meta.* tables, migrations) | ✅ |
 | 4 | Go core packages (config, obs, chain, store) | ⬜ |
 | 5 | Block backfill ingester (idempotent, reorg-safe, any range) | ⬜ |
 | 6 | Live block follower (supervised, lag alerting) | ⬜ |

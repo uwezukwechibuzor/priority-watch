@@ -10,6 +10,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/ClickHouse/clickhouse-go/v2"
+
+	pwmigrations "github.com/uwezukwechibuzor/priority-watch/infra/clickhouse/migrations"
+	"github.com/uwezukwechibuzor/priority-watch/internal/store"
 )
 
 func main() {
@@ -30,7 +35,10 @@ func main() {
 
 	switch sub {
 	case "migrate":
-		log.InfoContext(ctx, "migrate: stub – task 3 implements schema migrations")
+		if err := runMigrate(ctx, log); err != nil {
+			log.ErrorContext(ctx, "migrate failed", "err", err)
+			os.Exit(1)
+		}
 	case "backfill":
 		log.InfoContext(ctx, "backfill: stub – task 5 implements block backfill")
 	case "follow":
@@ -43,4 +51,45 @@ func main() {
 		log.ErrorContext(ctx, "unknown subcommand", "sub", sub)
 		os.Exit(1)
 	}
+}
+
+func runMigrate(ctx context.Context, log *slog.Logger) error {
+	addr := envOr("CLICKHOUSE_ADDR", "localhost:9000")
+	user := envOr("CLICKHOUSE_USER", "default")
+	pass := envOr("CLICKHOUSE_PASSWORD", "")
+
+	conn, err := clickhouse.Open(&clickhouse.Options{
+		Addr: []string{addr},
+		Auth: clickhouse.Auth{
+			Username: user,
+			Password: pass,
+		},
+		Settings: clickhouse.Settings{
+			"max_execution_time": 120,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("open clickhouse: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	if err := conn.Ping(ctx); err != nil {
+		return fmt.Errorf("ping clickhouse at %s: %w", addr, err)
+	}
+	log.InfoContext(ctx, "connected to clickhouse", "addr", addr)
+
+	m := store.NewMigrator(conn, pwmigrations.FS)
+	if err := m.Run(ctx); err != nil {
+		return err
+	}
+
+	log.InfoContext(ctx, "migrations complete")
+	return nil
+}
+
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

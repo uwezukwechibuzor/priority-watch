@@ -1,0 +1,18 @@
+-- Access policy for the pw_reader read-only user.
+--
+-- pw_reader is defined in infra/clickhouse/users.d/pw-users.xml with:
+--   profile: readonly (readonly=1, max_execution_time=30, max_memory_usage=1 GiB)
+--   allow_databases: marts, meta
+--
+-- This file is a no-op DDL placeholder so the policy is version-controlled
+-- alongside the schema. If SQL-based access management is enabled (via
+-- CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1), the GRANT statements below
+-- replace the XML allow_databases configuration:
+--
+--   GRANT SELECT ON marts.* TO pw_reader;
+--   GRANT SELECT ON meta.source_status TO pw_reader;
+--
+-- Current setup uses XML-based access control (allow_databases in users.xml).
+-- To switch to SQL grants: set CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1 in
+-- docker-compose.yml and uncomment the GRANT statements above.
+SELECT 1
