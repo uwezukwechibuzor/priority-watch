@@ -110,7 +110,7 @@ func TestParseNDJSON_Bids(t *testing.T) {
 			want:  nil,
 		},
 		{
-			name: "single bid",
+			name:  "single bid",
 			input: `{"round":1,"bidder":"0xABC","express_lane_controller":"0xDEF","amount_wei":"1000000000000000000","bid_timestamp":"2026-09-24T00:00:00Z"}` + "\n",
 			want: []Bid{
 				{
@@ -191,7 +191,7 @@ func TestParseNDJSON_Results(t *testing.T) {
 			want:  nil,
 		},
 		{
-			name: "single result",
+			name:  "single result",
 			input: `{"round":1,"winner":"0xABC","express_lane_controller":"0xDEF","first_price_wei":"1000000000000000000","second_price_wei":"900000000000000000","round_start":"2026-09-24T00:00:00Z","round_end":"2026-09-24T00:01:00Z"}` + "\n",
 			want: []Result{
 				{

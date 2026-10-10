@@ -55,11 +55,11 @@ type Config struct {
 
 // rawBid is the JSON shape of a single bid record from timeboost.app.
 type rawBid struct {
-	Round                  uint64 `json:"round"`
-	Bidder                 string `json:"bidder"`
-	ExpressLaneController  string `json:"express_lane_controller"`
-	AmountWei              string `json:"amount_wei"`
-	BidTimestamp           string `json:"bid_timestamp"`
+	Round                 uint64 `json:"round"`
+	Bidder                string `json:"bidder"`
+	ExpressLaneController string `json:"express_lane_controller"`
+	AmountWei             string `json:"amount_wei"`
+	BidTimestamp          string `json:"bid_timestamp"`
 }
 
 // rawResult is the JSON shape of a single auction result record from timeboost.app.
