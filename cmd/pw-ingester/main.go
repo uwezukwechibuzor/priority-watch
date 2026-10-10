@@ -10,6 +10,8 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	pwmigrations "github.com/uwezukwechibuzor/priority-watch/infra/clickhouse/migrations"
+	"github.com/uwezukwechibuzor/priority-watch/internal/cex"
 	"github.com/uwezukwechibuzor/priority-watch/internal/chain"
 	"github.com/uwezukwechibuzor/priority-watch/internal/config"
 	"github.com/uwezukwechibuzor/priority-watch/internal/ingest"
@@ -417,14 +420,194 @@ func runFollow(ctx context.Context, log *slog.Logger) error {
 }
 
 func newCEXCmd(ctx context.Context) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "cex",
-		Short: "Binance klines ingestion (task 7)",
+		Short: "Binance 1s klines ingestion",
+	}
+	cmd.AddCommand(
+		newCEXBackfillCmd(ctx),
+		newCEXFollowCmd(ctx),
+	)
+	return cmd
+}
+
+func newCEXBackfillCmd(ctx context.Context) *cobra.Command {
+	var (
+		symbolsFlag string
+		fromFlag    string
+		toFlag      string
+	)
+	cmd := &cobra.Command{
+		Use:   "backfill",
+		Short: "Download historical 1s klines from data.binance.vision",
+		Long: `Downloads Binance 1s klines for each symbol for each calendar day in [from, to].
+Verifies the SHA-256 checksum, parses the CSV, and loads rows into raw.cex_klines_1s.
+
+Examples:
+  pw-ingester cex backfill --from 2026-09-01 --to 2026-09-30
+  pw-ingester cex backfill --symbols ETHUSDT,BTCUSDT --from 2026-01-01 --to 2026-01-07
+`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			newLogger().InfoContext(ctx, "cex: implemented in task 7")
-			return nil
+			log := newLogger()
+			return runCEXBackfill(ctx, log, symbolsFlag, fromFlag, toFlag)
 		},
 	}
+	cmd.Flags().StringVar(&symbolsFlag, "symbols", "ETHUSDT,ARBUSDT,BTCUSDT", "comma-separated Binance symbols")
+	cmd.Flags().StringVar(&fromFlag, "from", "", "start date YYYY-MM-DD (required)")
+	cmd.Flags().StringVar(&toFlag, "to", "", "end date YYYY-MM-DD (required)")
+	_ = cmd.MarkFlagRequired("from")
+	_ = cmd.MarkFlagRequired("to")
+	return cmd
+}
+
+func runCEXBackfill(ctx context.Context, log *slog.Logger, symbolsFlag, fromStr, toStr string) error {
+	symbols := strings.Split(symbolsFlag, ",")
+
+	from, err := time.ParseInLocation("2006-01-02", fromStr, time.UTC)
+	if err != nil {
+		return fmt.Errorf("parse --from %q: %w", fromStr, err)
+	}
+	to, err := time.ParseInLocation("2006-01-02", toStr, time.UTC)
+	if err != nil {
+		return fmt.Errorf("parse --to %q: %w", toStr, err)
+	}
+	if from.After(to) {
+		return fmt.Errorf("--from %s is after --to %s", fromStr, toStr)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	conn, err := clickhouse.Open(&clickhouse.Options{
+		Addr:     []string{cfg.ClickHouseAddr},
+		Auth:     clickhouse.Auth{Username: cfg.ClickHouseUser, Password: cfg.ClickHousePassword},
+		Settings: clickhouse.Settings{"max_execution_time": 120},
+	})
+	if err != nil {
+		return fmt.Errorf("open clickhouse: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+	if err := conn.Ping(ctx); err != nil {
+		return fmt.Errorf("ping clickhouse: %w", err)
+	}
+
+	reg := prometheus.NewRegistry()
+	w := store.NewBatchWriter(conn, cex.InsertKlineSQL,
+		cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_cex_klines_1s"))
+	status := store.NewSourceStatusUpsert(conn)
+
+	src := cex.NewBinanceSource(nil, log)
+
+	var totalRows uint64
+	for _, sym := range symbols {
+		sym = strings.TrimSpace(sym)
+		if sym == "" {
+			continue
+		}
+		log.InfoContext(ctx, "backfilling symbol", "symbol", sym, "from", fromStr, "to", toStr)
+		if err := src.Backfill(ctx, sym, from, to, func(klines []cex.Kline) error {
+			now := time.Now().UTC()
+			for _, k := range klines {
+				if err := cex.AppendKline(ctx, w, k, now); err != nil {
+					return err
+				}
+				totalRows++
+			}
+			return nil
+		}); err != nil {
+			return fmt.Errorf("backfill %s: %w", sym, err)
+		}
+	}
+
+	if err := w.Flush(context.Background()); err != nil {
+		log.WarnContext(ctx, "final flush error", "err", err)
+	}
+
+	if err := status.Upsert(ctx, store.SourceStatusRow{
+		Source:          "CEX price feed (Binance 1s OHLCV)",
+		Rows:            totalRows,
+		LatestPosition:  toStr,
+		LatestTimestamp: to,
+	}); err != nil {
+		log.WarnContext(ctx, "source_status upsert failed", "err", err)
+	}
+
+	log.InfoContext(ctx, "cex backfill complete", "symbols", symbolsFlag, "rows", totalRows)
+	return nil
+}
+
+func newCEXFollowCmd(ctx context.Context) *cobra.Command {
+	var symbolsFlag string
+	cmd := &cobra.Command{
+		Use:   "follow",
+		Short: "Live Binance 1s klines via WebSocket",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			log := newLogger()
+			return runCEXFollow(ctx, log, symbolsFlag)
+		},
+	}
+	cmd.Flags().StringVar(&symbolsFlag, "symbols", "ETHUSDT,ARBUSDT,BTCUSDT", "comma-separated Binance symbols")
+	return cmd
+}
+
+func runCEXFollow(ctx context.Context, log *slog.Logger, symbolsFlag string) error {
+	symbols := strings.Split(symbolsFlag, ",")
+
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	conn, err := clickhouse.Open(&clickhouse.Options{
+		Addr:     []string{cfg.ClickHouseAddr},
+		Auth:     clickhouse.Auth{Username: cfg.ClickHouseUser, Password: cfg.ClickHousePassword},
+		Settings: clickhouse.Settings{"max_execution_time": 120},
+	})
+	if err != nil {
+		return fmt.Errorf("open clickhouse: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+	if err := conn.Ping(ctx); err != nil {
+		return fmt.Errorf("ping clickhouse: %w", err)
+	}
+
+	reg := prometheus.NewRegistry()
+	w := store.NewBatchWriter(conn, cex.InsertKlineSQL,
+		cfg.BatchSize, cfg.BatchFlushInterval, store.NewBatchMetrics(reg, "raw_cex_klines_1s"))
+	statusUpd := store.NewSourceStatusUpsert(conn)
+
+	src := cex.NewBinanceSource(nil, log)
+
+	var totalRows atomic.Uint64
+
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.Go(func() error { return w.Run(egCtx) })
+	eg.Go(func() error {
+		return src.Follow(egCtx, symbols, func(k cex.Kline) error {
+			if err := cex.AppendKline(egCtx, w, k, time.Now().UTC()); err != nil {
+				return err
+			}
+			n := totalRows.Add(1)
+			if n%1000 == 0 {
+				if err := statusUpd.Upsert(egCtx, store.SourceStatusRow{
+					Source:          "CEX price feed (Binance 1s OHLCV)",
+					Rows:            n,
+					LatestPosition:  k.Symbol,
+					LatestTimestamp: k.OpenTime,
+				}); err != nil {
+					log.WarnContext(egCtx, "source_status upsert failed", "err", err)
+				}
+			}
+			return nil
+		})
+	})
+
+	if err := eg.Wait(); err != nil && err != context.Canceled {
+		return err
+	}
+	return nil
 }
 
 func newImportTimeboostCmd(ctx context.Context) *cobra.Command {
