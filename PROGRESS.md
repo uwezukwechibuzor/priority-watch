@@ -15,7 +15,7 @@
 | 11 | dbt core marts | ✅ | feat(dbt): core marts |
 | 12 | dbt opportunity marts | ✅ | feat(dbt): opportunity marts |
 | 13 | Airflow DAGs | ✅ | feat(airflow): orchestration dags |
-| 14 | pw-api | ⬜ | |
+| 14 | pw-api | ✅ | feat(api): rest api |
 | 15 | Pricing models + simulator engine | ⬜ | |
 | 16 | Web shell | ⬜ | |
 | 17 | /blocks page | ⬜ | |

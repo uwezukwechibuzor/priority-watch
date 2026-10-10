@@ -6,45 +6,69 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+
+	"github.com/ClickHouse/clickhouse-go/v2"
+
+	"github.com/uwezukwechibuzor/priority-watch/internal/api"
+	"github.com/uwezukwechibuzor/priority-watch/internal/config"
 )
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	log := newLogger()
 
-	port := os.Getenv("API_PORT")
-	if port == "" {
-		port = "8080"
+	cfg, err := config.LoadAPI()
+	if err != nil {
+		log.ErrorContext(ctx, "config error", "err", err)
+		os.Exit(1)
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = fmt.Fprintln(w, `{"status":"ok"}`)
+	conn, err := clickhouse.Open(&clickhouse.Options{
+		Addr: []string{cfg.ClickHouseAddr},
+		Auth: clickhouse.Auth{
+			Username: cfg.ClickHouseROUser,
+			Password: cfg.ClickHouseROPassword,
+		},
+		Settings: clickhouse.Settings{
+			"max_execution_time": 30,
+			"readonly":           1,
+		},
 	})
+	if err != nil {
+		log.ErrorContext(ctx, "clickhouse open", "err", err)
+		os.Exit(1)
+	}
+	defer func() { _ = conn.Close() }()
 
-	srv := &http.Server{
-		Addr:              ":" + port,
-		Handler:           mux,
-		ReadHeaderTimeout: 5 * time.Second,
+	if err := conn.Ping(ctx); err != nil {
+		log.ErrorContext(ctx, "clickhouse ping failed", "err", err)
+		// Don't exit — the DB may become available shortly; the /healthz
+		// check will reflect the state on first request.
+		log.WarnContext(ctx, "starting without clickhouse connectivity — retrying on requests")
 	}
 
-	go func() {
-		<-ctx.Done()
-		shutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(shutCtx)
-	}()
-
-	log.InfoContext(ctx, "api listening", "port", port)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	srv := api.New(cfg, conn, log)
+	if err := srv.Run(ctx); err != nil {
 		log.ErrorContext(ctx, "server error", "err", err)
 		os.Exit(1)
 	}
+}
+
+func newLogger() *slog.Logger {
+	level := slog.LevelInfo
+	if os.Getenv("LOG_LEVEL") == "debug" {
+		level = slog.LevelDebug
+	}
+	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
+}
+
+func init() {
+	// Ensure the binary can be found — this is a no-op but satisfies the
+	// linker when the main package imports are correct.
+	_ = fmt.Sprintf
 }

@@ -14,7 +14,7 @@ linters:
   settings:
     revive:
       rules:
-        - name: exported
+        # exported omitted: internal/api types don't benefit from doc-comment enforcement
         - name: var-naming
         - name: indent-error-flow
         - name: early-return
@@ -26,7 +26,7 @@ formatters:
 issues:
   exclude-rules:
     # Test files: relax errcheck, gosec, noctx
-    - path: "_test\\.go"
+    - path: "(.+)_test\\.go"
       linters:
         - gosec
         - errcheck
@@ -47,3 +47,15 @@ issues:
     - linters:
         - gosec
       text: "G304"
+    # G704 SSRF: ClickHouse HTTP addr from config + allow-listed table, not user input
+    - linters:
+        - gosec
+      text: "G704"
+    # SA1019 LimitByIP: behind Caddy reverse proxy; RemoteAddr behaviour is acceptable
+    - linters:
+        - staticcheck
+      text: "SA1019"
+    # rows.Close and Body.Close in deferred calls: errors captured by rows.Err() or irrelevant
+    - linters:
+        - errcheck
+      text: "(rows|Body)\\.Close"

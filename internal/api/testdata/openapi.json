@@ -1,0 +1,3561 @@
+{
+  "components": {
+    "schemas": {
+      "BaseFeeHourlyRow": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_base_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "era": {
+            "type": "string"
+          },
+          "hour": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hour_change_pct": {
+            "format": "double",
+            "type": "number"
+          },
+          "max_base_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "median_base_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "min_base_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "hour",
+          "era",
+          "min_base_fee_gwei",
+          "max_base_fee_gwei",
+          "avg_base_fee_gwei",
+          "median_base_fee_gwei",
+          "hour_change_pct"
+        ],
+        "type": "object"
+      },
+      "BaseFeeOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/BaseFeeOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BaseFeeHourlyRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "BaseFeeRow": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/BaseFeeRow.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "base_fee_change_pct": {
+            "format": "double",
+            "type": "number"
+          },
+          "base_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "base_fee_wei": {
+            "type": "string"
+          },
+          "block_number": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "block_timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "era": {
+            "type": "string"
+          },
+          "gas_limit": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "gas_used": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "gas_utilisation": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "block_number",
+          "block_timestamp",
+          "base_fee_wei",
+          "base_fee_gwei",
+          "gas_used",
+          "gas_limit",
+          "gas_utilisation",
+          "base_fee_change_pct",
+          "era"
+        ],
+        "type": "object"
+      },
+      "BlockKPIs": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/BlockKPIs.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "avg_tip_per_block_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "avg_top_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "block_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "contested_share": {
+            "format": "double",
+            "type": "number"
+          },
+          "hhi": {
+            "format": "double",
+            "type": "number"
+          },
+          "hhi_band": {
+            "type": "string"
+          },
+          "tip_revenue_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_revenue_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_revenue_wei": {
+            "type": "string"
+          },
+          "top_payer_name": {
+            "type": "string"
+          },
+          "top_payer_share": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "block_count",
+          "tip_revenue_wei",
+          "tip_revenue_eth",
+          "tip_revenue_usd",
+          "avg_tip_per_block_eth",
+          "contested_share",
+          "top_payer_name",
+          "top_payer_share",
+          "hhi",
+          "hhi_band",
+          "avg_top_fee_gwei"
+        ],
+        "type": "object"
+      },
+      "BlockRow": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/BlockRow.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "base_fee_per_gas_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "base_fee_per_gas_wei": {
+            "type": "string"
+          },
+          "block_number": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "block_timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "block_type": {
+            "type": "string"
+          },
+          "distinct_tippers": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "era": {
+            "type": "string"
+          },
+          "eth_price_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "gas_limit": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "gas_used": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "gas_used_pct": {
+            "format": "double",
+            "type": "number"
+          },
+          "median_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "ordering_score": {
+            "format": "double",
+            "type": "number"
+          },
+          "revert_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "second_to_first_ratio": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_revenue_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_revenue_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_revenue_wei": {
+            "type": "string"
+          },
+          "tipped_tx_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "top_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "top_payer_address": {
+            "type": "string"
+          },
+          "top_payer_color_index": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "top_payer_name": {
+            "type": "string"
+          },
+          "top_tip_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "tx_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "block_number",
+          "block_timestamp",
+          "era",
+          "tx_count",
+          "tipped_tx_count",
+          "tip_revenue_wei",
+          "tip_revenue_eth",
+          "tip_revenue_usd",
+          "eth_price_usd",
+          "top_fee_gwei",
+          "top_tip_usd",
+          "median_fee_gwei",
+          "top_payer_address",
+          "top_payer_name",
+          "top_payer_color_index",
+          "revert_count",
+          "second_to_first_ratio",
+          "block_type",
+          "ordering_score",
+          "distinct_tippers",
+          "base_fee_per_gas_wei",
+          "base_fee_per_gas_gwei",
+          "gas_used",
+          "gas_limit",
+          "gas_used_pct"
+        ],
+        "type": "object"
+      },
+      "BlockTxsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/BlockTxsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TxRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "ByEntityOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/ByEntityOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ExecQualityRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ChangesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/ChangesOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BaseFeeHourlyRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "CompOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/CompOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HealthDailyRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ConcOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/ConcOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HealthDailyRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "DailyOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/DailyOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TreasuryDailyRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "EraComparisonRow": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_contested_share": {
+            "format": "double",
+            "type": "number"
+          },
+          "avg_daily_revenue_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "avg_hhi": {
+            "format": "double",
+            "type": "number"
+          },
+          "avg_median_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "avg_revert_rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "avg_top_payer_share": {
+            "format": "double",
+            "type": "number"
+          },
+          "capture_rate_pct": {
+            "format": "double",
+            "type": "number"
+          },
+          "entropy_capture_rate_pct": {
+            "format": "double",
+            "type": "number"
+          },
+          "era": {
+            "type": "string"
+          },
+          "window_days": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "window_tip_eth": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "era",
+          "window_days",
+          "window_tip_eth",
+          "avg_daily_revenue_eth",
+          "avg_contested_share",
+          "avg_hhi",
+          "avg_top_payer_share",
+          "avg_revert_rate",
+          "avg_median_fee_gwei",
+          "capture_rate_pct",
+          "entropy_capture_rate_pct"
+        ],
+        "type": "object"
+      },
+      "ErasOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/ErasOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EraComparisonRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message text",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value at the given location"
+          }
+        },
+        "type": "object"
+      },
+      "ErrorModel": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/ErrorModel.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "examples": [
+              "Property foo is required but is missing."
+            ],
+            "type": "string"
+          },
+          "errors": {
+            "description": "Optional list of individual error details",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "examples": [
+              "https://example.com/error-log/abc123"
+            ],
+            "format": "uri",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              400
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "examples": [
+              "Bad Request"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "examples": [
+              "https://example.com/errors/example"
+            ],
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EventRow": {
+        "additionalProperties": false,
+        "properties": {
+          "block": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "event_date": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "source_url"
+        ],
+        "type": "object"
+      },
+      "EventsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/EventsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EventRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ExecQualityRow": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_markout_usd_1s": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "avg_markout_usd_300s": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "revert_rate": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "entity_name",
+          "revert_rate",
+          "avg_markout_usd_1s",
+          "avg_markout_usd_300s"
+        ],
+        "type": "object"
+      },
+      "HealthDailyRow": {
+        "additionalProperties": false,
+        "properties": {
+          "block_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "blocks_expected": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "blocks_pct_of_expected": {
+            "format": "double",
+            "type": "number"
+          },
+          "contested_share": {
+            "format": "double",
+            "type": "number"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "era": {
+            "type": "string"
+          },
+          "hhi": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "hhi_band": {
+            "type": "string"
+          },
+          "median_user_cost_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "p10_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "p50_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "p90_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "revert_rate_tipped": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_revenue_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_revenue_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_revenue_wei": {
+            "type": "string"
+          },
+          "tipped_tx_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "top_payer_share": {
+            "format": "double",
+            "type": "number"
+          },
+          "tx_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "era",
+          "tip_revenue_eth",
+          "tip_revenue_usd",
+          "tip_revenue_wei",
+          "tx_count",
+          "tipped_tx_count",
+          "p10_fee_gwei",
+          "p50_fee_gwei",
+          "p90_fee_gwei",
+          "block_count",
+          "blocks_expected",
+          "blocks_pct_of_expected",
+          "contested_share",
+          "hhi",
+          "hhi_band",
+          "top_payer_share",
+          "revert_rate_tipped",
+          "median_user_cost_usd"
+        ],
+        "type": "object"
+      },
+      "HeatmapCell": {
+        "additionalProperties": false,
+        "properties": {
+          "day_of_week": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "hour_of_day": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "median_spread_bps": {
+            "format": "double",
+            "type": "number"
+          },
+          "pool_address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pool_address",
+          "hour_of_day",
+          "day_of_week",
+          "median_spread_bps"
+        ],
+        "type": "object"
+      },
+      "HeatmapOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/HeatmapOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HeatmapCell"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "HistOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/HistOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TippedHistRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "HistOutputBody1": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/HistOutputBody1.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BaseFeeRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "HistogramBin": {
+        "additionalProperties": false,
+        "properties": {
+          "bin": {
+            "type": "string"
+          },
+          "block_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "block_pct": {
+            "format": "double",
+            "type": "number"
+          },
+          "pool_address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pool_address",
+          "bin",
+          "block_count",
+          "block_pct"
+        ],
+        "type": "object"
+      },
+      "HistogramOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/HistogramOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HistogramBin"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "IngesterOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/IngesterOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/IngesterStatusRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "IngesterStatusRow": {
+        "additionalProperties": false,
+        "properties": {
+          "lag_seconds": {
+            "format": "double",
+            "type": "number"
+          },
+          "last_updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "latest_position": {
+            "type": "string"
+          },
+          "latest_timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "status",
+          "lag_seconds",
+          "latest_position",
+          "latest_timestamp",
+          "last_updated_at"
+        ],
+        "type": "object"
+      },
+      "LeaderOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/LeaderOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PayerShareRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "ListBlocksOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/ListBlocksOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BlockRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "MarkoutRow": {
+        "additionalProperties": false,
+        "properties": {
+          "block_number": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "eth_delta": {
+            "format": "double",
+            "type": "number"
+          },
+          "exec_price_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "markout_usd_1s": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "markout_usd_300s": {
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "tx_hash": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_number",
+          "tx_hash",
+          "eth_delta",
+          "exec_price_usd",
+          "markout_usd_1s",
+          "markout_usd_300s"
+        ],
+        "type": "object"
+      },
+      "MarkoutsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/MarkoutsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/MarkoutRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Pagination": {
+        "additionalProperties": false,
+        "properties": {
+          "next_cursor": {
+            "description": "Opaque cursor for the next page; absent when no more pages.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PayerShareOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/PayerShareOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PayerShareRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "PayerShareRow": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_tip_rank": {
+            "format": "double",
+            "type": "number"
+          },
+          "color_index": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "entity_type": {
+            "type": "string"
+          },
+          "revert_rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "share_pct": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "tx_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entity_name",
+          "entity_type",
+          "color_index",
+          "tip_eth",
+          "tip_usd",
+          "share_pct",
+          "tx_count",
+          "revert_rate",
+          "avg_tip_rank"
+        ],
+        "type": "object"
+      },
+      "PosOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/PosOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PositionRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "PositionRow": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "avg_tip_rank": {
+            "format": "double",
+            "type": "number"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "delta_rank_vs_position": {
+            "format": "double",
+            "type": "number"
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "fee_efficiency": {
+            "format": "double",
+            "type": "number"
+          },
+          "top3_position_share": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "entity_name",
+          "avg_fee_gwei",
+          "avg_tip_rank",
+          "delta_rank_vs_position",
+          "top3_position_share",
+          "fee_efficiency"
+        ],
+        "type": "object"
+      },
+      "QualityOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/QualityOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ExecQualityRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "ReconOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/ReconOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TreasuryDailyRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "RevenueOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/RevenueOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HealthDailyRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "RevertOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/RevertOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HealthDailyRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "SearchOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/SearchOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SearchResult"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "SearchResult": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "sub_text": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "label",
+          "value"
+        ],
+        "type": "object"
+      },
+      "SeriesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/SeriesOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesPoint"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "SeriesPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "block_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "contested_share": {
+            "format": "double",
+            "type": "number"
+          },
+          "hhi": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tip_revenue_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_revenue_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "tipped_tx_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "top_fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "ts": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts",
+          "tip_revenue_eth",
+          "tip_revenue_usd",
+          "top_fee_gwei",
+          "block_count",
+          "tipped_tx_count",
+          "contested_share",
+          "hhi"
+        ],
+        "type": "object"
+      },
+      "SpreadRow": {
+        "additionalProperties": false,
+        "properties": {
+          "abs_spread_bps": {
+            "format": "double",
+            "type": "number"
+          },
+          "block_number": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "pool_address": {
+            "type": "string"
+          },
+          "spread_bps": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "block_number",
+          "pool_address",
+          "spread_bps",
+          "abs_spread_bps"
+        ],
+        "type": "object"
+      },
+      "SpreadsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/SpreadsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SpreadRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "TippedHistRow": {
+        "additionalProperties": false,
+        "properties": {
+          "bin": {
+            "type": "string"
+          },
+          "block_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bin",
+          "block_count"
+        ],
+        "type": "object"
+      },
+      "TreasuryDailyRow": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "developer_guild_wei": {
+            "type": "string"
+          },
+          "era": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tipped_tx_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "total_tip_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_tip_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_tip_wei": {
+            "type": "string"
+          },
+          "treasury_wei": {
+            "type": "string"
+          },
+          "tx_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "era",
+          "total_tip_wei",
+          "total_tip_eth",
+          "total_tip_usd",
+          "treasury_wei",
+          "developer_guild_wei",
+          "tx_count",
+          "tipped_tx_count",
+          "status"
+        ],
+        "type": "object"
+      },
+      "TreasurySummary": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/TreasurySummary.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "avg_daily_tip_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "day_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "developer_guild_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "projected_annual_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_tip_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_tip_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_tip_wei": {
+            "type": "string"
+          },
+          "treasury_eth": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total_tip_eth",
+          "total_tip_usd",
+          "total_tip_wei",
+          "treasury_eth",
+          "developer_guild_eth",
+          "avg_daily_tip_eth",
+          "projected_annual_eth",
+          "day_count"
+        ],
+        "type": "object"
+      },
+      "TxRow": {
+        "additionalProperties": false,
+        "properties": {
+          "block_number": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "color_index": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "entity_type": {
+            "type": "string"
+          },
+          "from_address": {
+            "type": "string"
+          },
+          "gas_used": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "is_reverted_tipped": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "priority_fee_per_gas_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "status": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tip_paid_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_paid_usd": {
+            "format": "double",
+            "type": "number"
+          },
+          "tip_paid_wei": {
+            "type": "string"
+          },
+          "tip_rank": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "to_address": {
+            "type": "string"
+          },
+          "tx_class": {
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "tx_index": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tx_type": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "block_number",
+          "tx_index",
+          "tx_hash",
+          "tx_type",
+          "from_address",
+          "to_address",
+          "status",
+          "gas_used",
+          "priority_fee_per_gas_gwei",
+          "tip_paid_eth",
+          "tip_paid_usd",
+          "tip_paid_wei",
+          "tip_rank",
+          "tx_class",
+          "entity_name",
+          "entity_type",
+          "color_index",
+          "is_reverted_tipped"
+        ],
+        "type": "object"
+      },
+      "UserCostOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/UserCostOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HealthDailyRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Analytics API for Arbitrum One Priority Gas Auction (PGA) ordering metrics.",
+    "title": "Priority Watch API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/blocks": {
+      "get": {
+        "description": "Returns blocks newest-first with optional filters and keyset pagination.",
+        "operationId": "list-blocks",
+        "parameters": [
+          {
+            "description": "Time range",
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "description": "Time range",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD; overrides range (empty = not set)",
+            "explode": false,
+            "in": "query",
+            "name": "day",
+            "schema": {
+              "description": "YYYY-MM-DD; overrides range (empty = not set)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search block number, address, or entity name (empty = no filter)",
+            "explode": false,
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "description": "Search block number, address, or entity name (empty = no filter)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by top-payer entity name (empty = no filter)",
+            "explode": false,
+            "in": "query",
+            "name": "entity",
+            "schema": {
+              "description": "Filter by top-payer entity name (empty = no filter)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only return contested blocks",
+            "explode": false,
+            "in": "query",
+            "name": "contested_only",
+            "schema": {
+              "description": "Only return contested blocks",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Minimum top fee in gwei (0 = no filter)",
+            "explode": false,
+            "in": "query",
+            "name": "min_fee_gwei",
+            "schema": {
+              "description": "Minimum top fee in gwei (0 = no filter)",
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "description": "Inclusive start block number (0 = no filter)",
+            "explode": false,
+            "in": "query",
+            "name": "from_block",
+            "schema": {
+              "description": "Inclusive start block number (0 = no filter)",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Inclusive end block number (0 = no filter)",
+            "explode": false,
+            "in": "query",
+            "name": "to_block",
+            "schema": {
+              "description": "Inclusive end block number (0 = no filter)",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Opaque keyset pagination cursor (empty = first page)",
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "description": "Opaque keyset pagination cursor (empty = first page)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size",
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "description": "Page size",
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBlocksOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List blocks",
+        "tags": [
+          "Blocks"
+        ]
+      }
+    },
+    "/api/v1/blocks/kpis": {
+      "get": {
+        "operationId": "get-block-kpis",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD; overrides range (empty = not set)",
+            "explode": false,
+            "in": "query",
+            "name": "day",
+            "schema": {
+              "description": "YYYY-MM-DD; overrides range (empty = not set)",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockKPIs"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Block KPI summary",
+        "tags": [
+          "Blocks"
+        ]
+      }
+    },
+    "/api/v1/blocks/payer-share": {
+      "get": {
+        "operationId": "get-payer-share",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayerShareOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Top payer share (horizontal bar chart data)",
+        "tags": [
+          "Blocks"
+        ]
+      }
+    },
+    "/api/v1/blocks/series": {
+      "get": {
+        "operationId": "get-block-series",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Block time-series (tip revenue + top fee per bucket)",
+        "tags": [
+          "Blocks"
+        ]
+      }
+    },
+    "/api/v1/blocks/tipped-histogram": {
+      "get": {
+        "operationId": "get-tipped-histogram",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Tipped-tx-count histogram per block",
+        "tags": [
+          "Blocks"
+        ]
+      }
+    },
+    "/api/v1/blocks/{number}": {
+      "get": {
+        "operationId": "get-block",
+        "parameters": [
+          {
+            "description": "Block number",
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "description": "Block number",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockRow"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a single block by number",
+        "tags": [
+          "Blocks"
+        ]
+      }
+    },
+    "/api/v1/blocks/{number}/txs": {
+      "get": {
+        "operationId": "list-block-txs",
+        "parameters": [
+          {
+            "description": "Block number",
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "description": "Block number",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Opaque pagination cursor (empty = first page)",
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "description": "Opaque pagination cursor (empty = first page)",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockTxsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Transactions for a block",
+        "tags": [
+          "Blocks"
+        ]
+      }
+    },
+    "/api/v1/compare/eras": {
+      "get": {
+        "description": "Returns one row per era for the requested window. Includes Entropy benchmark capture rates.",
+        "operationId": "compare-eras",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "window_days",
+            "schema": {
+              "default": 14,
+              "format": "int64",
+              "maximum": 365,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErasOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Side-by-side Timeboost vs. PGA era metrics",
+        "tags": [
+          "Compare"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "description": "Returns all events from config/events.yaml loaded via dbt seed into marts.dim_events.",
+        "operationId": "get-events",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Chart marker events (Timeboost launch, ArbOS upgrades, PGA activation)",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/api/v1/execution/by-entity/{id}": {
+      "get": {
+        "operationId": "get-execution-by-entity",
+        "parameters": [
+          {
+            "description": "Entity name",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Entity name",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ByEntityOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Execution quality for a specific entity",
+        "tags": [
+          "Execution"
+        ]
+      }
+    },
+    "/api/v1/execution/quality": {
+      "get": {
+        "operationId": "get-execution-quality",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualityOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Daily execution quality per entity (revert rate + markouts)",
+        "tags": [
+          "Execution"
+        ]
+      }
+    },
+    "/api/v1/fees/changes": {
+      "get": {
+        "description": "Analogue of timeboost.app's Reserve group; shows base fee evolution over time.",
+        "operationId": "get-fee-changes",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Hourly base fee aggregates (min/max/avg/median, change %)",
+        "tags": [
+          "Fees"
+        ]
+      }
+    },
+    "/api/v1/fees/current": {
+      "get": {
+        "operationId": "get-current-fee",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseFeeRow"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Current base fee (most recent block)",
+        "tags": [
+          "Fees"
+        ]
+      }
+    },
+    "/api/v1/fees/history": {
+      "get": {
+        "operationId": "get-fee-history",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 200,
+              "format": "int64",
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistOutputBody1"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Per-block base fee history",
+        "tags": [
+          "Fees"
+        ]
+      }
+    },
+    "/api/v1/health/base-fee": {
+      "get": {
+        "operationId": "get-health-base-fee",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseFeeOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Hourly base fee history",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/competition": {
+      "get": {
+        "operationId": "get-health-competition",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Daily competition metrics (contested share, fee band)",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/concentration": {
+      "get": {
+        "operationId": "get-health-concentration",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConcOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Daily HHI and payer concentration",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/ingester-status": {
+      "get": {
+        "description": "Returns one row per data source (chain RPC, Binance klines, timeboost.app). Mirrors timeboost.app's ingester-status endpoint.",
+        "operationId": "get-ingester-status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngesterOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Per-source ingester status and lag",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/leaderboard": {
+      "get": {
+        "operationId": "get-health-leaderboard",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaderOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Payer leaderboard sorted by tip revenue",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/revenue": {
+      "get": {
+        "operationId": "get-health-revenue",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevenueOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Daily tip revenue and throughput",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/revert-rates": {
+      "get": {
+        "operationId": "get-health-revert-rates",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevertOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Daily revert rates (tipped vs. untipped txs)",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/user-costs": {
+      "get": {
+        "operationId": "get-health-user-costs",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCostOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Daily user cost metrics (median tx cost, fee percentiles)",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/opportunity/heatmap": {
+      "get": {
+        "operationId": "get-spread-heatmap",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeatmapOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Spread heatmap — hour of day × day of week",
+        "tags": [
+          "Opportunity"
+        ]
+      }
+    },
+    "/api/v1/opportunity/histogram": {
+      "get": {
+        "operationId": "get-spread-histogram",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistogramOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Spread histogram (bps bins with block count and cumulative %)",
+        "tags": [
+          "Opportunity"
+        ]
+      }
+    },
+    "/api/v1/opportunity/markouts": {
+      "get": {
+        "operationId": "get-markouts",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 500,
+              "format": "int64",
+              "maximum": 5000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkoutsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Swap markouts at 1 s and 300 s horizons",
+        "tags": [
+          "Opportunity"
+        ]
+      }
+    },
+    "/api/v1/opportunity/position-sensitivity": {
+      "get": {
+        "operationId": "get-position-sensitivity",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PosOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Entity position vs. fee rank (over/under-payment delta)",
+        "tags": [
+          "Opportunity"
+        ]
+      }
+    },
+    "/api/v1/opportunity/spreads": {
+      "get": {
+        "operationId": "get-spreads",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "24h",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 500,
+              "format": "int64",
+              "maximum": 5000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpreadsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "DEX–CEX spread per block and pool",
+        "tags": [
+          "Opportunity"
+        ]
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "operationId": "search",
+        "parameters": [
+          {
+            "description": "Search query (block number, tx hash, address, entity name)",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Search query (block number, tx hash, address, entity name)",
+              "maxLength": 100,
+              "minLength": 2,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Search blocks, transactions, addresses and entities",
+        "tags": [
+          "Search"
+        ]
+      }
+    },
+    "/api/v1/treasury/daily": {
+      "get": {
+        "operationId": "get-treasury-daily",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Daily tip revenue split between Treasury (97%) and Developer Guild (3%)",
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/treasury/reconciliation": {
+      "get": {
+        "description": "Pending balance snapshot integration (task 8 part C). Returns all rows until then.",
+        "operationId": "get-treasury-reconciliation",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Days where the on-chain reconciliation status is warn or fail",
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/treasury/summary": {
+      "get": {
+        "operationId": "get-treasury-summary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreasurySummary"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Cumulative treasury totals and projected annual run rate",
+        "tags": [
+          "Treasury"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "This server",
+      "url": "/"
+    }
+  ]
+}

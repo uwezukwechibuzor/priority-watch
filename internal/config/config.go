@@ -29,12 +29,23 @@ type Config struct {
 	ClickHousePassword string `env:"CLICKHOUSE_PASSWORD"`
 	ClickHouseDatabase string `env:"CLICKHOUSE_DATABASE" envDefault:"raw"`
 
+	// Read-only ClickHouse credentials (API uses these; ingester uses admin creds above)
+	ClickHouseROUser     string `env:"CLICKHOUSE_RO_USER"     envDefault:"pw_reader"`
+	ClickHouseROPassword string `env:"CLICKHOUSE_RO_PASSWORD"`
+
 	// Ingester ────────────────────────────────────────────────────────────────
 	BatchSize          int           `env:"BATCH_SIZE"           envDefault:"1000"`
 	BatchFlushInterval time.Duration `env:"BATCH_FLUSH_INTERVAL" envDefault:"10s"`
 
 	// API ─────────────────────────────────────────────────────────────────────
-	APIAddr string `env:"API_ADDR" envDefault:":8080"`
+	APIAddr       string `env:"API_ADDR"        envDefault:":8080"`
+	APICORSOrigin string `env:"API_CORS_ORIGIN" envDefault:"*"`
+
+	// PGA chain parameters ───────────────────────────────────────────────────
+	PGAActivationBlock uint64 `env:"PGA_ACTIVATION_BLOCK" envDefault:"0"`
+
+	// ClickHouse HTTP endpoint (used by datasets streaming, separate from native port)
+	ClickHouseHTTPAddr string `env:"CLICKHOUSE_HTTP_ADDR" envDefault:"http://localhost:8123"`
 
 	// Observability ───────────────────────────────────────────────────────────
 	MetricsAddr string `env:"METRICS_ADDR" envDefault:":9091"`
@@ -59,6 +70,19 @@ func Load() (*Config, error) {
 	}
 	if cfg.BatchSize <= 0 {
 		return nil, fmt.Errorf("config: BATCH_SIZE must be positive, got %d", cfg.BatchSize)
+	}
+	return cfg, nil
+}
+
+// LoadAPI parses environment variables for the API binary.
+// Does not require ARBITRUM_RPC_URL (the API does not talk to the chain).
+func LoadAPI() (*Config, error) {
+	cfg := &Config{}
+	if err := env.Parse(cfg); err != nil {
+		return nil, fmt.Errorf("config: %w", err)
+	}
+	if cfg.ArbitrumChainID != 42161 {
+		return nil, fmt.Errorf("config: ARBITRUM_CHAIN_ID must be 42161, got %d", cfg.ArbitrumChainID)
 	}
 	return cfg, nil
 }
