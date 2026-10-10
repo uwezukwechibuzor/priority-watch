@@ -1,0 +1,430 @@
+version: 2
+
+models:
+  - name: fct_blocks
+    description: >
+      One row per Arbitrum One block with all PGA analytics fields.
+      Powers the /blocks block table, KPI tiles and sparklines.
+      Block-level ordering stats (block_type, second_to_first_ratio,
+      ordering_score, estimated_rounds) are lifted from int_block_ordering.
+      anomaly_count = has_anomaly flag from int_block_ordering (1 if estimated_rounds > 4).
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+          - unique
+      - name: block_timestamp
+        description: Block production timestamp (UTC).
+        tests:
+          - not_null
+      - name: era
+        description: "'pga' or 'timeboost'."
+      - name: tx_count
+        description: Total transaction count in this block.
+      - name: tipped_tx_count
+        description: Count of transactions with priority_fee_per_gas > 0.
+      - name: tip_revenue_wei
+        description: Sum of tip_paid_wei for all tipped transactions in this block.
+      - name: tip_revenue_eth
+        description: tip_revenue_wei in ETH (Float64, display only).
+      - name: tip_revenue_usd
+        description: tip_revenue_eth * eth_price_usd (display only).
+      - name: top_fee_gwei
+        description: Highest priority_fee_per_gas in block (Gwei).
+      - name: top_tip_usd
+        description: Largest single-tx tip in USD.
+      - name: median_fee_gwei
+        description: Median priority fee (gwei) among tipped txs.
+      - name: p90_fee_gwei
+        description: 90th-percentile priority fee (gwei) among tipped txs.
+      - name: top_payer_address
+        description: Address that paid the most tip in this block.
+      - name: top_payer_name
+        description: Entity name for top_payer_address; address if unlabelled.
+      - name: top_payer_color_index
+        description: Chart colour index for top_payer (0 if unlabelled).
+      - name: second_to_first_ratio
+        description: second_fee / top_fee; 0 if fewer than 2 distinct tipped fee levels.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+      - name: block_type
+        description: "'contested' (2+ tipping entities), 'single' (1), 'untipped' (0)."
+        tests:
+          - accepted_values:
+              values: ['contested', 'single', 'untipped']
+      - name: ordering_score
+        description: Spearman rank correlation of tip_rank vs tx_index (−1.0 to +1.0).
+      - name: estimated_rounds
+        description: Estimated PGA rounds (inferred from fee-order restarts; not observable on chain).
+      - name: anomaly_count
+        description: has_anomaly flag from int_block_ordering (1 = estimated_rounds > 4).
+      - name: gas_used_pct
+        description: gas_used / gas_limit.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+      - name: revert_count
+        description: Count of tipped transactions that reverted.
+      - name: base_fee_per_gas
+        description: Block base fee in wei.
+      - name: base_fee_per_gas_gwei
+        description: Block base fee in Gwei.
+
+  - name: fct_transactions
+    description: >
+      One row per user transaction with all analytics fields (fees, ordering, classification,
+      entity, spam signals). Powers the /blocks block drawer and full-text tx search.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+      - name: tx_hash
+        description: Transaction hash (lowercase 0x-prefixed).
+        tests:
+          - not_null
+          - unique
+      - name: tip_rank
+        description: Dense rank of this tx by priority fee within its block (0 = untipped).
+      - name: block_type
+        description: Block type inherited from int_block_ordering.
+      - name: tx_class
+        description: Transaction classification (liquidation, atomic_arb_candidate, dex_swap, simple_transfer, other).
+      - name: is_reverted_tipped
+        description: 1 if this tipped tx reverted.
+      - name: entity_name
+        description: Entity name for from_address; address if unlabelled.
+      - name: second_to_first_ratio
+        description: Block-level 2nd/1st ratio for this tx's block.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+
+  - name: agg_blocks_minutely
+    description: >
+      Minutely block aggregates for the /blocks KPI sparklines (24h range).
+      expected_block_count = 240 per minute (60s / 0.25s).
+      HHI is the Herfindahl–Hirschman Index of tip revenue by entity within the minute.
+    columns:
+      - name: minute
+        description: Minute bucket (truncated to minute).
+        tests:
+          - not_null
+      - name: block_count
+        description: Blocks ingested in this minute.
+      - name: expected_block_count
+        description: Expected blocks per minute (constant 240).
+      - name: hhi
+        description: Herfindahl–Hirschman Index (0–10000) within this minute.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
+              inclusive: true
+      - name: contested_share
+        description: Fraction of blocks that are contested (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+      - name: top_payer_share
+        description: Top entity's fraction of minute-level tip revenue (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+
+  - name: agg_blocks_hourly
+    description: >
+      Hourly block aggregates for the /blocks TIP REVENUE / TOP FEE time-series panel
+      and KPI sparklines over 7d/30d/all ranges.
+      expected_block_count = 14,400 per hour.
+    columns:
+      - name: hour
+        description: Hour bucket (truncated to hour).
+        tests:
+          - not_null
+      - name: hhi
+        description: Herfindahl–Hirschman Index (0–10000) within this hour.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
+              inclusive: true
+      - name: contested_share
+        description: Fraction of blocks contested in this hour (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+      - name: top_payer_share
+        description: Top entity's fraction of hour-level tip revenue (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+
+  - name: agg_payer_share_daily
+    description: >
+      Daily entity-level tip revenue aggregation.
+      Powers the /blocks PAYER SHARE panel and the /health PAYERS LEADERBOARD
+      (sparkline = 30 rows per entity). Also used by agg_health_daily for HHI computation.
+    columns:
+      - name: date
+        description: Calendar date.
+        tests:
+          - not_null
+      - name: entity_name
+        description: Entity name or from_address if unlabelled.
+        tests:
+          - not_null
+      - name: tip_wei
+        description: Total tip paid by this entity on this date (wei).
+      - name: revert_rate
+        description: Fraction of tipped txs that reverted (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+
+  - name: agg_tipped_tx_hist_daily
+    description: >
+      Daily histogram of blocks by tipped-tx-count bins.
+      Powers the /blocks TIPPED TXS PER BLOCK histogram.
+      Bins: '0', '1-5', '6-10', '11-20', '21-50', '51+'.
+    columns:
+      - name: date
+        description: Calendar date.
+        tests:
+          - not_null
+      - name: tipped_tx_bin
+        description: Histogram bin label.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['0', '1-5', '6-10', '11-20', '21-50', '51+']
+      - name: block_count
+        description: Number of blocks falling into this bin on this date.
+
+  - name: agg_health_daily
+    description: >
+      Daily health metrics for the /health Overview, Trends and KPI tiles.
+      One row per (date, era). HHI is computed from agg_payer_share_daily entity shares.
+      zero_tip_inclusion_count is a proxy for anti-starvation inclusion;
+      actual round-level data is not observable on chain.
+    columns:
+      - name: date
+        description: Calendar date.
+        tests:
+          - not_null
+      - name: era
+        description: "'pga' or 'timeboost'."
+      - name: hhi
+        description: Daily Herfindahl–Hirschman Index (0–10000).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
+              inclusive: true
+      - name: hhi_band
+        description: "HHI interpretation: 'competitive' (<1500), 'moderate' (1500-2500), 'high' (>2500)."
+        tests:
+          - accepted_values:
+              values: ['competitive', 'moderate', 'high']
+      - name: contested_share
+        description: Fraction of blocks that are contested (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+      - name: top_payer_share
+        description: Top entity's daily tip revenue share (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+      - name: revert_rate_tipped
+        description: Fraction of tipped txs that reverted (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+
+  - name: fct_base_fee_changes
+    description: >
+      Per-block base fee with delta from the previous block.
+      Powers the BASE FEE EVOLUTION panel on /health.
+    columns:
+      - name: block_number
+        description: Arbitrum One block height.
+        tests:
+          - not_null
+          - unique
+      - name: base_fee_per_gas_gwei
+        description: Base fee in Gwei.
+      - name: base_fee_change_pct
+        description: Percentage change in base fee from the previous block.
+
+  - name: agg_base_fee_hourly
+    description: >
+      Hourly base fee statistics for the BASE FEE EVOLUTION panel on /health.
+    columns:
+      - name: hour
+        description: Hour bucket (truncated to hour).
+        tests:
+          - not_null
+
+  - name: dim_entities
+    description: >
+      Entity dimension table enriched with on-chain lifetime stats.
+      Seed labels (verified) take priority over pool/contract labels,
+      which take priority over heuristic bot rows (confidence = 0.5).
+      Powers the /health PAYERS LEADERBOARD sort by lifetime_tips.
+    columns:
+      - name: address
+        description: Ethereum address (lowercase 0x-prefixed).
+        tests:
+          - not_null
+          - unique
+      - name: entity_name
+        description: Human-readable entity name.
+        tests:
+          - not_null
+      - name: revert_rate
+        description: Lifetime tipped-tx revert rate (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+
+  - name: fct_treasury_daily
+    description: >
+      Daily treasury accounting: 97% Treasury / 3% Developer Guild split on tip revenue.
+      Reconciliation columns (diff_wei, diff_pct, status) are placeholders pending
+      balance snapshot data from task 8 part C.
+    columns:
+      - name: date
+        description: Calendar date.
+        tests:
+          - not_null
+      - name: era
+        description: "'pga' or 'timeboost'."
+      - name: status
+        description: Reconciliation status ('ok', 'warn', 'fail'). Currently always 'ok'.
+        tests:
+          - accepted_values:
+              values: ['ok', 'warn', 'fail']
+
+  - name: agg_era_comparison
+    description: >
+      Side-by-side Timeboost vs PGA comparison over the most recent window_days (default 14)
+      per era, plus lifetime totals. Powers the /health Compare tab.
+      Entropy benchmark constants from the AIP forum thread are included as reference columns.
+      capture_rate_pct is deferred to task 12 (opportunity marts).
+    columns:
+      - name: era
+        description: "'pga' or 'timeboost'."
+        tests:
+          - not_null
+          - unique
+      - name: avg_contested_share
+        description: Average daily contested share over window (0–1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              inclusive: true
+
+  - name: dim_events
+    description: >
+      Event markers from config/events.yaml (via events seed).
+      Used on every time-series chart as vertical dashed lines.
+    columns:
+      - name: id
+        description: Stable event identifier.
+        tests:
+          - not_null
+          - unique
+      - name: label
+        description: Short human-readable label shown on chart markers.
+        tests:
+          - not_null
+
+exposures:
+  - name: blocks_page
+    type: dashboard
+    description: >
+      /blocks page: block table, KPI tiles (blocks, tip revenue, avg tip, contested %,
+      top payer, HHI), TIP REVENUE / TOP FEE panel, PAYER SHARE panel, histogram.
+    owner:
+      name: priority-watch
+    depends_on:
+      - ref('fct_blocks')
+      - ref('fct_transactions')
+      - ref('agg_blocks_hourly')
+      - ref('agg_blocks_minutely')
+      - ref('agg_payer_share_daily')
+      - ref('agg_tipped_tx_hist_daily')
+      - ref('dim_events')
+      - ref('dim_entities')
+
+  - name: health_page
+    type: dashboard
+    description: >
+      /health page: KPI tiles, Overview/Trends/Payers/Treasury/Compare/Sources/Pipeline tabs.
+      Revenue + throughput dual-axis, HHI concentration, fee band, payers leaderboard,
+      treasury split, era comparison, base fee evolution.
+    owner:
+      name: priority-watch
+    depends_on:
+      - ref('agg_health_daily')
+      - ref('agg_payer_share_daily')
+      - ref('fct_treasury_daily')
+      - ref('agg_era_comparison')
+      - ref('agg_base_fee_hourly')
+      - ref('fct_base_fee_changes')
+      - ref('dim_entities')
+      - ref('dim_events')
+
+  - name: blocks_api
+    type: application
+    description: >
+      pw-api /api/v1/blocks endpoint group. Serves block table, block drawer,
+      KPI tiles and time-series for the /blocks page.
+    owner:
+      name: priority-watch
+    depends_on:
+      - ref('fct_blocks')
+      - ref('fct_transactions')
+      - ref('agg_blocks_hourly')
+      - ref('agg_blocks_minutely')
+
+  - name: health_api
+    type: application
+    description: >
+      pw-api /api/v1/health, /treasury, /compare, /opportunity (partial) endpoint groups.
+    owner:
+      name: priority-watch
+    depends_on:
+      - ref('agg_health_daily')
+      - ref('agg_payer_share_daily')
+      - ref('fct_treasury_daily')
+      - ref('agg_era_comparison')
+      - ref('dim_entities')

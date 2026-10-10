@@ -21,6 +21,8 @@ vars:
   timeboost_auction_resolved_topic0: "0x0000000000000000000000000000000000000000000000000000000000000000"
   # From config/contracts.yaml; update once verified on Arbiscan.
   express_lane_auction_address: "0x65f07c7d521164a4d5dac6eb8fac8da067a3b78f"
+  # Window in days for agg_era_comparison side-by-side metrics.
+  window_days: 14
 
 models:
   priority_watch:

@@ -12,7 +12,7 @@
 | 8 | Entity registries + Timeboost baseline + fee verification | ✅ | feat: verified registries and fee-mechanics analysis |
 | 9 | dbt staging layer | ✅ | feat(dbt): sources and staging |
 | 10 | dbt intermediate layer | ✅ | feat(dbt): intermediate models |
-| 11 | dbt core marts | ⬜ | |
+| 11 | dbt core marts | ✅ | feat(dbt): core marts |
 | 12 | dbt opportunity marts | ⬜ | |
 | 13 | Airflow DAGs | ⬜ | |
 | 14 | pw-api | ⬜ | |
