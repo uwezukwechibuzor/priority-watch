@@ -13,10 +13,15 @@ x-airflow-common-env: &airflow-env
   AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
   # Give DAGs access to the ClickHouse and ingester config
   CLICKHOUSE_ADDR: ${CLICKHOUSE_ADDR:-clickhouse:9000}
+  CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-clickhouse}
+  CLICKHOUSE_PORT: ${CLICKHOUSE_PORT:-8123}
   CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
   CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-admin}
   ARBITRUM_RPC_URL: ${ARBITRUM_RPC_URL:-}
   PGA_ACTIVATION_BLOCK: ${PGA_ACTIVATION_BLOCK:-}
+  FOLLOWER_HEALTHZ_URL: ${FOLLOWER_HEALTHZ_URL:-http://pw-follower:9091/healthz}
+  CLICKHOUSE_BACKUP_DISK: ${CLICKHOUSE_BACKUP_DISK:-backups}
+  SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
 
 x-airflow-common: &airflow-common
   build:
@@ -48,6 +53,7 @@ services:
       CLICKHOUSE_RO_PASSWORD: ${CLICKHOUSE_RO_PASSWORD:-readonly}
     volumes:
       - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-backups:/var/lib/clickhouse/backups
       - ./infra/clickhouse/config.d:/etc/clickhouse-server/config.d:ro
       # users.d is writable so the entrypoint can write default-user.xml for CLICKHOUSE_PASSWORD.
       # Our pw-users.xml (pw_reader) coexists safely in the same dir.
@@ -260,6 +266,7 @@ services:
 
 volumes:
   clickhouse-data:
+  clickhouse-backups:
   postgres-data:
   airflow-logs:
   caddy-data:

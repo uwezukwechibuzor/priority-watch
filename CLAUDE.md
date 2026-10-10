@@ -269,11 +269,13 @@ Migrations live in `infra/clickhouse/migrations/*.sql` (embedded via `//go:embed
 
 | DAG | Schedule |
 |-----|----------|
-| `pga_backfill` | Manual (dynamic task mapping) |
-| `pga_dbt` | `*/10 * * * *` |
-| `pga_monitor` | `*/5 * * * *` |
-| `pga_cex_catchup` | `@daily` |
-| `pga_nightly` | `@daily` (dbt full tests, docs, ClickHouse backup) |
+| `pw_backfill` | Manual (dynamic task mapping, `rpc_pool` concurrency cap) |
+| `pw_dbt_incremental` | `*/10 * * * *` + Dataset trigger on `clickhouse://raw.blocks` |
+| `pw_dbt_nightly` | `0 2 * * *` (full tests, source freshness, dbt docs generate) |
+| `pw_cex_daily` | `0 1 * * *` (Binance daily catch-up + gap check) |
+| `pw_monitoring` | `*/5 * * * *` (healthz, lag, missing blocks, CEX gaps, dbt freshness) |
+| `pw_timeboost_baseline` | Manual (auction log backfill + timeboost.app import) |
+| `pw_clickhouse_backup` | `0 3 * * *` (BACKUP DATABASE raw + meta to "backups" disk) |
 
 ---
 
@@ -330,7 +332,7 @@ A task is done when ALL of the following are true:
 | 10 | dbt intermediate layer | ✅ |
 | 11 | dbt core marts (blocks, revenue, payer share, treasury) | ✅ |
 | 12 | dbt opportunity marts (markout, capture rate, HHI) | ✅ |
-| 13 | Airflow DAGs (backfill, dbt via Cosmos, monitoring, backup) | ⬜ |
+| 13 | Airflow DAGs (backfill, dbt via Cosmos, monitoring, backup) | ✅ |
 | 14 | pw-api (all endpoint groups, OpenAPI, Scalar UI) | ⬜ |
 | 15 | Pricing models + simulator engine | ⬜ |
 | 16 | Web shell (top bar, context bar, routing, theme) | ⬜ |
