@@ -5,6 +5,8 @@
 
 # Go build artefacts
 /bin/
+/pw-ingester
+/pw-api
 *.test
 *.prof
 coverage.out
