@@ -1,5 +1,5 @@
 // pw-ingester is the Priority Watch ingestion binary.
-// Subcommands: migrate, backfill, follow, cex, import-timeboost.
+// Subcommands: migrate, backfill, follow, cex, import-timeboost, eval-models.
 package main
 
 import (
@@ -25,6 +25,7 @@ import (
 	"github.com/uwezukwechibuzor/priority-watch/internal/chain"
 	"github.com/uwezukwechibuzor/priority-watch/internal/config"
 	"github.com/uwezukwechibuzor/priority-watch/internal/ingest"
+	"github.com/uwezukwechibuzor/priority-watch/internal/models"
 	"github.com/uwezukwechibuzor/priority-watch/internal/obs"
 	"github.com/uwezukwechibuzor/priority-watch/internal/store"
 	"github.com/uwezukwechibuzor/priority-watch/internal/timeboost"
@@ -50,6 +51,7 @@ func newRootCmd(ctx context.Context) *cobra.Command {
 		newFollowCmd(ctx),
 		newCEXCmd(ctx),
 		newImportTimeboostCmd(ctx),
+		newEvalModelsCmd(ctx),
 	)
 	return root
 }
@@ -678,6 +680,127 @@ func runImportTimeboost(ctx context.Context, log *slog.Logger, fromStr, toStr st
 	}
 
 	log.InfoContext(ctx, "import-timeboost complete", "from", fromStr, "to", toStr)
+	return nil
+}
+
+// ── eval-models ───────────────────────────────────────────────────────────────
+
+func newEvalModelsCmd(ctx context.Context) *cobra.Command {
+	var trainBlocks, testBlocks, n int
+	var confidence float64
+
+	cmd := &cobra.Command{
+		Use:   "eval-models",
+		Short: "Evaluate pricing models and write results to marts.model_eval",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			log := newLogger()
+			return runEvalModels(ctx, log, trainBlocks, testBlocks, n, confidence)
+		},
+	}
+	cmd.Flags().IntVar(&trainBlocks, "train", 500, "Training window in blocks")
+	cmd.Flags().IntVar(&testBlocks, "test", 100, "Held-out test blocks")
+	cmd.Flags().IntVar(&n, "n", 1, "Target rank position")
+	cmd.Flags().Float64Var(&confidence, "confidence", 0.80, "Target confidence")
+	return cmd
+}
+
+func runEvalModels(ctx context.Context, log *slog.Logger, trainBlocks, testBlocks, n int, confidence float64) error {
+	addr := envOr("CLICKHOUSE_ADDR", "localhost:9000")
+	user := envOr("CLICKHOUSE_USER", "default")
+	pass := envOr("CLICKHOUSE_PASSWORD", "")
+
+	conn, err := clickhouse.Open(&clickhouse.Options{
+		Addr:     []string{addr},
+		Auth:     clickhouse.Auth{Username: user, Password: pass},
+		Settings: clickhouse.Settings{"max_execution_time": 120},
+	})
+	if err != nil {
+		return fmt.Errorf("clickhouse open: %w", err)
+	}
+	defer conn.Close() //nolint:errcheck
+
+	if err := conn.Ping(ctx); err != nil {
+		return fmt.Errorf("clickhouse ping: %w", err)
+	}
+
+	total := trainBlocks + testBlocks
+	log.InfoContext(ctx, "fetching block fee history", "blocks", total)
+
+	rows, err := conn.Query(ctx, `
+		SELECT block_number, block_timestamp, tipped_tx_count,
+			top_fee_gwei, second_to_first_ratio, median_fee_gwei
+		FROM marts.fct_blocks FINAL
+		WHERE tipped_tx_count > 0
+		ORDER BY block_number DESC
+		LIMIT @limit`,
+		clickhouse.Named("limit", total))
+	if err != nil {
+		return fmt.Errorf("query fct_blocks: %w", err)
+	}
+	defer rows.Close() //nolint:errcheck
+
+	var hist []models.BlockFeeRecord
+	for rows.Next() {
+		var r models.BlockFeeRecord
+		if err := rows.Scan(
+			&r.BlockNumber, &r.Timestamp, &r.TippedCount,
+			&r.TopFeeGwei, &r.SecondToFirstRatio, &r.MedianFeeGwei,
+		); err != nil {
+			return fmt.Errorf("scan: %w", err)
+		}
+		hist = append(hist, r)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	// Reverse to oldest-first.
+	for i, j := 0, len(hist)-1; i < j; i, j = i+1, j-1 {
+		hist[i], hist[j] = hist[j], hist[i]
+	}
+
+	log.InfoContext(ctx, "running model evaluation", "history_blocks", len(hist))
+	recs, err := models.Eval(ctx, models.EvalConfig{
+		TrainBlocks: trainBlocks,
+		TestBlocks:  testBlocks,
+		N:           n,
+		Confidence:  confidence,
+	}, hist)
+	if err != nil {
+		return fmt.Errorf("eval: %w", err)
+	}
+
+	if len(recs) == 0 {
+		log.InfoContext(ctx, "no eval records produced")
+		return nil
+	}
+
+	batch, err := conn.PrepareBatch(ctx, `
+		INSERT INTO marts.model_eval
+			(eval_date, model_name, n, confidence, window_blocks,
+			 hit_rate, avg_cost_gwei, eval_blocks, _version)`)
+	if err != nil {
+		return fmt.Errorf("prepare batch: %w", err)
+	}
+	for _, r := range recs {
+		if err := batch.Append(
+			r.EvalDate,
+			r.ModelName,
+			int32(r.N), //nolint:gosec
+			r.Confidence,
+			int32(r.WindowBlocks), //nolint:gosec
+			r.HitRate,
+			r.AvgCostGwei,
+			int32(r.EvalBlocks), //nolint:gosec
+			r.EvalDate.UnixMilli(),
+		); err != nil {
+			return fmt.Errorf("batch append: %w", err)
+		}
+	}
+	if err := batch.Send(); err != nil {
+		return fmt.Errorf("batch send: %w", err)
+	}
+
+	log.InfoContext(ctx, "eval-models complete", "records", len(recs))
 	return nil
 }
 

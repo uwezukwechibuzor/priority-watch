@@ -334,7 +334,7 @@ A task is done when ALL of the following are true:
 | 12 | dbt opportunity marts (markout, capture rate, HHI) | ✅ |
 | 13 | Airflow DAGs (backfill, dbt via Cosmos, monitoring, backup) | ✅ |
 | 14 | pw-api (all endpoint groups, OpenAPI, Scalar UI) | ✅ |
-| 15 | Pricing models + simulator engine | ⬜ |
+| 15 | Pricing models + simulator engine | ✅ |
 | 16 | Web shell (top bar, context bar, routing, theme) | ⬜ |
 | 17 | /blocks page | ⬜ |
 | 18 | /health page | ⬜ |

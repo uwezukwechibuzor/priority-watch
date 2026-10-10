@@ -31,6 +31,7 @@ type Server struct {
 	cache  *ResponseCache
 	obs    *prometheus.Registry
 	log    *slog.Logger
+	btr    *BacktestRunner
 
 	// rate limiter references stored so tests can swap them
 	rateLimiterAPI      func(http.Handler) http.Handler
@@ -45,13 +46,15 @@ func New(cfg *config.Config, conn driver.Conn, log *slog.Logger) *Server {
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	)
 
+	st := newStore(conn)
 	s := &Server{
 		cfg:                 cfg,
 		router:              chi.NewRouter(),
-		store:               newStore(conn),
+		store:               st,
 		cache:               newResponseCache(),
 		obs:                 reg,
 		log:                 log,
+		btr:                 newBacktestRunner(st, 4, log),
 		rateLimiterAPI:      httprate.LimitByIP(60, time.Minute), //nolint:staticcheck
 		rateLimiterDatasets: httprate.LimitByIP(10, time.Minute), //nolint:staticcheck
 	}
@@ -105,6 +108,9 @@ func (s *Server) mountRoutes() {
 		registerFeeHandlers(s.api, s.store)
 		registerEventHandlers(s.api, s.store)
 		registerSearchHandlers(s.api, s.store)
+		registerPricingHandlers(s.api, s.store)
+		registerModelEvalHandlers(s.api, s.store)
+		registerBacktestHandlers(s.api, s.btr)
 	})
 
 	// Datasets endpoint: separate (lower) rate limit, no cache (streaming).

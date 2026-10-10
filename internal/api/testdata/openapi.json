@@ -1,6 +1,67 @@
 {
   "components": {
     "schemas": {
+      "BacktestRunRow": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/BacktestRunRow.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "config": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error_msg": {
+            "type": "string"
+          },
+          "from_block": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "result": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "strategy": {
+            "type": "string"
+          },
+          "to_block": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status",
+          "strategy",
+          "from_block",
+          "to_block",
+          "config",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
       "BaseFeeHourlyRow": {
         "additionalProperties": false,
         "properties": {
@@ -486,6 +547,71 @@
         ],
         "type": "object"
       },
+      "CreateBacktestInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/CreateBacktestInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "config": {
+            "description": "Strategy-specific parameters (JSON object)"
+          },
+          "from_block": {
+            "description": "Start of replay range",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "strategy": {
+            "description": "Strategy name: fixed-tip, percentile-of-recent, spread-proportional",
+            "type": "string"
+          },
+          "to_block": {
+            "description": "End of replay range",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "strategy",
+          "from_block",
+          "to_block",
+          "config"
+        ],
+        "type": "object"
+      },
+      "CreateBacktestOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/CreateBacktestOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status"
+        ],
+        "type": "object"
+      },
       "DailyOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -777,6 +903,33 @@
           "revert_rate",
           "avg_markout_usd_1s",
           "avg_markout_usd_300s"
+        ],
+        "type": "object"
+      },
+      "GetBacktestResultsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/GetBacktestResultsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "result": {},
+          "run_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status",
+          "result"
         ],
         "type": "object"
       },
@@ -1244,6 +1397,53 @@
         ],
         "type": "object"
       },
+      "ModelEvalRow": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_cost_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "eval_blocks": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "eval_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hit_rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "model_name": {
+            "type": "string"
+          },
+          "n": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "window_blocks": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eval_date",
+          "model_name",
+          "n",
+          "confidence",
+          "window_blocks",
+          "hit_rate",
+          "avg_cost_gwei",
+          "eval_blocks"
+        ],
+        "type": "object"
+      },
       "Pagination": {
         "additionalProperties": false,
         "properties": {
@@ -1427,6 +1627,53 @@
         },
         "required": [
           "data"
+        ],
+        "type": "object"
+      },
+      "Recommendation": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_cost_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "fee_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "high_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "hit_rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "low_gwei": {
+            "format": "double",
+            "type": "number"
+          },
+          "model_name": {
+            "type": "string"
+          },
+          "reasoning": {
+            "items": {
+              "$ref": "#/components/schemas/TraceStep"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "fee_gwei",
+          "low_gwei",
+          "high_gwei",
+          "hit_rate",
+          "avg_cost_gwei",
+          "model_name",
+          "reasoning"
         ],
         "type": "object"
       },
@@ -1712,6 +1959,26 @@
         ],
         "type": "object"
       },
+      "TraceStep": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "value": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "type": "object"
+      },
       "TreasuryDailyRow": {
         "additionalProperties": false,
         "properties": {
@@ -1959,6 +2226,129 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/backtest": {
+      "post": {
+        "operationId": "createBacktest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBacktestInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBacktestOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Submit an async backtest job",
+        "tags": [
+          "Backtest"
+        ]
+      }
+    },
+    "/api/v1/backtest/{run_id}": {
+      "get": {
+        "operationId": "getBacktest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacktestRunRow"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get backtest job status",
+        "tags": [
+          "Backtest"
+        ]
+      }
+    },
+    "/api/v1/backtest/{run_id}/results": {
+      "get": {
+        "operationId": "getBacktestResults",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetBacktestResultsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get backtest results (available when status=done)",
+        "tags": [
+          "Backtest"
+        ]
+      }
+    },
     "/api/v1/blocks": {
       "get": {
         "description": "Returns blocks newest-first with optional filters and keyset pagination.",
@@ -3373,6 +3763,161 @@
         "summary": "DEX–CEX spread per block and pool",
         "tags": [
           "Opportunity"
+        ]
+      }
+    },
+    "/api/v1/pricing/models/eval": {
+      "get": {
+        "operationId": "getModelEval",
+        "parameters": [
+          {
+            "description": "Filter by rank position; 0 = all",
+            "explode": false,
+            "in": "query",
+            "name": "n",
+            "schema": {
+              "description": "Filter by rank position; 0 = all",
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter by confidence; 0 = all",
+            "explode": false,
+            "in": "query",
+            "name": "confidence",
+            "schema": {
+              "description": "Filter by confidence; 0 = all",
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModelEvalRow"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get the latest model evaluation results",
+        "tags": [
+          "Pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/recommend": {
+      "get": {
+        "operationId": "getPricingRecommend",
+        "parameters": [
+          {
+            "description": "Reference block number; 0 = latest",
+            "explode": false,
+            "in": "query",
+            "name": "block",
+            "schema": {
+              "description": "Reference block number; 0 = latest",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Target rank position (1 = top of block)",
+            "explode": false,
+            "in": "query",
+            "name": "n",
+            "schema": {
+              "description": "Target rank position (1 = top of block)",
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Desired hit-rate fraction, e.g. 0.80",
+            "explode": false,
+            "in": "query",
+            "name": "confidence",
+            "schema": {
+              "description": "Desired hit-rate fraction, e.g. 0.80",
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "description": "Model name; empty = all models",
+            "explode": false,
+            "in": "query",
+            "name": "model",
+            "schema": {
+              "description": "Model name; empty = all models",
+              "type": "string"
+            }
+          },
+          {
+            "description": "History window in blocks (default 200)",
+            "explode": false,
+            "in": "query",
+            "name": "window",
+            "schema": {
+              "description": "History window in blocks (default 200)",
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Recommendation"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get fee recommendations from pricing models",
+        "tags": [
+          "Pricing"
         ]
       }
     },
