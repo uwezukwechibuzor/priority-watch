@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: priority-watch
+
+scrape_configs:
+  - job_name: pw-api
+    static_configs:
+      - targets: ["api:8080"]
+    metrics_path: /metrics
+
+  - job_name: pw-follower
+    static_configs:
+      - targets: ["follower:9091"]
+    metrics_path: /metrics
+
+  - job_name: clickhouse
+    static_configs:
+      - targets: ["clickhouse:9363"]
+    metrics_path: /metrics
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

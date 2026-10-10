@@ -3,7 +3,7 @@
 | # | Task | Status | Commit |
 |---|------|--------|--------|
 | 1 | Scaffold, master spec, UI reference | ✅ | chore: scaffold priority-watch |
-| 2 | Docker Compose infra | ⬜ | |
+| 2 | Docker Compose infra | ✅ | feat(infra): docker compose stack |
 | 3 | ClickHouse schema | ⬜ | |
 | 4 | Go core packages | ⬜ | |
 | 5 | Block backfill ingester | ⬜ | |

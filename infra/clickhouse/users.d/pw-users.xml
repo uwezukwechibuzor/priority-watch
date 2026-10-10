@@ -1,0 +1,20 @@
+<clickhouse>
+    <users>
+        <!--
+          pw_reader: read-only API user, restricted to the marts database.
+          The default (admin) user password is set via the CLICKHOUSE_PASSWORD
+          env var handled by the official ClickHouse Docker entrypoint.
+        -->
+        <pw_reader>
+            <password from_env="CLICKHOUSE_RO_PASSWORD"/>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>readonly</profile>
+            <quota>default</quota>
+            <allow_databases>
+                <database>marts</database>
+            </allow_databases>
+        </pw_reader>
+    </users>
+</clickhouse>

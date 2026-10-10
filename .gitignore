@@ -36,8 +36,9 @@ Thumbs.db
 .vscode/
 *.code-workspace
 
-# ClickHouse local data (Docker volume mounts)
+# ClickHouse local data and auto-generated user files (Docker volume mounts)
 infra/clickhouse/data/
+infra/clickhouse/users.d/default-user.xml
 
 # Grafana provisioning secrets
 infra/grafana/grafana.ini

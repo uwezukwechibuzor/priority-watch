@@ -1,0 +1,25 @@
+# Production Caddyfile — filled in task 20.
+# Caddy automatically obtains TLS certificates via ACME (Let's Encrypt).
+#
+# Variables resolved from environment:
+#   $DOMAIN       — primary domain, e.g. priority.watch
+#   $ACME_EMAIL   — contact email for Let's Encrypt
+
+{$DOMAIN} {
+    # Frontend
+    handle /blocks*    { reverse_proxy web:5173 }
+    handle /health*    { reverse_proxy web:5173 }
+    handle /pricing*   { reverse_proxy web:5173 }
+    handle /opportunity* { reverse_proxy web:5173 }
+    handle /simulator* { reverse_proxy web:5173 }
+
+    # API
+    handle /api/*      { reverse_proxy api:8080 }
+    handle /docs*      { reverse_proxy api:8080 }
+    handle /healthz    { reverse_proxy api:8080 }
+
+    # Airflow (internal; restrict in production)
+    handle /airflow/*  { reverse_proxy airflow-webserver:8080 }
+
+    tls {$ACME_EMAIL}
+}

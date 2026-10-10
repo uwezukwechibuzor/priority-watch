@@ -1,8 +1,21 @@
-.PHONY: setup up down logs build lint test fmt migrate backfill follow dbt-build dbt-docs web-dev docs-serve smoke help
+.PHONY: setup up up-obs up-test down down-obs down-test logs logs-obs \
+        build lint test test-integration fmt \
+        migrate backfill follow \
+        dbt-build dbt-docs \
+        web-dev docs-serve \
+        smoke help
 
 BINARY_DIR := bin
-INGESTER    := $(BINARY_DIR)/pw-ingester
-API         := $(BINARY_DIR)/pw-api
+INGESTER   := $(BINARY_DIR)/pw-ingester
+API        := $(BINARY_DIR)/pw-api
+
+COMPOSE_BASE := docker-compose.yml
+COMPOSE_DEV  := docker-compose.dev.yml
+COMPOSE_OBS  := docker-compose.observability.yml
+COMPOSE_TEST := docker-compose.test.yml
+
+COMPOSE     := docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV)
+COMPOSE_ALL := $(COMPOSE) -f $(COMPOSE_OBS)
 
 ## setup: one-time dev environment setup (install hooks, tools)
 setup:
@@ -14,19 +27,39 @@ setup:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	@echo "✓ setup complete — run 'make build' to verify"
 
-## up: start all services via Docker Compose
+## up: start core services (ClickHouse, Postgres, Airflow)
 up:
-	docker compose up -d
+	$(COMPOSE) up -d --wait --remove-orphans
 
-## down: stop all services
+## up-obs: start core + observability (Prometheus, Grafana)
+up-obs:
+	$(COMPOSE_ALL) up -d --wait --remove-orphans
+
+## up-test: start isolated test stack (ephemeral ports 8124/9001/5433)
+up-test:
+	docker compose -f $(COMPOSE_TEST) up -d --wait
+
+## down: stop core + dev services, keep volumes
 down:
-	docker compose down
+	$(COMPOSE) down
 
-## logs: tail all service logs
+## down-obs: stop all services including observability
+down-obs:
+	$(COMPOSE_ALL) down
+
+## down-test: stop test stack and destroy ephemeral volumes
+down-test:
+	docker compose -f $(COMPOSE_TEST) down -v
+
+## logs: tail all service logs (core + dev)
 logs:
-	docker compose logs -f
+	$(COMPOSE) logs -f
 
-## build: compile all Go binaries
+## logs-obs: tail observability logs
+logs-obs:
+	docker compose -f $(COMPOSE_OBS) logs -f
+
+## build: compile all Go binaries locally
 build:
 	mkdir -p $(BINARY_DIR)
 	go build -o $(INGESTER) ./cmd/pw-ingester
@@ -37,28 +70,32 @@ lint:
 	golangci-lint run ./...
 	@echo "✓ golangci-lint clean"
 
-## test: run all tests with race detector
+## test: run unit tests with race detector
 test:
 	go test -race -count=1 ./...
 
-## test-integration: run integration tests (requires running services)
+## test-integration: run integration tests (requires up-test)
 test-integration:
 	go test -race -count=1 -tags=integration ./...
 
-## fmt: format Go and frontend code
+## fmt: format Go source with gofumpt
 fmt:
 	gofumpt -l -w .
 
+## smoke: wait for healthchecks then verify ClickHouse + Airflow
+smoke:
+	@bash scripts/smoke.sh
+
 ## migrate: run ClickHouse schema migrations
-migrate:
+migrate: build
 	$(INGESTER) migrate
 
 ## backfill: backfill blocks (usage: make backfill FROM=<block> TO=<block>)
-backfill:
+backfill: build
 	$(INGESTER) backfill --from=$(FROM) --to=$(TO)
 
-## follow: start the live block follower
-follow:
+## follow: start the live block follower (local, not via Docker)
+follow: build
 	$(INGESTER) follow
 
 ## dbt-build: run dbt incremental models
@@ -69,7 +106,7 @@ dbt-build:
 dbt-docs:
 	cd dbt && dbt docs generate && dbt docs serve
 
-## web-dev: start the frontend dev server
+## web-dev: start the frontend Vite dev server
 web-dev:
 	cd apps/web && npm run dev
 
@@ -77,11 +114,6 @@ web-dev:
 docs-serve:
 	mkdocs serve
 
-## smoke: quick smoke test against a running stack
-smoke:
-	curl -sf http://localhost:$(or $(API_PORT),8080)/healthz | grep -q '"status":"ok"'
-	@echo "✓ smoke test passed"
-
-## help: list all targets
+## help: list all targets with descriptions
 help:
 	@grep -E '^## ' Makefile | sed 's/^## //' | column -t -s ':'

@@ -1,0 +1,59 @@
+# Isolated test stack for integration tests (build tag: integration).
+# Uses ephemeral storage and distinct ports so it can run alongside dev stack.
+# Usage: docker compose -f docker-compose.test.yml up -d
+#        go test -race -tags=integration ./...
+#        docker compose -f docker-compose.test.yml down -v
+
+name: priority-watch-test
+
+services:
+  clickhouse-test:
+    image: clickhouse/clickhouse-server:25.3
+    container_name: pw-clickhouse-test
+    ports:
+      - "8124:8123"   # HTTP (offset +1 from dev)
+      - "9001:9000"   # Native (offset +1 from dev)
+    environment:
+      CLICKHOUSE_PASSWORD: test
+      CLICKHOUSE_RO_PASSWORD: test
+    volumes:
+      - ./infra/clickhouse/config.d:/etc/clickhouse-server/config.d:ro
+      - ./infra/clickhouse/users.d:/etc/clickhouse-server/users.d:ro
+    tmpfs:
+      - /var/lib/clickhouse    # ephemeral; destroyed on container stop
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --password test --query 'SELECT 1'"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+      start_period: 20s
+    networks:
+      - pw-test-net
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: pw-postgres-test
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d test"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - pw-test-net
+
+networks:
+  pw-test-net:
+    name: pw-test-net
+    driver: bridge

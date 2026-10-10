@@ -1,0 +1,4 @@
+# Pinned for reproducibility; bump deliberately.
+# dbt-clickhouse pulls dbt-core~=1.8 as a dependency.
+dbt-clickhouse==1.8.2
+astronomer-cosmos[dbt-clickhouse]==1.8.2

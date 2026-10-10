@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+bin/
+apps/web/node_modules/
+apps/web/dist/
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+airflow/logs/
+infra/clickhouse/data/
+site/
+*.test
+coverage.out
+.DS_Store

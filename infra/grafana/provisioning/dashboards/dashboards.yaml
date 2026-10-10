@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: priority-watch
+    orgId: 1
+    folder: Priority Watch
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

@@ -119,6 +119,8 @@ priority-watch/
 │   ├── tests/            Custom dbt data tests
 │   └── analyses/         Ad-hoc SQL analyses
 ├── airflow/
+│   ├── Dockerfile        Multi-stage: Go builder (pw-ingester) + Airflow + dbt + Cosmos
+│   ├── requirements.txt  Python deps: dbt-clickhouse, astronomer-cosmos (pinned)
 │   ├── dags/             Airflow DAGs (backfill, dbt via Cosmos, monitoring, backup)
 │   └── tests/            DAG unit tests
 ├── config/
@@ -128,10 +130,13 @@ priority-watch/
 │   └── events.yaml       On-chain events for chart markers
 ├── infra/
 │   ├── clickhouse/
-│   │   └── migrations/   ClickHouse DDL migrations
-│   ├── caddy/            Caddyfile (TLS termination, reverse proxy)
-│   ├── prometheus/       prometheus.yml scrape config
+│   │   ├── config.d/     ClickHouse server overrides (prometheus port, profiles, memory limits)
+│   │   ├── users.d/      ClickHouse user definitions (default admin + pw_reader readonly)
+│   │   └── migrations/   ClickHouse DDL migrations (task 3)
+│   ├── caddy/            Caddyfile (TLS reverse proxy, task 20)
+│   ├── prometheus/       prometheus.yml scrape config (api, follower, clickhouse)
 │   └── grafana/
+│       ├── provisioning/ Grafana datasource + dashboard provisioning YAML
 │       └── dashboards/   Grafana dashboard JSON
 ├── docs/
 │   ├── adr/              Architecture Decision Records
@@ -150,7 +155,13 @@ priority-watch/
 ├── PROGRESS.md           Task completion tracker
 ├── README.md             Public-facing README (timeboost.app format)
 ├── go.mod                Go module (github.com/uwezukwechibuzor/priority-watch)
-├── Makefile              All development commands
+├── Makefile              All development commands (up, down, smoke, build, lint, test, …)
+├── Dockerfile            Shared Go binary builder (golang → distroless, non-root); ARG SERVICE
+├── docker-compose.yml            Core services (ClickHouse, Postgres, Airflow, placeholders)
+├── docker-compose.dev.yml        Dev overrides (live DAG/dbt mounts, debug logging)
+├── docker-compose.observability.yml  Prometheus + Grafana (joins pw-net externally)
+├── docker-compose.test.yml       Isolated ephemeral test stack (ports +1, tmpfs)
+├── .dockerignore         Docker build context exclusions
 ├── .env.example          Environment variable reference
 ├── .golangci.yml         Linter config (govet, staticcheck, errcheck, gosec, revive, gofumpt)
 ├── .editorconfig         Editor whitespace/encoding config
@@ -163,14 +174,18 @@ priority-watch/
 |---------|------|-------|
 | ClickHouse HTTP | 8123 | Query interface |
 | ClickHouse native | 9000 | clickhouse-go driver |
+| ClickHouse Prometheus | 9363 | Prometheus metrics scrape |
 | Postgres (Airflow metadata) | 5432 | |
-| Airflow webserver | 8081 | DAG management UI |
-| pw-ingester follower | — | Supervised service, no HTTP port |
-| pw-api | 8080 | REST API + /docs |
-| apps/web (dev) | 5173 | Vite dev server |
-| Prometheus | 9090 | |
-| Grafana | 3000 | |
-| Caddy | 80 / 443 | TLS termination + reverse proxy |
+| Airflow webserver | 8081 | DAG management UI (→ 8080 in container) |
+| pw-follower metrics | 9091 | Prometheus metrics (opt-in profile `ingest`) |
+| pw-api | 8080 | REST API + /docs (opt-in profile `api`) |
+| apps/web (dev) | 5173 | Vite dev server (opt-in profile `web`) |
+| Prometheus | 9090 | observability stack |
+| Grafana | 3000 | observability stack |
+| Caddy | 80 / 443 | TLS reverse proxy (opt-in profile `production`) |
+| ClickHouse HTTP (test) | 8124 | test stack (ephemeral) |
+| ClickHouse native (test) | 9001 | test stack (ephemeral) |
+| Postgres (test) | 5433 | test stack (ephemeral) |
 
 ---
 

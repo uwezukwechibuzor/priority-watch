@@ -1,0 +1,30 @@
+# Development overrides: live-mount DAGs and dbt project, verbose logs.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+name: priority-watch
+
+services:
+  airflow-webserver:
+    environment:
+      AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
+
+  airflow-scheduler:
+    volumes:
+      # Live-mount DAGs and dbt for fast iteration — no rebuild needed.
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./dbt:/opt/airflow/dbt:ro
+
+  airflow-triggerer:
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+
+  clickhouse:
+    # Expose the inter-server port for local ClickHouse client tooling.
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "9363:9363"
+
+  postgres:
+    ports:
+      - "5432:5432"
