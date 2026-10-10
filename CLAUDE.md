@@ -336,7 +336,7 @@ A task is done when ALL of the following are true:
 | 14 | pw-api (all endpoint groups, OpenAPI, Scalar UI) | ✅ |
 | 15 | Pricing models + simulator engine | ✅ |
 | 16 | Web shell (top bar, context bar, routing, theme) | ✅ |
-| 17 | /blocks page | ⬜ |
+| 17 | /blocks page | ✅ |
 | 18 | /health page | ⬜ |
 | 19 | /pricing, /opportunity, /simulator pages | ⬜ |
 | 20 | Docs, hardening, launch | ⬜ |

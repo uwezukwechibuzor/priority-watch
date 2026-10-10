@@ -96,3 +96,53 @@ export interface Recommendation {
   model_name: string;
   reasoning: Array<{ label: string; value: number; unit?: string }>;
 }
+
+export interface SeriesPoint {
+  ts: string;
+  tip_revenue_eth: number;
+  tip_revenue_usd: number;
+  top_fee_gwei: number;
+  block_count: number;
+  tipped_tx_count: number;
+  contested_share: number;
+  hhi: number;
+}
+
+export interface TippedHistRow {
+  bin: string;
+  block_count: number;
+}
+
+export interface TxRow {
+  tx_hash: string;
+  tx_index: number;
+  block_number: number;
+  from_address: string;
+  to_address: string;
+  entity_name: string;
+  entity_type: string;
+  color_index: number;
+  tx_type: number;
+  tx_class: string;
+  priority_fee_per_gas_gwei: number;
+  tip_paid_eth: number;
+  tip_paid_usd: number;
+  tip_paid_wei: string;
+  gas_used: number;
+  status: number;
+  tip_rank: number;
+  is_reverted_tipped: number;
+}
+
+export interface Pagination {
+  next_cursor?: string;
+}
+
+export interface EventRow {
+  id: string;
+  event_date: string;
+  block: number;
+  label: string;
+  description: string;
+  source_url: string;
+}

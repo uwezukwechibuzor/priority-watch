@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Skeleton } from "./Skeleton";
 
 interface KpiTileProps {
@@ -7,6 +8,7 @@ interface KpiTileProps {
   subtext?: string;
   subtextColor?: string;
   loading?: boolean;
+  children?: ReactNode;
 }
 
 export function KpiTile({
@@ -16,6 +18,7 @@ export function KpiTile({
   subtext,
   subtextColor,
   loading = false,
+  children,
 }: KpiTileProps) {
   return (
     <div
@@ -76,6 +79,7 @@ export function KpiTile({
               {subtext}
             </span>
           )}
+          {children && <div style={{ marginTop: 4 }}>{children}</div>}
         </>
       )}
     </div>

@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+
 interface FilterInputProps {
   value: string;
   onChange: (v: string) => void;
@@ -5,12 +7,10 @@ interface FilterInputProps {
   width?: string | number;
 }
 
-export function FilterInput({
-  value,
-  onChange,
-  placeholder = "Filter…",
-  width = 200,
-}: FilterInputProps) {
+export const FilterInput = forwardRef<HTMLInputElement, FilterInputProps>(function FilterInput(
+  { value, onChange, placeholder = "Filter…", width = 200 },
+  ref,
+) {
   return (
     <div style={{ position: "relative", width }}>
       <svg
@@ -32,6 +32,7 @@ export function FilterInput({
         <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
       <input
+        ref={ref}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -49,4 +50,4 @@ export function FilterInput({
       />
     </div>
   );
-}
+});
