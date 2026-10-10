@@ -146,3 +146,73 @@ export interface EventRow {
   description: string;
   source_url: string;
 }
+
+export interface HealthDailyRow {
+  date: string;
+  era: string;
+  tip_revenue_eth: number;
+  tip_revenue_usd: number;
+  tip_revenue_wei: string;
+  tx_count: number;
+  tipped_tx_count: number;
+  p10_fee_gwei: number;
+  p50_fee_gwei: number;
+  p90_fee_gwei: number;
+  block_count: number;
+  blocks_expected: number;
+  blocks_pct_of_expected: number;
+  contested_share: number;
+  hhi: number;
+  hhi_band: string;
+  top_payer_share: number;
+  revert_rate_tipped: number;
+  median_user_cost_usd: number;
+}
+
+export interface TreasuryDailyRow {
+  date: string;
+  era: string;
+  total_tip_wei: string;
+  total_tip_eth: number;
+  total_tip_usd: number;
+  treasury_wei: string;
+  developer_guild_wei: string;
+  tx_count: number;
+  tipped_tx_count: number;
+  status: string;
+}
+
+export interface TreasurySummary {
+  total_tip_eth: number;
+  total_tip_usd: number;
+  total_tip_wei: string;
+  treasury_eth: number;
+  developer_guild_eth: number;
+  avg_daily_tip_eth: number;
+  projected_annual_eth: number;
+  day_count: number;
+}
+
+export interface EraComparisonRow {
+  era: string;
+  window_days: number;
+  window_tip_eth: number;
+  avg_daily_revenue_eth: number;
+  avg_contested_share: number;
+  avg_hhi: number;
+  avg_top_payer_share: number;
+  avg_revert_rate: number;
+  avg_median_fee_gwei: number;
+  capture_rate_pct: number;
+  entropy_capture_rate_pct: number;
+}
+
+export interface BaseFeeHourlyRow {
+  hour: string;
+  era: string;
+  min_base_fee_gwei: number;
+  max_base_fee_gwei: number;
+  avg_base_fee_gwei: number;
+  median_base_fee_gwei: number;
+  hour_change_pct: number;
+}
