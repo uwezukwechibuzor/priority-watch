@@ -292,6 +292,38 @@ func Block(
 	return nil
 }
 
+// BlockFromSource transforms a FetchedBlock (from a chain.BlockSource) and
+// writes its rows to the four raw tables. When logsOnly is true only raw.logs
+// is written. It is the BlockSource counterpart of Block.
+func BlockFromSource(ctx context.Context, fb *chain.FetchedBlock, w *Writers, now time.Time, logsOnly bool) error {
+	if fb == nil || fb.Block == nil {
+		return fmt.Errorf("block from source: nil block")
+	}
+	blk, txs, rcpts, evts := TransformBlock(fb.Block, fb.Receipts, fb.Logs, now)
+
+	if !logsOnly {
+		if err := appendBlockRow(ctx, w.Blocks, blk); err != nil {
+			return fmt.Errorf("append block: %w", err)
+		}
+		for _, tx := range txs {
+			if err := appendTxRow(ctx, w.Txs, tx); err != nil {
+				return fmt.Errorf("append tx: %w", err)
+			}
+		}
+		for _, rc := range rcpts {
+			if err := appendReceiptRow(ctx, w.Receipts, rc); err != nil {
+				return fmt.Errorf("append receipt: %w", err)
+			}
+		}
+	}
+	for _, ev := range evts {
+		if err := appendLogRow(ctx, w.Logs, ev); err != nil {
+			return fmt.Errorf("append log: %w", err)
+		}
+	}
+	return nil
+}
+
 // appendBlockRow writes one BlockRow to w.
 func appendBlockRow(ctx context.Context, w *store.BatchWriter, b BlockRow) error {
 	return w.Append(ctx,

@@ -1,0 +1,29 @@
+{
+  "archive_height": 102,
+  "next_block": 103,
+  "total_execution_time": 42,
+  "data": [
+    {
+      "blocks": [
+        {"number": 100, "hash": "0xaaa0", "parent_hash": "0x9fff", "timestamp": 1700000100, "gas_used": 21000, "gas_limit": 30000000, "base_fee_per_gas": "1000000000", "l1_block_number": 200000, "size": 1024},
+        {"number": 101, "hash": "0xaaa1", "parent_hash": "0xaaa0", "timestamp": 1700000101, "gas_used": 21000, "gas_limit": 30000000, "base_fee_per_gas": "1000000000", "l1_block_number": 200001, "size": 1025},
+        {"number": 102, "hash": "0xaaa2", "parent_hash": "0xaaa1", "timestamp": 1700000102, "gas_used": 21000, "gas_limit": 30000000, "base_fee_per_gas": "1000000000", "l1_block_number": 200002, "size": 1026}
+      ],
+      "transactions": [
+        {"hash": "0x1000a", "from": "0x1111111111111111111111111111111111111111", "to": "0x2222222222222222222222222222222222222222", "value": "0", "gas": 21000, "gas_price": "1000000000", "max_fee_per_gas": "20000000000", "max_priority_fee_per_gas": "1000000000", "transaction_type": 2, "nonce": 1, "input": "0xa9059cbb", "transaction_index": 0, "block_number": 100},
+        {"hash": "0x1000b", "from": "0x3333333333333333333333333333333333333333", "to": "0x4444444444444444444444444444444444444444", "value": "1000000000000000000", "gas": 21000, "gas_price": "1000000000", "transaction_type": 0, "nonce": 2, "input": "0x", "transaction_index": 1, "block_number": 100},
+        {"hash": "0x1010a", "from": "0x1111111111111111111111111111111111111111", "to": "0x2222222222222222222222222222222222222222", "value": "0", "gas": 21000, "gas_price": "1000000000", "max_fee_per_gas": "20000000000", "max_priority_fee_per_gas": "1000000000", "transaction_type": 2, "nonce": 3, "input": "0xa9059cbb", "transaction_index": 0, "block_number": 101},
+        {"hash": "0x1020a", "from": "0x1111111111111111111111111111111111111111", "to": "0x2222222222222222222222222222222222222222", "value": "0", "gas": 21000, "gas_price": "1000000000", "max_fee_per_gas": "20000000000", "max_priority_fee_per_gas": "1000000000", "transaction_type": 2, "nonce": 5, "input": "0xa9059cbb", "transaction_index": 0, "block_number": 102}
+      ],
+      "receipts": [
+        {"transaction_hash": "0x1000a", "transaction_index": 0, "block_number": 100, "status": 1, "gas_used": 21000, "gas_used_for_l1": 5000, "effective_gas_price": "2000000000", "cumulative_gas_used": 21000},
+        {"transaction_hash": "0x1000b", "transaction_index": 1, "block_number": 100, "status": 1, "gas_used": 21000, "gas_used_for_l1": 5000, "effective_gas_price": "1000000000", "cumulative_gas_used": 42000},
+        {"transaction_hash": "0x1010a", "transaction_index": 0, "block_number": 101, "status": 1, "gas_used": 21000, "gas_used_for_l1": 5000, "effective_gas_price": "2000000000", "cumulative_gas_used": 21000},
+        {"transaction_hash": "0x1020a", "transaction_index": 0, "block_number": 102, "status": 1, "gas_used": 21000, "gas_used_for_l1": 5000, "effective_gas_price": "2000000000", "cumulative_gas_used": 21000}
+      ],
+      "logs": [
+        {"address": "0x2222222222222222222222222222222222222222", "topic0": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", "data": "0x00", "log_index": 0, "transaction_index": 0, "transaction_hash": "0x1000a", "block_number": 100}
+      ]
+    }
+  ]
+}

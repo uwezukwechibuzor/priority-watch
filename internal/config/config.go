@@ -18,6 +18,19 @@ type Config struct {
 	ArbitrumRPCRPS          float64  `env:"ARBITRUM_RPC_RPS"              envDefault:"25"`
 	ArbitrumChainID         uint64   `env:"ARBITRUM_CHAIN_ID"             envDefault:"42161"`
 
+	// Data source selection ────────────────────────────────────────────────────
+	// BlockSource selects the chain data provider: sqd | hypersync | rpc |
+	// sqd+hypersync (failover). ARBITRUM_RPC_URL is required only when
+	// BlockSource=rpc (SQD/HyperSync fetch block data over HTTP).
+	BlockSource string `env:"BLOCK_SOURCE" envDefault:"sqd"`
+
+	// SQD Portal ────────────────────────────────────────────────────────────────
+	SQDPortalURL string `env:"SQD_PORTAL_URL" envDefault:"https://portal.sqd.dev/datasets/arbitrum-one"`
+
+	// Envio HyperSync ───────────────────────────────────────────────────────────
+	EnvioHyperSyncURL string `env:"ENVIO_HYPERSYNC_URL" envDefault:"https://arbitrum.hypersync.xyz"`
+	EnvioAPIToken     string `env:"ENVIO_API_TOKEN"`
+
 	// Follower ────────────────────────────────────────────────────────────────
 	// GapThreshold is the number of missed blocks that triggers a backfill
 	// catch-up instead of block-by-block ingestion on follower start.
@@ -59,8 +72,8 @@ func Load() (*Config, error) {
 	if err := env.Parse(cfg); err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
-	if cfg.ArbitrumRPCURL == "" {
-		return nil, fmt.Errorf("config: ARBITRUM_RPC_URL is required")
+	if cfg.BlockSource == "rpc" && cfg.ArbitrumRPCURL == "" {
+		return nil, fmt.Errorf("config: ARBITRUM_RPC_URL is required when BLOCK_SOURCE=rpc")
 	}
 	if cfg.ArbitrumChainID != 42161 {
 		return nil, fmt.Errorf("config: ARBITRUM_CHAIN_ID must be 42161 (Arbitrum One), got %d", cfg.ArbitrumChainID)

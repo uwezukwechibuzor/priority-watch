@@ -22,3 +22,4 @@
 | 18 | /health page | ✅ | feat(web): health page |
 | 19 | /pricing, /opportunity, /simulator pages | ✅ | feat(web): pricing, opportunity, simulator |
 | 20 | Docs, hardening, launch | ✅ | chore: v1.0.0 |
+| 21 | Free indexer data sources (SQD + HyperSync) | ✅ | feat(ingest): sqd and hypersync block sources |

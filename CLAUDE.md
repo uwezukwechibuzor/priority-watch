@@ -60,16 +60,17 @@ Source: https://forum.arbitrum.foundation/t/constitutional-aip-transition-arbitr
 ### Data flow
 
 ```
-Arbitrum One RPC/WS
+SQD Portal (primary)  +  Envio HyperSync (fallback)  +  Arbitrum RPC/WS (balances, head)
   + Binance 1s klines (WebSocket / REST)
   + optional timeboost.app Parquet baseline
         │
         ▼
   pw-ingester  (Go)
-  ├── backfill   — historical block range, idempotent
-  ├── follow     — live per-block, continuous supervised service
+  ├── backfill   — historical block range, idempotent (--source sqd|hypersync|rpc|sqd+hypersync)
+  ├── follow     — live per-block, continuous supervised service (--source …)
   ├── cex        — Binance klines forward-fill + daily catch-up
   └── import-timeboost — Timeboost era baseline
+  (chain.BlockSource abstracts the provider; see §13)
         │
         ▼
   ClickHouse  raw.*  +  meta.*
@@ -92,6 +93,20 @@ Airflow (Apache Airflow + Astronomer Cosmos) orchestrates backfills, dbt runs,
 CEX catch-up, monitoring and nightly backups. The live follower runs as a
 supervised service that Airflow monitors.
 
+### Data sources
+
+Block data is fetched through the `chain.BlockSource` interface. See §13 for details.
+
+| Source | Role | Env | Auth | Guarantees |
+|--------|------|-----|------|-----------|
+| SQD Portal | Primary (default) | `SQD_PORTAL_URL` | none | Free, no key; 409 fork → reorg |
+| Envio HyperSync | Fallback | `ENVIO_HYPERSYNC_URL`, `ENVIO_API_TOKEN` | optional Bearer | `gas_used_for_l1` guaranteed |
+| Arbitrum RPC | Head/date resolution, balance snapshots, task 8 | `ARBITRUM_RPC_URL`, `ARBITRUM_WS_URL` | provider key | WS newHeads subscription |
+
+Select via `BLOCK_SOURCE` (`sqd` \| `hypersync` \| `rpc` \| `sqd+hypersync`) or the
+`--source` flag on `backfill` / `follow`. `ARBITRUM_RPC_URL` is required only when
+`BLOCK_SOURCE=rpc`.
+
 ### Repo tree
 
 ```
@@ -102,7 +117,9 @@ priority-watch/
 ├── internal/
 │   ├── config/           Typed env-var config loader
 │   ├── obs/              Logging (slog), Prometheus metrics, /healthz + /metrics
-│   ├── chain/            go-ethereum RPC client, raw JSON types, ABI bindings
+│   ├── chain/            BlockSource abstraction; RPC client, raw JSON types, ABI bindings
+│   │   ├── sqd/          SQD Portal /stream BlockSource (primary)
+│   │   └── hypersync/    Envio HyperSync /query BlockSource (fallback)
 │   ├── store/            ClickHouse batch writer, embedded migrations, meta.* cursors
 │   ├── ingest/           Block backfill, live follower, reorg handling
 │   ├── cex/              Binance klines WebSocket + REST backfill
@@ -146,6 +163,7 @@ priority-watch/
 │   ├── data/             Data dictionary, schema docs
 │   └── ui-reference.md   Binding UI spec (translated from timeboost.app)
 ├── scripts/              Utility shell scripts (seed, export, etc.)
+│   └── source_parity/    Cross-source column parity checker (SQD vs HyperSync vs RPC)
 ├── tests/                Integration and end-to-end tests (build tag: integration)
 ├── testdata/             Golden files and test fixtures
 ├── .githooks/            commit-msg, pre-commit, pre-push hooks (enabled via make setup)
@@ -340,6 +358,7 @@ A task is done when ALL of the following are true:
 | 18 | /health page | ✅ |
 | 19 | /pricing, /opportunity, /simulator pages | ✅ |
 | 20 | Docs, hardening, launch | ✅ |
+| 21 | Free indexer data sources (SQD Portal + Envio HyperSync) | ✅ |
 
 ---
 
@@ -538,3 +557,69 @@ dbt build --select staging --profiles-dir ./dbt --project-dir ./dbt
 ### sqlfluff
 
 `DBT_PROFILES_DIR=./dbt sqlfluff lint --dialect clickhouse --templater dbt <file>`
+
+---
+
+## 13. Data Sources
+
+Block ingestion is abstracted behind `chain.BlockSource` (`internal/chain/source.go`):
+
+```go
+type BlockSource interface {
+    Range(ctx, from, to, logAddrs) (<-chan *FetchedBlock, <-chan error)
+    Follow(ctx, startBlock, logAddrs) (<-chan *FetchedBlock, <-chan error)
+    Head(ctx) (uint64, error)
+    Name() string
+}
+```
+
+`FetchedBlock` carries a `*RPCBlock`, its receipts and pre-filtered logs, an
+optional `*ReorgInfo`, and the finalized head. `ingest.BlockFromSource` runs it
+through `TransformBlock` and writes the four `raw.*` tables — the same path as
+the RPC `Block` function. `SourceBackfillRunner` and `SourceFollower`
+(`internal/ingest/source_runner.go`) drive the backfill and live-follow loops.
+
+### Implementations
+
+| Impl | File | Notes |
+|------|------|-------|
+| `RPCBlockSource` | `internal/chain/rpc_source.go` | Wraps `*chain.Client`; WS newHeads for Follow, polling fallback |
+| `SQDBlockSource` | `internal/chain/sqd/` | `POST /stream` NDJSON; gzip; 429 Retry-After; 503 backoff; 409 fork → reorg |
+| `HyperSyncSource` | `internal/chain/hypersync/` | `POST /query` JSON; `GET /height`; paginates on `next_block`; Bearer token |
+| `FailoverBlockSource` | `internal/chain/failover_source.go` | Tries primary, falls back to secondary on error/zero blocks |
+
+### SQD Portal (primary)
+
+Free, no auth. Dataset URL `https://portal.sqd.dev/datasets/arbitrum-one`.
+NDJSON stream: batch lines (`{"header":…,"transactions":…,"logs":…,"receipts":…}`)
+interleaved with status lines (`{"status":"finalizedHeadNumber","value":N}`).
+A `409` fork response (`{"error":"fork","previousBlocks":[…]}`) is a reorg: the
+last `previousBlocks` entry is the common ancestor, recorded to `raw.reorg_log`,
+and the stream restarts from there.
+
+### Envio HyperSync (fallback)
+
+`https://arbitrum.hypersync.xyz`, optional `ENVIO_API_TOKEN` as Bearer.
+Reliably provides the Arbitrum-specific `gas_used_for_l1` receipt field, so it is
+the authoritative fallback for that column. A single query may return less than
+the requested range; pagination follows `next_block` until it passes `to`.
+
+### RPC (balances, head, task 8)
+
+Arbitrum JSON-RPC is used for fee-recipient balance snapshots, head/date
+resolution during backfills, and task 8 on-chain sampling. It remains a full
+`BlockSource` (`--source rpc`) for parity checks and environments without the
+free indexers. `ARBITRUM_RPC_URL` is required only when `BLOCK_SOURCE=rpc`.
+
+### Selection and failover
+
+`BLOCK_SOURCE` env var (default `sqd`) or the `--source` flag select the source:
+`sqd`, `hypersync`, `rpc`, or `sqd+hypersync` (failover). `FailoverBlockSource`
+re-runs the full range/follow on the secondary when the primary errors or
+yields no blocks.
+
+### Parity
+
+`scripts/source_parity` fetches the same range from every configured source,
+compares each `raw.blocks` column, prints a Markdown agreement table, and exits
+non-zero on any mismatch. Template report: `docs/data/source-parity.md`.

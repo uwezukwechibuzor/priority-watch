@@ -23,9 +23,14 @@ func TestLoad(t *testing.T) {
 			wantErr: "",
 		},
 		{
-			name:    "missing required ARBITRUM_RPC_URL",
-			env:     map[string]string{},
+			name:    "missing ARBITRUM_RPC_URL with rpc source",
+			env:     map[string]string{"BLOCK_SOURCE": "rpc"},
 			wantErr: "ARBITRUM_RPC_URL",
+		},
+		{
+			name:    "sqd source does not require ARBITRUM_RPC_URL",
+			env:     map[string]string{"BLOCK_SOURCE": "sqd"},
+			wantErr: "",
 		},
 		{
 			name:    "wrong chain ID",

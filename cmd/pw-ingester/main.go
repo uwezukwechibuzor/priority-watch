@@ -23,6 +23,8 @@ import (
 	pwmigrations "github.com/uwezukwechibuzor/priority-watch/infra/clickhouse/migrations"
 	"github.com/uwezukwechibuzor/priority-watch/internal/cex"
 	"github.com/uwezukwechibuzor/priority-watch/internal/chain"
+	"github.com/uwezukwechibuzor/priority-watch/internal/chain/hypersync"
+	"github.com/uwezukwechibuzor/priority-watch/internal/chain/sqd"
 	"github.com/uwezukwechibuzor/priority-watch/internal/config"
 	"github.com/uwezukwechibuzor/priority-watch/internal/ingest"
 	"github.com/uwezukwechibuzor/priority-watch/internal/models"
@@ -109,6 +111,7 @@ func newBackfillCmd(ctx context.Context) *cobra.Command {
 		concFlag    int
 		logsOnly    bool
 		addressFlag string
+		sourceFlag  string
 	)
 
 	cmd := &cobra.Command{
@@ -118,23 +121,25 @@ func newBackfillCmd(ctx context.Context) *cobra.Command {
 
 --from and --to accept a block number or a date in YYYY-MM-DD format.
 --to also accepts "head" to mean the current latest block.
+--source selects the data provider: sqd | hypersync | rpc | sqd+hypersync.
 
 Examples:
   pw-ingester backfill --from 100000 --to 110000
-  pw-ingester backfill --from 2026-01-01 --to head
+  pw-ingester backfill --from 2026-01-01 --to head --source sqd+hypersync
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := newLogger()
-			return runBackfill(ctx, log, fromFlag, toFlag, chunkFlag, concFlag, logsOnly, addressFlag)
+			return runBackfill(ctx, log, fromFlag, toFlag, chunkFlag, concFlag, logsOnly, addressFlag, sourceFlag)
 		},
 	}
 
 	cmd.Flags().StringVar(&fromFlag, "from", "", "start block or YYYY-MM-DD (required)")
 	cmd.Flags().StringVar(&toFlag, "to", "head", "end block, YYYY-MM-DD, or \"head\"")
 	cmd.Flags().Uint64Var(&chunkFlag, "chunk", ingest.DefaultChunkSize, "blocks per chunk")
-	cmd.Flags().IntVar(&concFlag, "concurrency", 4, "parallel block workers")
+	cmd.Flags().IntVar(&concFlag, "concurrency", 4, "parallel block workers (rpc source only)")
 	cmd.Flags().BoolVar(&logsOnly, "logs-only", false, "ingest logs only (skip blocks/txs/receipts)")
 	cmd.Flags().StringVar(&addressFlag, "address", "", "extra log filter address")
+	cmd.Flags().StringVar(&sourceFlag, "source", "", "data source: sqd|hypersync|rpc|sqd+hypersync (default from BLOCK_SOURCE)")
 
 	_ = cmd.MarkFlagRequired("from")
 	return cmd
@@ -148,16 +153,22 @@ func runBackfill(
 	concurrency int,
 	logsOnly bool,
 	extraAddr string,
+	sourceFlag string,
 ) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
+	sourceName := sourceFlag
+	if sourceName == "" {
+		sourceName = cfg.BlockSource
+	}
 
-	// ── chain client ─────────────────────────────────────────────────────────
+	// ── chain client (always created: used for date/head resolution and, when
+	// source=rpc, for block data) ──────────────────────────────────────────────
 	chainReg := prometheus.NewRegistry()
 	chainClient, err := chain.New(ctx, chain.ClientConfig{
-		PrimaryURL:   cfg.ArbitrumRPCURL,
+		PrimaryURL:   rpcURLOrPlaceholder(cfg.ArbitrumRPCURL),
 		FallbackURLs: cfg.ArbitrumRPCFallbackURLs,
 		RPS:          cfg.ArbitrumRPCRPS,
 		Logger:       log,
@@ -168,20 +179,26 @@ func runBackfill(
 	}
 	defer chainClient.Close()
 
+	// ── block source ───────────────────────────────────────────────────────────
+	source, err := buildBlockSource(sourceName, cfg, chainClient, log)
+	if err != nil {
+		return fmt.Errorf("build block source: %w", err)
+	}
+
 	// ── resolve from/to ───────────────────────────────────────────────────────
 	resolver := ingest.NewDateResolver(ingest.NewChainClientQuerier(chainClient))
 	from, err := resolveBlock(ctx, fromStr, resolver)
 	if err != nil {
 		return fmt.Errorf("resolve --from %q: %w", fromStr, err)
 	}
-	to, err := resolveBlockTo(ctx, toStr, resolver, chainClient)
+	to, err := resolveBlockToSource(ctx, toStr, resolver, source)
 	if err != nil {
 		return fmt.Errorf("resolve --to %q: %w", toStr, err)
 	}
 	if from > to {
 		return fmt.Errorf("--from %d > --to %d", from, to)
 	}
-	log.InfoContext(ctx, "backfill range", "from", from, "to", to,
+	log.InfoContext(ctx, "backfill range", "source", source.Name(), "from", from, "to", to,
 		"blocks", to-from+1, "chunk", chunkSize, "concurrency", concurrency)
 
 	// ── clickhouse ───────────────────────────────────────────────────────────
@@ -233,7 +250,7 @@ func runBackfill(
 	metrics := ingest.NewBackfillMetrics(reg)
 
 	// ── run ───────────────────────────────────────────────────────────────────
-	runner := ingest.NewBackfillRunner(chainClient, cursors, writers, metrics, log)
+	runner := ingest.NewSourceBackfillRunner(source, cursors, writers, metrics, log)
 	backfillCfg := ingest.BackfillConfig{
 		From:         from,
 		To:           to,
@@ -270,21 +287,43 @@ func resolveBlock(ctx context.Context, s string, r *ingest.DateResolver) (uint64
 	return r.Resolve(ctx, t)
 }
 
-// headQuerier is the subset of chain.Client used by resolveBlockTo.
-type headQuerier interface {
-	Head(ctx context.Context) (*chain.RPCBlock, error)
-}
-
-// resolveBlockTo resolves --to (block number, date, or "head").
-func resolveBlockTo(ctx context.Context, s string, r *ingest.DateResolver, c headQuerier) (uint64, error) {
+// resolveBlockToSource resolves --to using a chain.BlockSource for "head".
+func resolveBlockToSource(ctx context.Context, s string, r *ingest.DateResolver, src chain.BlockSource) (uint64, error) {
 	if s == "head" {
-		blk, err := c.Head(ctx)
-		if err != nil {
-			return 0, err
-		}
-		return uint64(blk.Number), nil
+		return src.Head(ctx)
 	}
 	return resolveBlock(ctx, s, r)
+}
+
+// buildBlockSource constructs a chain.BlockSource from the named source.
+// Supported names: rpc, sqd, hypersync, sqd+hypersync (failover).
+func buildBlockSource(name string, cfg *config.Config, c *chain.Client, log *slog.Logger) (chain.BlockSource, error) {
+	switch name {
+	case "rpc":
+		if cfg.ArbitrumRPCURL == "" {
+			return nil, fmt.Errorf("ARBITRUM_RPC_URL is required for --source rpc")
+		}
+		return chain.NewRPCBlockSource(c, log), nil
+	case "sqd", "":
+		return sqd.New(cfg.SQDPortalURL, log), nil
+	case "hypersync":
+		return hypersync.New(cfg.EnvioHyperSyncURL, cfg.EnvioAPIToken, log), nil
+	case "sqd+hypersync":
+		primary := sqd.New(cfg.SQDPortalURL, log)
+		secondary := hypersync.New(cfg.EnvioHyperSyncURL, cfg.EnvioAPIToken, log)
+		return chain.NewFailoverBlockSource(primary, secondary, log), nil
+	default:
+		return nil, fmt.Errorf("unknown source %q (want rpc|sqd|hypersync|sqd+hypersync)", name)
+	}
+}
+
+// rpcURLOrPlaceholder returns url, or a loopback placeholder when empty so the
+// RPC client can still be constructed for date resolution in SQD/HyperSync mode.
+func rpcURLOrPlaceholder(url string) string {
+	if url == "" {
+		return "http://127.0.0.1:8545"
+	}
+	return url
 }
 
 // configPath returns a path relative to the current working directory.
@@ -300,26 +339,33 @@ func configPath(rel string) string {
 // ── follow ────────────────────────────────────────────────────────────────────
 
 func newFollowCmd(ctx context.Context) *cobra.Command {
-	return &cobra.Command{
+	var sourceFlag string
+	cmd := &cobra.Command{
 		Use:   "follow",
-		Short: "Live block follower — subscribes to new heads and ingests each block",
+		Short: "Live block follower — streams new blocks from the configured source",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := newLogger()
-			return runFollow(ctx, log)
+			return runFollow(ctx, log, sourceFlag)
 		},
 	}
+	cmd.Flags().StringVar(&sourceFlag, "source", "", "data source: sqd|hypersync|rpc|sqd+hypersync (default from BLOCK_SOURCE)")
+	return cmd
 }
 
-func runFollow(ctx context.Context, log *slog.Logger) error {
+func runFollow(ctx context.Context, log *slog.Logger, sourceFlag string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
+	sourceName := sourceFlag
+	if sourceName == "" {
+		sourceName = cfg.BlockSource
+	}
 
-	// ── chain HTTP client ─────────────────────────────────────────────────────
+	// ── chain HTTP client (balance snapshots + rpc source) ─────────────────────
 	reg := prometheus.NewRegistry()
 	chainClient, err := chain.New(ctx, chain.ClientConfig{
-		PrimaryURL:   cfg.ArbitrumRPCURL,
+		PrimaryURL:   rpcURLOrPlaceholder(cfg.ArbitrumRPCURL),
 		FallbackURLs: cfg.ArbitrumRPCFallbackURLs,
 		RPS:          cfg.ArbitrumRPCRPS,
 		Logger:       log,
@@ -330,9 +376,9 @@ func runFollow(ctx context.Context, log *slog.Logger) error {
 	}
 	defer chainClient.Close()
 
-	// ── optional WS client for newHeads subscription ──────────────────────────
+	// ── optional WS client for newHeads subscription (rpc source only) ─────────
 	var wsClient *chain.Client
-	if cfg.ArbitrumWSURL != "" {
+	if sourceName == "rpc" && cfg.ArbitrumWSURL != "" {
 		wsClient, err = chain.New(ctx, chain.ClientConfig{
 			PrimaryURL: cfg.ArbitrumWSURL,
 			RPS:        cfg.ArbitrumRPCRPS,
@@ -398,7 +444,21 @@ func runFollow(ctx context.Context, log *slog.Logger) error {
 		GapThreshold: cfg.GapThreshold,
 	}
 
-	follower := ingest.NewFollower(chainClient, wsClient, cursors, fw, metrics, followerCfg, log)
+	// follower is either the RPC-native Follower or the BlockSource-backed
+	// SourceFollower, selected by --source / BLOCK_SOURCE.
+	var follower interface {
+		Run(ctx context.Context) error
+		HealthFunc() func() error
+	}
+	if sourceName == "rpc" {
+		follower = ingest.NewFollower(chainClient, wsClient, cursors, fw, metrics, followerCfg, log)
+	} else {
+		source, serr := buildBlockSource(sourceName, cfg, chainClient, log)
+		if serr != nil {
+			return fmt.Errorf("build block source: %w", serr)
+		}
+		follower = ingest.NewSourceFollower(source, cursors, fw, metrics, followerCfg, log)
+	}
 
 	// ── obs server ─────────────────────────────────────────────────────────────
 	obsServer := obs.New(cfg.MetricsAddr, cfg.LogLevel)
