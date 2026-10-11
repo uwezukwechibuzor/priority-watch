@@ -1,25 +1,78 @@
-# Production Caddyfile — filled in task 20.
-# Caddy automatically obtains TLS certificates via ACME (Let's Encrypt).
-#
-# Variables resolved from environment:
-#   $DOMAIN       — primary domain, e.g. priority.watch
-#   $ACME_EMAIL   — contact email for Let's Encrypt
+# Priority Watch — Production Caddyfile
+# Variables: $DOMAIN (e.g. priority.watch), $ACME_EMAIL
+
+{
+    email {$ACME_EMAIL}
+    admin off
+}
 
 {$DOMAIN} {
-    # Frontend
-    handle /blocks*    { reverse_proxy web:5173 }
-    handle /health*    { reverse_proxy web:5173 }
-    handle /pricing*   { reverse_proxy web:5173 }
-    handle /opportunity* { reverse_proxy web:5173 }
-    handle /simulator* { reverse_proxy web:5173 }
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        -Server
+    }
 
-    # API
-    handle /api/*      { reverse_proxy api:8080 }
-    handle /docs*      { reverse_proxy api:8080 }
-    handle /healthz    { reverse_proxy api:8080 }
+    # Rate limiting (requires caddy-ratelimit module or use Caddy Enterprise)
+    # Fallback: handled at the API layer (60 req/min per IP)
 
-    # Airflow (internal; restrict in production)
-    handle /airflow/*  { reverse_proxy airflow-webserver:8080 }
+    # Knowledge base -> MkDocs static site
+    handle /kb* {
+        root * /srv/docs/site
+        try_files {path} {path}/ /kb/index.html
+        file_server
+    }
+
+    # API (pw-api) — OpenAPI docs, healthz, metrics
+    handle /api/* {
+        reverse_proxy api:8080
+    }
+    handle /docs* {
+        reverse_proxy api:8080
+    }
+    handle /openapi.json {
+        reverse_proxy api:8080
+    }
+    handle /healthz {
+        reverse_proxy api:8080
+    }
+
+    # Metrics — restrict to internal network only
+    handle /metrics {
+        @internal {
+            remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+        }
+        handle @internal {
+            reverse_proxy api:8080
+        }
+        respond "Forbidden" 403
+    }
+
+    # Frontend SPA (React, Vite-built static)
+    handle {
+        root * /srv/web
+        try_files {path} {path}/ /index.html
+        file_server
+        encode gzip
+    }
 
     tls {$ACME_EMAIL}
+
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 10
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# Redirect www -> apex
+www.{$DOMAIN} {
+    redir https://{$DOMAIN}{uri} permanent
 }

@@ -1,0 +1,66 @@
+site_name: Priority Watch
+site_description: Analytics for Arbitrum One's Priority Gas Auction (PGA) ordering policy
+site_url: https://priority.watch/kb
+repo_url: https://github.com/uwezukwechibuzor/priority-watch
+repo_name: uwezukwechibuzor/priority-watch
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: deep purple
+    accent: deep purple
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+docs_dir: docs
+site_dir: site
+
+nav:
+  - Overview: index.md
+  - Architecture: architecture.md
+  - Data Model: data-model.md
+  - Glossary: glossary.md
+  - Methodology:
+      - Fee Mechanics: methodology/fee-mechanics.md
+      - Arbitrage & Markouts: methodology/arbitrage.md
+  - Limitations: limitations.md
+  - Data Quality SLOs: slo.md
+  - API Guide: api.md
+  - Runbooks:
+      - Local Stack: runbooks/local-stack.md
+      - CEX Prices: runbooks/cex-prices.md
+      - Block Backfill: runbooks/backfill.md
+      - Reorg Recovery: runbooks/reorg-recovery.md
+      - RPC Outage: runbooks/rpc-outage.md
+      - ClickHouse Disk Full: runbooks/disk-full.md
+      - Secret Rotation: runbooks/secret-rotation.md
+      - dbt Formula Change: runbooks/dbt-formula-change.md
+  - Changelog: changelog.md

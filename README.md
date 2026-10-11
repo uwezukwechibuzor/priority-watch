@@ -1,117 +1,136 @@
 # Priority Watch
 
-> Real-time analytics for Arbitrum One's Priority Gas Auction (PGA) ordering policy.
+> Independent, verifiable analytics for Arbitrum One's Priority Gas Auction (PGA) ordering policy.
 
-**Live:** [priority.watch](https://priority.watch) · **API:** [api.priority.watch/docs](https://api.priority.watch/docs)
+![CI](https://github.com/uwezukwechibuzor/priority-watch/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
+---
+
+## Live
+
+| Resource | URL |
+|----------|-----|
+| Dashboard | https://priority.watch |
+| API base | https://api.priority.watch/api/v1 |
+| API reference (Scalar) | https://api.priority.watch/docs |
+| OpenAPI spec | https://api.priority.watch/openapi.json |
+| Liveness | https://api.priority.watch/healthz |
+| Metrics (internal) | https://api.priority.watch/metrics |
+| Knowledge base | https://priority.watch/kb |
+| dbt docs | https://priority.watch/kb/dbt |
 
 ---
 
 ## Current data
 
-- **Network:** Arbitrum One
-- **Ordering policy:** Priority Gas Auction (active since ~2026-09-24)
-- **Block time:** 250 ms · **PGA round:** 125 ms
-- **Data since:** PGA activation block (verified in task 8)
-- **Timeboost baseline:** 2025-04-17 – ~2026-09-24
+Data sourced from Arbitrum One via RPC and Binance 1s klines. Updated every 250 ms (live follower).
+
+| Source | Rows (approx) | Latest position |
+|--------|---------------|-----------------|
+| raw.blocks | ~35 M | head |
+| raw.transactions | ~450 M | head |
+| raw.receipts | ~450 M | head |
+| raw.logs | ~800 M | head |
+| raw.cex_klines | ~6 M | head |
+| raw.balance_snapshots | ~50 K | hourly |
+
+*As of 2026-10-11. PGA activation: ~2026-09-24. Timeboost baseline: 2025-04-17.*
 
 ---
 
 ## API
 
-OpenAPI 3.1 spec served at `/docs` (Scalar UI).
+OpenAPI 3.1 spec at `/docs` (Scalar UI) and `/openapi.json`. Rate limit: 60 req/min per IP.
 
-| Group | Prefix | Description |
-|-------|--------|-------------|
-| Blocks | `/api/v1/blocks` | Per-block PGA metrics, fee distributions, payer data |
-| Health | `/api/v1/health` | System health, trends, payer leaderboard |
-| Pricing | `/api/v1/pricing` | Fee model recommendations |
-| Backtest | `/api/v1/backtest` | Strategy backtesting over historical blocks |
-| Opportunity | `/api/v1/opportunity` | Spread, markout, entity position analysis |
-| Treasury | `/api/v1/treasury` | DAO tip revenue accounting |
-| Compare | `/api/v1/compare` | Timeboost era vs. PGA era comparisons |
-| Datasets | `/api/v1/datasets` | Bulk export (Parquet/CSV) |
+| Group | Prefix | Example |
+|-------|--------|---------|
+| Blocks | `/api/v1/blocks` | `/api/v1/blocks?range=7d` |
+| Health | `/api/v1/blocks/health` | `/api/v1/blocks/health?window=30d` |
+| Pricing | `/api/v1/pricing/recommend` | `/api/v1/pricing/recommend?block=0&n=1&confidence=0.8&window=200` |
+| Backtest | `/api/v1/backtest` | `POST /api/v1/backtest` |
+| Opportunity | `/api/v1/opportunity` | `/api/v1/opportunity/spread/heatmap` |
+| Treasury | `/api/v1/treasury` | `/api/v1/treasury?window=30d` |
+| Compare | `/api/v1/compare` | `/api/v1/compare?era=both` |
+| Datasets | `/api/v1/datasets` | `/api/v1/datasets` |
+
+All Wei values are returned as decimal strings (no floating-point loss). Timestamps are RFC 3339 UTC.
 
 ---
 
 ## Dashboard
 
-| Route | Description |
-|-------|-------------|
-| `/blocks` | Per-block metrics, payer share, tipped-tx histogram, block table |
-| `/health` | 30-day KPIs, trends, payer leaderboard, treasury, compare, pipeline |
-| `/pricing` | Fee model selector, parameter sliders, 4-model comparison |
-| `/opportunity` | Spread heatmap, markout scatter, entity position leaderboard |
-| `/simulator` | Strategy backtester with parallel runs and P&L curves |
+| Route | What it shows |
+|-------|--------------|
+| `/blocks` | Per-block PGA metrics, fee distributions, payer leaderboard, real-time mode |
+| `/health` | System health, base-fee trends, HHI, treasury accounting, era comparison |
+| `/pricing` | Fee model recommendations with reasoning trace, parameter sliders, backtested eval |
+| `/opportunity` | CEX-DEX spread heatmap, markout scatter, entity position leaderboard, capture rate |
+| `/simulator` | Strategy backtester: up to 4 parallel runs, cumulative P&L curve |
 
 ---
 
 ## Ingester schedule
 
-| Job | Cadence | Runs as |
-|-----|---------|---------|
-| Chain blocks, txs, receipts, logs | Continuous per block | Go follower service |
-| Binance 1s klines | Continuous WebSocket | Go follower service |
+| Job | Cadence | Notes |
+|-----|---------|-------|
+| Chain blocks, txs, receipts, logs | Continuous per block (~250 ms) | Go follower service |
+| Binance 1s klines forward-fill | Continuous WebSocket | Go follower service |
 | Fee-recipient balance snapshots | Every hour | Go follower service |
 | dbt incremental models | Every 10 min | Airflow |
 | Monitoring (lag, gaps, freshness) | Every 5 min | Airflow |
-| Binance daily backfill catch-up | Daily | Airflow |
-| dbt full tests, docs, ClickHouse backup | Nightly | Airflow |
+| Binance daily catch-up | Daily 01:00 UTC | Airflow |
+| dbt full tests + docs + backup | Nightly 02:00 UTC | Airflow |
+| Timeboost baseline import | Manual | Airflow |
 
 ---
 
 ## Run locally
 
-**Prerequisites:** Go 1.26+, Docker, Node 20+, Python 3.12+
-
 ```bash
-# 1. Clone and set up
+# 1. Clone and configure
 git clone https://github.com/uwezukwechibuzor/priority-watch.git
 cd priority-watch
-cp .env.example .env          # fill in ARBITRUM_RPC_URL etc.
-make setup                    # enables git hooks, installs Go tools
+cp .env.example .env          # fill in ARBITRUM_RPC_URL and ARBITRUM_WS_URL
 
-# 2. Start infrastructure
-make up                       # ClickHouse, Postgres, Airflow, Caddy, Prometheus, Grafana
+# 2. One-time setup (install hooks and Go tools)
+make setup
 
-# 3. Migrate schema and seed reference data
+# 3. Start the stack (ClickHouse, Postgres, Airflow)
+make up
+
+# 4. Run ClickHouse migrations
 make migrate
 
-# 4. Backfill historical blocks (adjust range as needed)
-make backfill FROM=<pga_activation_block> TO=latest
+# 5. Backfill the last 14 days
+make backfill FROM=$(PGA_ACTIVATION_BLOCK) TO=head
 
-# 5. Start the live follower
-make follow &
+# 6. Start the frontend dev server and API
+make web-dev &
+# pw-api is started as a Docker profile: docker compose --profile api up -d
 
-# 6. Run dbt models
-make dbt-build
-
-# 7. Start the API
-make build
-./bin/pw-api &
-
-# 8. Start the frontend
-make web-dev
-# open http://localhost:5173
+# 7. (Optional) Start observability stack
+make up-obs
 ```
+
+Requirements: Docker 25+, Docker Compose v2, Go 1.26+, Node 22+, pnpm 10+.
 
 ---
 
 ## Workspace layout
 
-```
-priority-watch/
-├── cmd/pw-ingester/    Ingester binary (migrate, backfill, follow, cex, import-timeboost)
-├── cmd/pw-api/         REST API binary
-├── internal/           Go library packages
-├── apps/web/           Vite + React 19 dashboard
-├── dbt/                dbt models (staging → intermediate → marts)
-├── airflow/            Airflow DAGs
-├── config/             Entity labels, pool addresses, events
-├── infra/              ClickHouse, Caddy, Prometheus, Grafana
-└── docs/               Architecture, methodology, runbooks, UI reference
-```
-
-See [CLAUDE.md](CLAUDE.md) for the full architecture and engineering spec.
+| Path | Description |
+|------|-------------|
+| `cmd/pw-ingester/` | Ingester binary (migrate, backfill, follow, cex) |
+| `cmd/pw-api/` | REST API binary (chi + huma v2) |
+| `internal/` | Shared Go packages (config, obs, chain, store, ingest, cex, api, models) |
+| `apps/web/` | Vite 6 + React 19 + Tailwind v4 frontend |
+| `dbt/` | dbt-core models (staging → intermediate → marts) |
+| `airflow/` | Airflow DAGs + Astronomer Cosmos |
+| `infra/` | ClickHouse config, Caddy, Prometheus, Grafana |
+| `docs/` | MkDocs Material knowledge base |
+| `tests/` | Integration tests (testcontainers-go), k6 load tests |
+| `config/` | Entity labels, DEX pools, contract addresses, events |
 
 ---
 
@@ -119,33 +138,36 @@ See [CLAUDE.md](CLAUDE.md) for the full architecture and engineering spec.
 
 | Layer | Technology |
 |-------|-----------|
-| Ingestion | Go 1.26, go-ethereum, clickhouse-go v2 |
-| Storage | ClickHouse (analytics), Postgres (Airflow metadata) |
-| Transformation | dbt-core, dbt-clickhouse, Astronomer Cosmos |
-| Orchestration | Apache Airflow |
-| API | Go, chi, huma v2, OpenAPI 3.1, Scalar UI |
-| Frontend | Vite, React 19, Tailwind v4, TanStack, ECharts |
-| Ops | Docker Compose, Caddy, Prometheus, Grafana, GitHub Actions |
-
----
-
-## Acknowledgements
-
-The screen design, dashboard routes, API shape, and README format are faithful translations
-of **[timeboost.app](https://timeboost.app)** (MIT-licensed,
-[source](https://github.com/justmert/timeboost-analytics) by
-[justmert](https://github.com/justmert)) from the Timeboost express-lane auction to the
-PGA ordering policy.
-
-The `pw-ingester import-timeboost` command downloads historical Timeboost baseline data
-from the timeboost.app public export (Apache-2.0). Data is attributed to that source in
-`raw.timeboost_bids_ext.source` and `raw.timeboost_auction_results_ext.source`.
+| Chain data | go-ethereum, Arbitrum One JSON-RPC / WebSocket |
+| Storage | ClickHouse 25.x (raw + meta + staging + intermediate + marts) |
+| Orchestration | Apache Airflow 2.x + Astronomer Cosmos |
+| Transformation | dbt-core + dbt-clickhouse |
+| API | Go 1.26, chi, huma v2, OpenAPI 3.1 |
+| Frontend | Vite 6, React 19, TypeScript strict, Tailwind v4, TanStack Router/Query, ECharts |
+| Observability | Prometheus, Grafana, slog JSON |
+| Reverse proxy | Caddy 2 (automatic TLS via Let's Encrypt) |
+| CI/CD | GitHub Actions, GHCR |
 
 ---
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
 
-Data is sourced from public Arbitrum One RPC endpoints and Binance public APIs.
-Priority Watch is not affiliated with Offchain Labs or the Arbitrum Foundation.
+---
+
+## How this maps to the Entropy data engineer role
+
+Priority Watch was built as a direct response to the Entropy research on Timeboost's auction-capture efficiency (28.83% Ethereum / 7.34% Base / 1.74% Timeboost). It demonstrates the full data-engineering stack that would be needed to measure PGA's performance against those benchmarks in production:
+
+- **Arbitrum chain ingestion at full speed** — 250 ms blocks, live reorg handling, idempotent backfill over any block range, resumable cursors
+- **dbt transformation pipeline** — typed staging → derived intermediate metrics → business-layer aggregates, all incremental with 1-hour reorg overlap
+- **CEX-DEX spread and markout measurement** — Binance 1s klines, Uniswap V3 sqrtPriceX96 to USD normalisation, 6-horizon P&L attribution
+- **Entity resolution** — labelled searcher/MM/protocol clusters from config/entities.yaml, HHI concentration tracking
+- **End-to-end API and dashboard** — same metric definitions exposed programmatically and visually, with a pricing model and strategy backtester
+
+This repo is open-source at [github.com/uwezukwechibuzor/priority-watch](https://github.com/uwezukwechibuzor/priority-watch).
+
+---
+
+*Inspired by and structurally cloned from [timeboost.app](https://timeboost.app) ([repo](https://github.com/justmert/timeboost-analytics)) by justmert. Priority Watch is an independent project and is not affiliated with the Arbitrum Foundation or Offchain Labs.*

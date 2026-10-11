@@ -2,7 +2,8 @@
         build lint test test-integration fmt \
         migrate backfill follow \
         dbt-build dbt-docs \
-        web-dev docs-serve \
+        web-dev docs-serve docs-build \
+        k6 release \
         smoke help
 
 BINARY_DIR := bin
@@ -115,6 +116,19 @@ web-dev:
 ## docs-serve: serve MkDocs documentation
 docs-serve:
 	mkdocs serve
+
+## docs-build: build MkDocs site to site/
+docs-build:
+	mkdocs build --strict
+
+## k6: run k6 load test against the API (requires k6 + running API)
+k6:
+	k6 run tests/k6/api_load.js
+
+## release: tag v1.0.0 and push
+release:
+	git tag -a v1.0.0 -m "chore: v1.0.0"
+	git push origin v1.0.0
 
 ## help: list all targets with descriptions
 help:
