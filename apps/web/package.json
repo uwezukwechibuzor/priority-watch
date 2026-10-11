@@ -16,7 +16,9 @@
     "format": "biome format --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:api": "openapi-typescript ../../internal/api/testdata/openapi.json -o src/api/types.ts"
+    "gen:api": "openapi-typescript ../../internal/api/testdata/openapi.json -o src/api/types.ts",
+    "e2e": "playwright test",
+    "lhci": "lhci autorun"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.56.2",
@@ -29,6 +31,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/vite": "^4.0.0",
     "@testing-library/jest-dom": "^6.6.2",
     "@testing-library/react": "^16.0.0",

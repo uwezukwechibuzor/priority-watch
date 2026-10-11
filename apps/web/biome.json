@@ -47,6 +47,22 @@
           }
         }
       }
+    },
+    {
+      "include": [
+        "src/components/opportunity/ExecutionQualityTable.tsx",
+        "src/components/opportunity/PositionLeaderboard.tsx",
+        "src/components/pricing/ModelCards.tsx",
+        "src/components/pricing/ModelEvalTable.tsx",
+        "src/components/pricing/RecommendationPanel.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          }
+        }
+      }
     }
   ]
 }

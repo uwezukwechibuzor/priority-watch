@@ -216,3 +216,75 @@ export interface BaseFeeHourlyRow {
   median_base_fee_gwei: number;
   hour_change_pct: number;
 }
+
+export interface SpreadRow {
+  block_number: number;
+  pool_address: string;
+  spread_bps: number;
+  abs_spread_bps: number;
+}
+
+export interface HeatmapCell {
+  pool_address: string;
+  hour_of_day: number;
+  day_of_week: number;
+  median_spread_bps: number;
+}
+
+export interface HistogramBin {
+  pool_address: string;
+  bin: string;
+  block_count: number;
+  block_pct: number;
+}
+
+export interface MarkoutRow {
+  block_number: number;
+  tx_hash: string;
+  eth_delta: number;
+  exec_price_usd: number;
+  markout_usd_1s?: number | null;
+  markout_usd_300s?: number | null;
+}
+
+export interface PositionRow {
+  date: string;
+  entity_name: string;
+  avg_fee_gwei: number;
+  avg_tip_rank: number;
+  delta_rank_vs_position: number;
+  top3_position_share: number;
+  fee_efficiency: number;
+}
+
+export interface ExecQualityRow {
+  date: string;
+  entity_name: string;
+  revert_rate: number;
+  avg_markout_usd_1s?: number | null;
+  avg_markout_usd_300s?: number | null;
+}
+
+export interface BacktestRunRow {
+  run_id: string;
+  status: "pending" | "running" | "done" | "error";
+  strategy: string;
+  from_block: number;
+  to_block: number;
+  config: string;
+  result?: string;
+  error_msg?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReplayResult {
+  strategy: string;
+  total_pnl_gwei: number;
+  win_rate: number;
+  wins: number;
+  total: number;
+  avg_cost_gwei: number;
+  cumulative_pnl_gwei: number[];
+  disclaimer: string;
+}

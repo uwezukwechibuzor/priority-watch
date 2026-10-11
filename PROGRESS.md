@@ -20,5 +20,5 @@
 | 16 | Web shell | ✅ | feat(web): app shell and design system |
 | 17 | /blocks page | ✅ | feat(web): blocks page |
 | 18 | /health page | ✅ | feat(web): health page |
-| 19 | /pricing, /opportunity, /simulator pages | ⬜ | |
+| 19 | /pricing, /opportunity, /simulator pages | ✅ | feat(web): pricing, opportunity, simulator |
 | 20 | Docs, hardening, launch | ⬜ | |
