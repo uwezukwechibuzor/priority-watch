@@ -286,15 +286,16 @@ func (s *Store) GetBlockSeries(ctx context.Context, rangeStr string) ([]SeriesPo
 
 // PayerShareRow is one entity row in the payer-share panel.
 type PayerShareRow struct {
-	EntityName string  `json:"entity_name"`
-	EntityType string  `json:"entity_type"`
-	ColorIndex uint8   `json:"color_index"`
-	TipEth     float64 `json:"tip_eth"`
-	TipUsd     float64 `json:"tip_usd"`
-	SharePct   float64 `json:"share_pct"`
-	TxCount    uint64  `json:"tx_count"`
-	RevertRate float64 `json:"revert_rate"`
-	AvgTipRank float64 `json:"avg_tip_rank"`
+	EntityName      string  `json:"entity_name"`
+	EntityType      string  `json:"entity_type"`
+	ColorIndex      uint8   `json:"color_index"`
+	AddressLabel    string  `json:"address_label"`
+	TipEth          float64 `json:"tip_eth"`
+	TipUsd          float64 `json:"tip_usd"`
+	SharePct        float64 `json:"share_pct"`
+	TxCount         uint64  `json:"tx_count"`
+	RevertRate      float64 `json:"revert_rate"`
+	AvgTipRank      float64 `json:"avg_tip_rank"`
 }
 
 func (s *Store) GetPayerShare(ctx context.Context, rangeStr string) ([]PayerShareRow, error) {
@@ -312,17 +313,19 @@ func (s *Store) GetPayerShare(ctx context.Context, rangeStr string) ([]PayerShar
 		agg AS (
 			SELECT
 				entity_name, entity_type, color_index,
-				sum(tip_eth)      AS tip_eth,
-				sum(tip_usd)      AS tip_usd,
-				sum(tx_count)     AS tx_count,
-				avg(revert_rate)  AS revert_rate,
-				avg(avg_tip_rank) AS avg_tip_rank
+				anyLast(address_label)  AS address_label,
+				sum(tip_eth)            AS tip_eth,
+				sum(tip_usd)            AS tip_usd,
+				sum(tx_count)           AS tx_count,
+				avg(revert_rate)        AS revert_rate,
+				avg(avg_tip_rank)       AS avg_tip_rank
 			FROM marts.agg_payer_share_daily FINAL
 			WHERE date >= toDate(@cutoff)
 			GROUP BY entity_name, entity_type, color_index
 		)
 		SELECT
 			a.entity_name, a.entity_type, a.color_index,
+			a.address_label,
 			a.tip_eth,
 			a.tip_usd,
 			if(t.total_eth > 0, a.tip_eth / t.total_eth, 0) AS share_pct,
@@ -345,6 +348,7 @@ func (s *Store) GetPayerShare(ctx context.Context, rangeStr string) ([]PayerShar
 		var r PayerShareRow
 		if err := rows.Scan(
 			&r.EntityName, &r.EntityType, &r.ColorIndex,
+			&r.AddressLabel,
 			&r.TipEth, &r.TipUsd, &r.SharePct,
 			&r.TxCount, &r.RevertRate, &r.AvgTipRank,
 		); err != nil {

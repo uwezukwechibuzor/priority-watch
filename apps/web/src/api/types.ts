@@ -69,6 +69,7 @@ export interface PayerShareRow {
   entity_name: string;
   entity_type: string;
   color_index: number;
+  address_label: string;
   tip_eth: number;
   tip_usd: number;
   share_pct: number;

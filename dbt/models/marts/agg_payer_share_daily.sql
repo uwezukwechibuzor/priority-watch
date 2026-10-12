@@ -17,6 +17,7 @@ WITH daily_entity AS (
         coalesce(e.entity_type, 'unknown')                     AS entity_type,
         coalesce(e.color_index, toUInt8(0))                    AS color_index,
         coalesce(e.label_source, 'unlabelled')                 AS label_source,
+        coalesce(e.address_label, '')                          AS address_label,
         f.era,
         sum(f.tip_paid_wei)                                    AS tip_wei,
         sum(f.tip_paid_eth)                                    AS tip_eth,
@@ -34,7 +35,7 @@ WITH daily_entity AS (
             FROM {{ this }} FINAL
         )
     {% endif %}
-    GROUP BY date, entity_name, entity_type, color_index, label_source, f.era
+    GROUP BY date, entity_name, entity_type, color_index, label_source, address_label, f.era
 ),
 
 -- Daily contested blocks per entity (appeared in a contested block)
@@ -79,6 +80,7 @@ SELECT
     de.entity_type      AS entity_type,
     de.color_index      AS color_index,
     de.label_source     AS label_source,
+    de.address_label    AS address_label,
     de.era              AS era,
     de.tip_wei          AS tip_wei,
     de.tip_eth          AS tip_eth,

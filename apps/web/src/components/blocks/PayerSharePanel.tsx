@@ -29,6 +29,7 @@ export function PayerSharePanel({ data, loading = false, onPayerClick }: PayerSh
               key={row.entity_name}
               type="button"
               onClick={() => onPayerClick?.(row.entity_name)}
+              title={row.address_label ? `Interacted with: ${row.address_label}` : undefined}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -49,20 +50,42 @@ export function PayerSharePanel({ data, loading = false, onPayerClick }: PayerSh
                   borderRadius: 1,
                   background: entityColor(row.color_index),
                   flexShrink: 0,
+                  marginTop: row.address_label ? -10 : 0,
                 }}
               />
               <span
                 style={{
-                  fontSize: 12,
-                  color: "var(--color-text-primary)",
+                  display: "flex",
+                  flexDirection: "column",
                   minWidth: 0,
                   flex: "0 0 90px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
                 }}
               >
-                {row.entity_name}
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--color-text-primary)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {row.entity_name}
+                </span>
+                {row.address_label && (
+                  <span
+                    style={{
+                      fontSize: 9,
+                      color: "var(--color-text-muted)",
+                      fontFamily: "var(--font-mono)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {row.address_label}
+                  </span>
+                )}
               </span>
               <span
                 style={{
