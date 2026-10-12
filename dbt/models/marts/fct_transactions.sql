@@ -50,7 +50,8 @@ SELECT
     coalesce(e.entity_name, f.from_address)                    AS entity_name,
     coalesce(e.entity_type, 'unknown')                         AS entity_type,
     coalesce(e.color_index, toUInt8(0))                        AS color_index,
-    coalesce(e.label_source, 'unlabelled')                     AS label_source
+    coalesce(e.label_source, 'unlabelled')                     AS label_source,
+    coalesce(e.address_label, '')                              AS entity_address_label
 FROM {{ ref('int_tx_fees') }} AS f FINAL
 LEFT JOIN {{ ref('int_block_ordering') }} AS o FINAL
     ON f.block_number = o.block_number

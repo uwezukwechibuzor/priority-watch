@@ -644,17 +644,35 @@ export function BlockDrawer({ blockNumber, onClose }: BlockDrawerProps) {
                               flexShrink: 0,
                             }}
                           />
-                          <span
-                            className="mono"
-                            style={{
-                              fontSize: 11,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              maxWidth: 90,
-                            }}
-                          >
-                            {tx.entity_name || shortAddress(tx.from_address)}
+                          <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                            <span
+                              className="mono"
+                              style={{
+                                fontSize: 11,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                maxWidth: 90,
+                              }}
+                            >
+                              {tx.entity_name || shortAddress(tx.from_address)}
+                            </span>
+                            {tx.entity_address_label && (
+                              <span
+                                style={{
+                                  fontSize: 9,
+                                  color: "var(--color-text-muted)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  maxWidth: 90,
+                                  fontFamily: "var(--font-mono)",
+                                }}
+                                title={tx.entity_address_label}
+                              >
+                                {tx.entity_address_label}
+                              </span>
+                            )}
                           </span>
                         </span>
                       </td>

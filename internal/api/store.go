@@ -438,10 +438,11 @@ type TxRow struct {
 	TipPaidWei       string  `json:"tip_paid_wei"`
 	TipRank          uint32  `json:"tip_rank"`
 	TxClass          string  `json:"tx_class"`
-	EntityName       string  `json:"entity_name"`
-	EntityType       string  `json:"entity_type"`
-	ColorIndex       uint8   `json:"color_index"`
-	IsRevertedTipped uint8   `json:"is_reverted_tipped"`
+	EntityName         string `json:"entity_name"`
+	EntityType         string `json:"entity_type"`
+	ColorIndex         uint8  `json:"color_index"`
+	EntityAddressLabel string `json:"entity_address_label"`
+	IsRevertedTipped   uint8  `json:"is_reverted_tipped"`
 }
 
 func (s *Store) GetBlockTxs(ctx context.Context, blockNumber uint64, cursor *uint32, limit int) ([]TxRow, error) {
@@ -459,7 +460,7 @@ func (s *Store) GetBlockTxs(ctx context.Context, blockNumber uint64, cursor *uin
 			status, gas_used, priority_fee_per_gas_gwei,
 			tip_paid_eth, tip_paid_usd, toString(tip_paid_wei) AS tip_paid_wei,
 			tip_rank, tx_class, entity_name, entity_type, color_index,
-			is_reverted_tipped
+			entity_address_label, is_reverted_tipped
 		FROM marts.fct_transactions FINAL
 		WHERE %s
 		ORDER BY tx_index ASC
@@ -479,7 +480,7 @@ func (s *Store) GetBlockTxs(ctx context.Context, blockNumber uint64, cursor *uin
 			&r.Status, &r.GasUsed, &r.PriorityFeeGwei,
 			&r.TipPaidEth, &r.TipPaidUsd, &r.TipPaidWei,
 			&r.TipRank, &r.TxClass, &r.EntityName, &r.EntityType, &r.ColorIndex,
-			&r.IsRevertedTipped,
+			&r.EntityAddressLabel, &r.IsRevertedTipped,
 		); err != nil {
 			return nil, fmt.Errorf("GetBlockTxs scan: %w", err)
 		}

@@ -67,7 +67,7 @@ heuristic_bots AS (
         concat('Bot (', f.from_address, ')')    AS entity_name,
         'searcher'                              AS entity_type,
         toUInt8(0)                              AS color_index,
-        'heuristic bot'                         AS address_label,
+        concat('calls ', f.to_address)          AS address_label,
         toUInt8(0)                              AS verified,
         'heuristic'                             AS label_source,
         toFloat32(0.5)                          AS confidence

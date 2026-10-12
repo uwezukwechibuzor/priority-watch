@@ -122,6 +122,7 @@ export interface TxRow {
   entity_name: string;
   entity_type: string;
   color_index: number;
+  entity_address_label: string;
   tx_type: number;
   tx_class: string;
   priority_fee_per_gas_gwei: number;
