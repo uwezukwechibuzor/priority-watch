@@ -107,38 +107,38 @@ func (c *Client) BlockHeader(ctx context.Context, number uint64) (*RPCBlock, err
 	} else {
 		tag = fmt.Sprintf("0x%x", number)
 	}
-	var block RPCBlock
-	if err := c.call(ctx, "eth_getBlockByNumber", &block, tag, false); err != nil {
+	var hdr RPCBlockHeader
+	if err := c.call(ctx, "eth_getBlockByNumber", &hdr, tag, false); err != nil {
 		return nil, err
 	}
-	return &block, nil
+	return &RPCBlock{RPCBlockHeader: hdr}, nil
 }
 
-// Head returns the latest canonical block (no transactions).
+// Head returns the latest canonical block header (no transactions).
 func (c *Client) Head(ctx context.Context) (*RPCBlock, error) {
-	var block RPCBlock
-	if err := c.call(ctx, "eth_getBlockByNumber", &block, "latest", false); err != nil {
+	var hdr RPCBlockHeader
+	if err := c.call(ctx, "eth_getBlockByNumber", &hdr, "latest", false); err != nil {
 		return nil, err
 	}
-	return &block, nil
+	return &RPCBlock{RPCBlockHeader: hdr}, nil
 }
 
-// Safe returns the latest safe block (no transactions).
+// Safe returns the latest safe block header (no transactions).
 func (c *Client) Safe(ctx context.Context) (*RPCBlock, error) {
-	var block RPCBlock
-	if err := c.call(ctx, "eth_getBlockByNumber", &block, "safe", false); err != nil {
+	var hdr RPCBlockHeader
+	if err := c.call(ctx, "eth_getBlockByNumber", &hdr, "safe", false); err != nil {
 		return nil, err
 	}
-	return &block, nil
+	return &RPCBlock{RPCBlockHeader: hdr}, nil
 }
 
-// Finalized returns the latest finalized block (no transactions).
+// Finalized returns the latest finalized block header (no transactions).
 func (c *Client) Finalized(ctx context.Context) (*RPCBlock, error) {
-	var block RPCBlock
-	if err := c.call(ctx, "eth_getBlockByNumber", &block, "finalized", false); err != nil {
+	var hdr RPCBlockHeader
+	if err := c.call(ctx, "eth_getBlockByNumber", &hdr, "finalized", false); err != nil {
 		return nil, err
 	}
-	return &block, nil
+	return &RPCBlock{RPCBlockHeader: hdr}, nil
 }
 
 // BlockReceipts fetches all receipts for blockHash.
@@ -158,7 +158,7 @@ func (c *Client) BlockReceipts(ctx context.Context, blockHash common.Hash) ([]RP
 	c.log.InfoContext(ctx, "eth_getBlockReceipts unsupported, falling back to per-tx receipts",
 		"block", blockHash)
 
-	var block RPCBlock
+	var block RPCBlockWithHashes
 	if err := c.call(ctx, "eth_getBlockByHash", &block, blockHash, false); err != nil {
 		return nil, fmt.Errorf("block receipts fallback get block: %w", err)
 	}
@@ -170,10 +170,10 @@ func (c *Client) BlockReceipts(ctx context.Context, blockHash common.Hash) ([]RP
 	// Build batch of eth_getTransactionReceipt calls.
 	calls := make([]gethRPC.BatchElem, len(block.Transactions))
 	results := make([]RPCReceipt, len(block.Transactions))
-	for i, tx := range block.Transactions {
+	for i, txHash := range block.Transactions {
 		calls[i] = gethRPC.BatchElem{
 			Method: "eth_getTransactionReceipt",
-			Args:   []any{tx.Hash},
+			Args:   []any{txHash},
 			Result: &results[i],
 		}
 	}
@@ -183,7 +183,7 @@ func (c *Client) BlockReceipts(ctx context.Context, blockHash common.Hash) ([]RP
 	}
 	for i, elem := range calls {
 		if elem.Error != nil {
-			return nil, fmt.Errorf("receipt for tx %s: %w", block.Transactions[i].Hash, elem.Error)
+			return nil, fmt.Errorf("receipt for tx %s: %w", block.Transactions[i], elem.Error)
 		}
 	}
 	return results, nil

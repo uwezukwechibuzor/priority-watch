@@ -146,16 +146,18 @@ func toRPCBlock(header SQDBlockHeader, txs []SQDTransaction) (*chain.RPCBlock, e
 	}
 
 	return &chain.RPCBlock{
-		Number:        hexutil.Uint64(header.Number),
-		Hash:          common.HexToHash(header.Hash),
-		ParentHash:    common.HexToHash(header.ParentHash),
-		Timestamp:     hexutil.Uint64(header.Timestamp),
-		L1BlockNumber: hexutil.Uint64(header.L1BlockNumber),
-		BaseFeePerGas: baseFee,
-		GasUsed:       hexutil.Uint64(gasUsed),
-		GasLimit:      hexutil.Uint64(gasLimit),
-		Size:          hexutil.Uint64(header.Size),
-		Transactions:  rpcTxs,
+		RPCBlockHeader: chain.RPCBlockHeader{
+			Number:        hexutil.Uint64(header.Number),
+			Hash:          common.HexToHash(header.Hash),
+			ParentHash:    common.HexToHash(header.ParentHash),
+			Timestamp:     hexutil.Uint64(header.Timestamp),
+			L1BlockNumber: hexutil.Uint64(header.L1BlockNumber),
+			BaseFeePerGas: baseFee,
+			GasUsed:       hexutil.Uint64(gasUsed),
+			GasLimit:      hexutil.Uint64(gasLimit),
+			Size:          hexutil.Uint64(header.Size),
+		},
+		Transactions: rpcTxs,
 	}, nil
 }
 

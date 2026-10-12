@@ -65,7 +65,7 @@ type BlockRow struct {
 	SecondToFirst    float64   `json:"second_to_first_ratio"`
 	BlockType        string    `json:"block_type"`
 	OrderingScore    float64   `json:"ordering_score"`
-	DistinctTippers  uint32    `json:"distinct_tippers"`
+	DistinctTippers  uint64    `json:"distinct_tippers"`
 	BaseFeeWei       string    `json:"base_fee_per_gas_wei"`
 	BaseFeeGwei      float64   `json:"base_fee_per_gas_gwei"`
 	GasUsed          uint64    `json:"gas_used"`
@@ -125,7 +125,8 @@ func (s *Store) GetBlocks(ctx context.Context, p BlocksParams) ([]BlockRow, erro
 			revert_count, second_to_first_ratio, block_type, ordering_score,
 			distinct_tippers,
 			toString(base_fee_per_gas) AS base_fee_per_gas_wei,
-			base_fee_per_gas_gwei, gas_used, gas_limit, gas_used_pct
+			base_fee_per_gas_gwei, gas_used, gas_limit,
+				coalesce(gas_used_pct, 0.0) AS gas_used_pct
 		FROM marts.fct_blocks FINAL
 		WHERE %s
 		ORDER BY block_number DESC
@@ -379,7 +380,8 @@ func (s *Store) GetBlock(ctx context.Context, blockNumber uint64) (*BlockRow, er
 			revert_count, second_to_first_ratio, block_type, ordering_score,
 			distinct_tippers,
 			toString(base_fee_per_gas) AS base_fee_per_gas_wei,
-			base_fee_per_gas_gwei, gas_used, gas_limit, gas_used_pct
+			base_fee_per_gas_gwei, gas_used, gas_limit,
+				coalesce(gas_used_pct, 0.0) AS gas_used_pct
 		FROM marts.fct_blocks FINAL
 		WHERE block_number = @block_number`
 

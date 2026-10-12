@@ -26,20 +26,34 @@ const (
 	ArbitrumInternalTxType        = 0x6a
 )
 
+// RPCBlockHeader is the block header returned by eth_getBlockByNumber/Hash when
+// the second arg is false (tx hashes only). The transactions field is omitted
+// to avoid unmarshalling string hashes into RPCTransaction objects.
+type RPCBlockHeader struct {
+	Number        hexutil.Uint64 `json:"number"`
+	Hash          common.Hash    `json:"hash"`
+	ParentHash    common.Hash    `json:"parentHash"`
+	Timestamp     hexutil.Uint64 `json:"timestamp"`
+	L1BlockNumber hexutil.Uint64 `json:"l1BlockNumber"`
+	BaseFeePerGas *hexutil.Big   `json:"baseFeePerGas"`
+	GasUsed       hexutil.Uint64 `json:"gasUsed"`
+	GasLimit      hexutil.Uint64 `json:"gasLimit"`
+	Size          hexutil.Uint64 `json:"size"`
+}
+
+// RPCBlockWithHashes is returned by eth_getBlockByHash/Number with false — tx
+// hashes only. Used by the BlockReceipts fallback path.
+type RPCBlockWithHashes struct {
+	RPCBlockHeader
+	Transactions []common.Hash `json:"transactions"`
+}
+
 // RPCBlock is the raw JSON-RPC response for eth_getBlockByHash /
 // eth_getBlockByNumber with full transaction objects (second arg = true).
 // Arbitrum-specific: l1BlockNumber is present on all blocks.
 type RPCBlock struct {
-	Number        hexutil.Uint64   `json:"number"`
-	Hash          common.Hash      `json:"hash"`
-	ParentHash    common.Hash      `json:"parentHash"`
-	Timestamp     hexutil.Uint64   `json:"timestamp"`
-	L1BlockNumber hexutil.Uint64   `json:"l1BlockNumber"`
-	BaseFeePerGas *hexutil.Big     `json:"baseFeePerGas"`
-	GasUsed       hexutil.Uint64   `json:"gasUsed"`
-	GasLimit      hexutil.Uint64   `json:"gasLimit"`
-	Size          hexutil.Uint64   `json:"size"`
-	Transactions  []RPCTransaction `json:"transactions"`
+	RPCBlockHeader
+	Transactions []RPCTransaction `json:"transactions"`
 }
 
 // RPCTransaction is the raw JSON-RPC transaction object.

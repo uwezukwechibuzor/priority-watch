@@ -14,6 +14,7 @@
             <quota>default</quota>
             <allow_databases>
                 <database>marts</database>
+                <database>meta</database>
             </allow_databases>
         </pw_reader>
     </users>

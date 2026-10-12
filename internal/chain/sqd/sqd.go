@@ -144,25 +144,28 @@ func buildRequest(from uint64, to *uint64, logAddrs []string) streamRequest {
 	return req
 }
 
-// Head returns the current finalized head reported by SQD by issuing a
-// single-block stream request and reading the finalizedHeadNumber status line.
+// Head returns the current finalized head from the SQD Portal /height endpoint.
 func (s *SQDBlockSource) Head(ctx context.Context) (uint64, error) {
-	// SQD does not expose a dedicated head endpoint; a tiny stream returns the
-	// finalized head as a status line. We request block 0 with no range end and
-	// read until we see the status, then cancel.
-	hctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	head := uint64(0)
-	err := s.stream(hctx, 0, uint64p(0), nil, func(_ *chain.FetchedBlock) error { return nil },
-		func(fin uint64) { head = fin; cancel() })
-	if err != nil && !errors.Is(err, context.Canceled) {
-		return 0, err
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.baseURL+"/height", nil)
+	if err != nil {
+		return 0, fmt.Errorf("sqd: head request: %w", err)
 	}
-	if head == 0 {
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("sqd: head request: %w", err)
+	}
+	defer resp.Body.Close() //nolint:errcheck
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("sqd: head unexpected status %d", resp.StatusCode)
+	}
+	var n uint64
+	if err := json.NewDecoder(resp.Body).Decode(&n); err != nil {
+		return 0, fmt.Errorf("sqd: head decode: %w", err)
+	}
+	if n == 0 {
 		return 0, errors.New("sqd: head not reported")
 	}
-	return head, nil
+	return n, nil
 }
 
 func uint64p(v uint64) *uint64 { return &v }
