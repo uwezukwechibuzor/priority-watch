@@ -64,7 +64,7 @@ contract_entities AS (
 heuristic_bots AS (
     SELECT
         f.from_address                          AS address,
-        concat('Bot (', f.to_address, ')')      AS entity_name,
+        concat('Bot (', f.from_address, ')')    AS entity_name,
         'searcher'                              AS entity_type,
         toUInt8(0)                              AS color_index,
         'heuristic bot'                         AS address_label,
