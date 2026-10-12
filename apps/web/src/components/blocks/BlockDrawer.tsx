@@ -18,6 +18,14 @@ interface BlockDrawerProps {
   onClose: () => void;
 }
 
+function entityLabel(tx: TxRow): string {
+  return tx.entity_name || shortAddress(tx.from_address);
+}
+
+function contractLine(tx: TxRow): string {
+  return tx.entity_address_label ? `<span style="color:#6b7280">${tx.entity_address_label}</span>` : "";
+}
+
 function FeeLadderChart({ txs }: { txs: TxRow[] }) {
   const tipped = txs
     .filter((t) => t.priority_fee_per_gas_gwei > 0)
@@ -50,7 +58,8 @@ function FeeLadderChart({ txs }: { txs: TxRow[] }) {
             : `${((tipped[p.dataIndex].priority_fee_per_gas_gwei / tipped[0].priority_fee_per_gas_gwei) * 100).toFixed(1)}% of rank 1`;
         return [
           `<b>Rank #${tx.tip_rank}</b>`,
-          tx.entity_name || shortAddress(tx.from_address),
+          entityLabel(tx),
+          contractLine(tx),
           `Fee: ${p.value.toFixed(6)} gwei`,
           pct !== "—" ? `2nd/1st: ${pct}` : "",
         ]
@@ -105,7 +114,7 @@ function TipRevenueChart({ txs }: { txs: TxRow[] }) {
   if (tipped.length === 0) return null;
 
   const totalEth = tipped.reduce((s, t) => s + t.tip_paid_eth, 0);
-  const labels = tipped.map((t) => (t.entity_name ? t.entity_name : shortAddress(t.from_address)));
+  const labels = tipped.map((t) => entityLabel(t));
   const chartHeight = Math.max(100, tipped.length * 26 + 40);
 
   const option: EChartsOption = {
@@ -141,10 +150,11 @@ function TipRevenueChart({ txs }: { txs: TxRow[] }) {
         const share = totalEth > 0 ? ((p.value / totalEth) * 100).toFixed(1) : "0";
         return [
           `<b>${p.name}</b>`,
+          contractLine(tx),
           `Tip: ${p.value.toFixed(8)} ETH`,
           `Share: ${share}% of block tips`,
           `Gas: ${tx.gas_used.toLocaleString()}`,
-        ].join("<br/>");
+        ].filter(Boolean).join("<br/>");
       },
     },
     series: [
@@ -253,9 +263,7 @@ function BasePriorityStackChart({ txs, baseFeeGwei }: { txs: TxRow[]; baseFeeGwe
     .sort((a, b) => a.tip_rank - b.tip_rank);
   if (sorted.length === 0) return null;
 
-  const labels = sorted.map((t) =>
-    t.entity_name ? t.entity_name : shortAddress(t.from_address),
-  );
+  const labels = sorted.map((t) => entityLabel(t));
   const baseFees = sorted.map((t) => +(baseFeeGwei * (t.gas_used / 1e9)).toFixed(8));
   const tipFees = sorted.map((t) => +(t.tip_paid_eth));
   const chartHeight = Math.max(100, sorted.length * 26 + 40);
@@ -299,11 +307,15 @@ function BasePriorityStackChart({ txs, baseFeeGwei }: { txs: TxRow[]; baseFeeGwe
         const tip = ps.find((p) => p.seriesName === "Priority Fee")?.value ?? 0;
         const total = base + tip;
         const pct = total > 0 ? ((tip / total) * 100).toFixed(1) : "0";
+        const idx = (params as { dataIndex: number }[])[0]?.dataIndex ?? 0;
+        const tx = sorted[idx];
         return [
+          `<b>${entityLabel(tx)}</b>`,
+          contractLine(tx),
           `Base Fee: ${base.toFixed(8)} ETH`,
           `Priority Fee: ${tip.toFixed(8)} ETH`,
           `PGA share: ${pct}%`,
-        ].join("<br/>");
+        ].filter(Boolean).join("<br/>");
       },
     },
     series: [
@@ -373,10 +385,11 @@ function CumulativeTipChart({ txs }: { txs: TxRow[] }) {
         const tx = sorted[p.dataIndex];
         return [
           `<b>Rank #${tx.tip_rank}</b>`,
-          tx.entity_name || shortAddress(tx.from_address),
+          entityLabel(tx),
+          contractLine(tx),
           `Cumulative: ${p.value}% of block tips`,
           `This tx: ${tx.tip_paid_eth.toFixed(8)} ETH`,
-        ].join("<br/>");
+        ].filter(Boolean).join("<br/>");
       },
     },
     series: [
@@ -418,9 +431,7 @@ function PGAParticipantsChart({ txs }: { txs: TxRow[] }) {
     .filter((t) => t.priority_fee_per_gas_gwei > 0)
     .sort((a, b) => a.tip_rank - b.tip_rank);
 
-  const labels = tipped.map((t) =>
-    t.entity_name ? t.entity_name : shortAddress(t.from_address),
-  );
+  const labels = tipped.map((t) => entityLabel(t));
   const fees = tipped.map((t) => t.priority_fee_per_gas_gwei);
   const colors = tipped.map((t) => entityColor(t.color_index));
   const chartHeight = Math.max(120, tipped.length * 28 + 40);
@@ -457,7 +468,8 @@ function PGAParticipantsChart({ txs }: { txs: TxRow[] }) {
         const tx = tipped[labels.indexOf(p.name)];
         return [
           `<b>Rank #${tx.tip_rank}</b>`,
-          tx.entity_name ? `Entity: ${tx.entity_name}` : `From: ${tx.from_address}`,
+          entityLabel(tx),
+          contractLine(tx),
           `Fee: ${p.value.toFixed(6)} gwei`,
           `Gas: ${tx.gas_used.toLocaleString()}`,
           `Status: ${tx.status === 1 ? "✓" : "✗"}`,
