@@ -204,9 +204,25 @@ func (f *Follower) startup(ctx context.Context) error {
 		f.log.WarnContext(ctx, "highest done block query failed, assuming 0", "err", err)
 		lastStored = 0
 	}
+	// Fallback: if no cursor history exists, use the max block already in raw.blocks
+	// to avoid re-enqueuing the entire history on a fresh follower start.
+	if lastStored == 0 {
+		if maxRaw, ferr := f.cursors.MaxRawBlock(ctx); ferr == nil && maxRaw > 0 {
+			lastStored = maxRaw
+		}
+	}
 
+	const maxEnqueueBlocks = 200_000 // cap to avoid flooding meta.ingest_cursors
 	if chainHead > lastStored && chainHead-lastStored > f.cfg.GapThreshold {
 		from := lastStored + 1
+		// If the gap is huge (e.g. first-ever start) only enqueue the recent tail;
+		// a manual backfill via pw-ingester backfill handles deep history.
+		if chainHead-from > maxEnqueueBlocks {
+			f.log.WarnContext(ctx, "gap too large for auto-enqueue; enqueuing recent tail only; run 'pw-ingester backfill' for full history",
+				"from", from, "to", chainHead, "gap", chainHead-from,
+				"enqueue_from", chainHead-maxEnqueueBlocks)
+			from = chainHead - maxEnqueueBlocks
+		}
 		f.log.InfoContext(ctx, "gap exceeds threshold, enqueuing backfill chunks",
 			"from", from, "to", chainHead, "gap", chainHead-lastStored)
 		if err := f.enqueueBackfillChunks(ctx, from, chainHead); err != nil {

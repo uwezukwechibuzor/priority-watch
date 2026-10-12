@@ -69,6 +69,22 @@ func (s *CursorStore) HighestDoneBlock(ctx context.Context) (uint64, error) {
 	return result[0].Max, nil
 }
 
+// MaxRawBlock returns the highest block_number stored in raw.blocks, or 0 if
+// none. Used as a fallback when no cursor history exists.
+func (s *CursorStore) MaxRawBlock(ctx context.Context) (uint64, error) {
+	var result []struct {
+		Max uint64 `ch:"max_block"`
+	}
+	if err := s.conn.Select(ctx, &result,
+		`SELECT max(block_number) AS max_block FROM raw.blocks FINAL`); err != nil {
+		return 0, fmt.Errorf("max raw block: %w", err)
+	}
+	if len(result) == 0 {
+		return 0, nil
+	}
+	return result[0].Max, nil
+}
+
 // LoadDone returns the set of cursor keys that have status=done.
 func (s *CursorStore) LoadDone(ctx context.Context) (map[string]struct{}, error) {
 	var rows []cursorRow

@@ -178,28 +178,39 @@ func (s *Store) GetBlockKPIs(ctx context.Context, rangeStr string, day *string) 
 	if err != nil {
 		return BlockKPIs{}, err
 	}
-	where := "block_timestamp >= @cutoff"
+	where := "hour >= @cutoff"
 	args := []any{namedParam("cutoff", cutoff)}
 	if day != nil {
-		where = "toDate(block_timestamp) = @day"
+		where = "toDate(hour) = @day"
 		args = []any{namedParam("day", *day)}
 	}
 
 	sql := fmt.Sprintf(`
 		SELECT
-			count() AS block_count,
-			toString(sum(tip_revenue_wei)) AS tip_revenue_wei,
-			sum(tip_revenue_eth) AS tip_revenue_eth,
-			sum(tip_revenue_usd) AS tip_revenue_usd,
-			if(count() > 0, sum(tip_revenue_eth)/count(), 0) AS avg_tip_eth,
-			if(count() > 0, countIf(block_type='contested')/count(), 0) AS contested_share,
-			argMaxIf(top_payer_name, tip_revenue_eth, tipped_tx_count > 0) AS top_payer_name,
-			if(sum(tip_revenue_eth) > 0,
-				max(tip_revenue_eth)/sum(tip_revenue_eth), 0) AS top_payer_share,
-			avg(hhi) AS avg_hhi,
-			avg(top_fee_gwei) AS avg_top_fee_gwei
-		FROM marts.agg_blocks_hourly FINAL
-		WHERE %s`, where)
+			tot_blocks                                                  AS block_count,
+			toString(tot_tip_wei)                                       AS tip_revenue_wei,
+			tot_tip_eth                                                 AS tip_revenue_eth,
+			tot_tip_usd                                                 AS tip_revenue_usd,
+			if(tot_blocks > 0, tot_tip_eth / tot_blocks, 0)            AS avg_tip_eth,
+			if(tot_blocks > 0,
+				toFloat64(tot_contested) / toFloat64(tot_blocks), 0)   AS contested_share,
+			''                                                          AS top_payer_name,
+			avg_top_payer_share                                         AS top_payer_share,
+			avg_hhi_val                                                 AS avg_hhi,
+			avg_top_fee                                                 AS avg_top_fee_gwei
+		FROM (
+			SELECT
+				sum(block_count)                AS tot_blocks,
+				sum(tip_revenue_wei)            AS tot_tip_wei,
+				sum(tip_revenue_eth)            AS tot_tip_eth,
+				sum(tip_revenue_usd)            AS tot_tip_usd,
+				sum(contested_block_count)      AS tot_contested,
+				avg(top_payer_share)            AS avg_top_payer_share,
+				avg(toFloat64(hhi))             AS avg_hhi_val,
+				avg(top_fee_gwei)               AS avg_top_fee
+			FROM marts.agg_blocks_hourly FINAL
+			WHERE %s
+		)`, where)
 
 	var (
 		kpi BlockKPIs

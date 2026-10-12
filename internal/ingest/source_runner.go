@@ -195,6 +195,12 @@ func (f *SourceFollower) resolveStart(ctx context.Context) (uint64, error) {
 		f.log.WarnContext(ctx, "highest done block query failed, assuming 0", "err", err)
 		lastStored = 0
 	}
+	// Fallback: use max block in raw.blocks so we don't re-ingest already-stored data.
+	if lastStored == 0 {
+		if maxRaw, ferr := f.cursors.MaxRawBlock(ctx); ferr == nil && maxRaw > 0 {
+			lastStored = maxRaw
+		}
+	}
 	if lastStored > 0 {
 		return lastStored + 1, nil
 	}
