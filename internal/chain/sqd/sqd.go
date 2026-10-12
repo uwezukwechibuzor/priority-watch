@@ -361,7 +361,22 @@ func (s *SQDBlockSource) streamOnce(
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		return false, s.parseStream(ctx, resp, to, emit, finStatus, cursor)
+		if err := s.parseStream(ctx, resp, to, emit, finStatus, cursor); err != nil {
+			// Server dropped the connection mid-stream (truncated gzip or partial
+			// NDJSON line). cursor was already advanced to the last complete block,
+			// so retrying from there is safe and idempotent.
+			if errors.Is(err, io.ErrUnexpectedEOF) {
+				s.log.WarnContext(ctx, "sqd stream truncated, retrying", "cursor", *cursor, "err", err)
+				return true, fmt.Errorf("sqd: stream truncated: %w", err)
+			}
+			var syntaxErr *json.SyntaxError
+			if errors.As(err, &syntaxErr) {
+				s.log.WarnContext(ctx, "sqd stream truncated (json), retrying", "cursor", *cursor, "err", err)
+				return true, fmt.Errorf("sqd: stream truncated: %w", err)
+			}
+			return false, err
+		}
+		return false, nil
 	case http.StatusTooManyRequests:
 		s.applyRetryAfter(ctx, resp)
 		return true, fmt.Errorf("sqd: 429 too many requests")
