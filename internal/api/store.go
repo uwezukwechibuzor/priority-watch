@@ -307,20 +307,30 @@ func (s *Store) GetPayerShare(ctx context.Context, rangeStr string) ([]PayerShar
 			SELECT sum(tip_eth) AS total_eth
 			FROM marts.agg_payer_share_daily FINAL
 			WHERE date >= toDate(@cutoff)
+		),
+		agg AS (
+			SELECT
+				entity_name, entity_type, color_index,
+				sum(tip_eth)      AS tip_eth,
+				sum(tip_usd)      AS tip_usd,
+				sum(tx_count)     AS tx_count,
+				avg(revert_rate)  AS revert_rate,
+				avg(avg_tip_rank) AS avg_tip_rank
+			FROM marts.agg_payer_share_daily FINAL
+			WHERE date >= toDate(@cutoff)
+			GROUP BY entity_name, entity_type, color_index
 		)
 		SELECT
-			entity_name, entity_type, color_index,
-			sum(tip_eth) AS tip_eth,
-			sum(tip_usd) AS tip_usd,
-			if(t.total_eth > 0, sum(tip_eth) / t.total_eth, 0) AS share_pct,
-			sum(tx_count) AS tx_count,
-			avg(revert_rate) AS revert_rate,
-			avg(avg_tip_rank) AS avg_tip_rank
-		FROM marts.agg_payer_share_daily FINAL
+			a.entity_name, a.entity_type, a.color_index,
+			a.tip_eth,
+			a.tip_usd,
+			if(t.total_eth > 0, a.tip_eth / t.total_eth, 0) AS share_pct,
+			a.tx_count,
+			a.revert_rate,
+			a.avg_tip_rank
+		FROM agg a
 		CROSS JOIN totals t
-		WHERE date >= toDate(@cutoff)
-		GROUP BY entity_name, entity_type, color_index, t.total_eth
-		ORDER BY tip_eth DESC
+		ORDER BY a.tip_eth DESC
 		LIMIT 10`
 
 	rows, err := s.query(ctx, sql, namedParam("cutoff", cutoff))
@@ -516,7 +526,8 @@ func (s *Store) GetHealthDaily(ctx context.Context, rangeStr string) ([]HealthDa
 			p10_fee_gwei, p50_fee_gwei, p90_fee_gwei,
 			block_count, expected_block_count, blocks_pct_of_expected,
 			contested_share, hhi, hhi_band, top_payer_share,
-			revert_rate_tipped, median_user_cost_usd
+			revert_rate_tipped,
+			if(isNaN(median_user_cost_usd) OR isInfinite(median_user_cost_usd), 0.0, median_user_cost_usd) AS median_user_cost_usd
 		FROM marts.agg_health_daily FINAL
 		WHERE date >= toDate(@cutoff)
 		ORDER BY date DESC`,

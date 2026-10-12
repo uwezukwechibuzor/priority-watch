@@ -73,7 +73,7 @@ export function PayerSharePanel({ data, loading = false, onPayerClick }: PayerSh
                   borderRadius: 3,
                   overflow: "hidden",
                 }}
-                aria-label={`${row.entity_name} share: ${formatPct(row.share_pct / 100)}`}
+                aria-label={`${row.entity_name} share: ${formatPct(row.share_pct)}`}
               >
                 <span
                   style={{
@@ -81,7 +81,7 @@ export function PayerSharePanel({ data, loading = false, onPayerClick }: PayerSh
                     left: 0,
                     top: 0,
                     bottom: 0,
-                    width: `${row.share_pct}%`,
+                    width: `${row.share_pct * 100}%`,
                     background: entityColor(row.color_index),
                     borderRadius: 3,
                   }}
@@ -97,7 +97,7 @@ export function PayerSharePanel({ data, loading = false, onPayerClick }: PayerSh
                   flexShrink: 0,
                 }}
               >
-                {row.share_pct.toFixed(1)}%
+                {(row.share_pct * 100).toFixed(1)}%
               </span>
             </button>
           ))}

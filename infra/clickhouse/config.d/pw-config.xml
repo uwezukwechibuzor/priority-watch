@@ -27,8 +27,8 @@
         <allowed_path>/var/lib/clickhouse/backups/</allowed_path>
     </backups>
 
-    <!-- Memory cap: 50% of RAM to leave headroom for merges and system tables. -->
-    <max_server_memory_usage_to_ram_ratio>0.5</max_server_memory_usage_to_ram_ratio>
+    <!-- Memory cap: 75% of the 4 GiB Docker limit = ~3 GiB for queries + merges. -->
+    <max_server_memory_usage_to_ram_ratio>0.75</max_server_memory_usage_to_ram_ratio>
 
     <!-- Disable all system log tables to prevent OOM crashes on low-RAM hosts. -->
     <query_log remove="1"/>

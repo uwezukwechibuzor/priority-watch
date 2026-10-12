@@ -367,6 +367,8 @@ func (s *SQDBlockSource) streamOnce(
 		return true, fmt.Errorf("sqd: 429 too many requests")
 	case http.StatusServiceUnavailable:
 		return true, fmt.Errorf("sqd: 503 service unavailable")
+	case 529: // overloaded — treat same as 503, back off and retry
+		return true, fmt.Errorf("sqd: 529 overloaded")
 	case http.StatusConflict:
 		return false, s.parseFork(resp)
 	default:

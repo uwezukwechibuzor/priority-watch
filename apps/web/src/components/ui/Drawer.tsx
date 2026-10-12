@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 interface DrawerProps {
   open: boolean;
@@ -8,7 +8,12 @@ interface DrawerProps {
   width?: number;
 }
 
-export function Drawer({ open, onClose, title, children, width = 480 }: DrawerProps) {
+export function Drawer({ open, onClose, title, children, width: defaultWidth = 480 }: DrawerProps) {
+  const [width, setWidth] = useState(defaultWidth);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const startW = useRef(0);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -17,6 +22,34 @@ export function Drawer({ open, onClose, title, children, width = 480 }: DrawerPr
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
+
+  // Reset width when drawer closes
+  useEffect(() => {
+    if (!open) setWidth(defaultWidth);
+  }, [open, defaultWidth]);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    dragging.current = true;
+    startX.current = e.clientX;
+    startW.current = width;
+    e.preventDefault();
+  }, [width]);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = startX.current - e.clientX;
+      const next = Math.min(Math.max(startW.current + delta, 360), window.innerWidth * 0.9);
+      setWidth(next);
+    };
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []);
 
   return (
     <>
@@ -51,12 +84,26 @@ export function Drawer({ open, onClose, title, children, width = 480 }: DrawerPr
           borderLeft: "1px solid var(--color-border)",
           zIndex: 50,
           transform: open ? "translateX(0)" : `translateX(${width}px)`,
-          transition: "transform 0.25s ease",
+          transition: dragging.current ? "none" : "transform 0.25s ease",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
         }}
       >
+        {/* Drag handle */}
+        {/* biome-ignore lint/a11y/useKeyWithMouseEvents: resize handle is purely presentational */}
+        <div
+          onMouseDown={onMouseDown}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 4,
+            cursor: "ew-resize",
+            zIndex: 10,
+          }}
+        />
         <div
           style={{
             display: "flex",
