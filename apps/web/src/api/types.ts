@@ -33,6 +33,7 @@ export interface BlockRow {
   top_payer_address: string;
   top_payer_name: string;
   top_payer_color_index: number;
+  top_payer_address_label: string;
   revert_count: number;
   second_to_first_ratio: number;
   block_type: "contested" | "single" | "untipped";

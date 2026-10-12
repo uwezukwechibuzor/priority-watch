@@ -110,11 +110,30 @@ export function BlockTable({
         );
       case "payer":
         return (
-          <EntityChip
-            name={row.top_payer_name || row.top_payer_address}
-            colorIndex={row.top_payer_color_index}
-            address={row.top_payer_address}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <EntityChip
+              name={row.top_payer_name || row.top_payer_address}
+              colorIndex={row.top_payer_color_index}
+              address={row.top_payer_address}
+            />
+            {row.top_payer_address_label && (
+              <span
+                style={{
+                  fontSize: 9,
+                  color: "var(--color-text-muted)",
+                  fontFamily: "var(--font-mono)",
+                  paddingLeft: 10,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: 140,
+                }}
+                title={`Interacted with: ${row.top_payer_address_label}`}
+              >
+                {row.top_payer_address_label}
+              </span>
+            )}
+          </div>
         );
       case "fee":
         return (

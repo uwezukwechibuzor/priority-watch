@@ -58,9 +58,10 @@ type BlockRow struct {
 	TopFeeGwei       float64   `json:"top_fee_gwei"`
 	TopTipUsd        float64   `json:"top_tip_usd"`
 	MedianFeeGwei    float64   `json:"median_fee_gwei"`
-	TopPayerAddress  string    `json:"top_payer_address"`
-	TopPayerName     string    `json:"top_payer_name"`
-	TopPayerColorIdx uint8     `json:"top_payer_color_index"`
+	TopPayerAddress      string `json:"top_payer_address"`
+	TopPayerName         string `json:"top_payer_name"`
+	TopPayerColorIdx     uint8  `json:"top_payer_color_index"`
+	TopPayerAddressLabel string `json:"top_payer_address_label"`
 	RevertCount      uint64    `json:"revert_count"`
 	SecondToFirst    float64   `json:"second_to_first_ratio"`
 	BlockType        string    `json:"block_type"`
@@ -146,7 +147,7 @@ func (s *Store) GetBlocks(ctx context.Context, p BlocksParams) ([]BlockRow, erro
 			&r.BlockNumber, &r.BlockTimestamp, &r.Era, &r.TxCount, &r.TippedTxCount,
 			&r.TipRevenueWei, &r.TipRevenueEth, &r.TipRevenueUsd, &r.EthPriceUsd,
 			&r.TopFeeGwei, &r.TopTipUsd, &r.MedianFeeGwei,
-			&r.TopPayerAddress, &r.TopPayerName, &r.TopPayerColorIdx,
+			&r.TopPayerAddress, &r.TopPayerName, &r.TopPayerColorIdx, &r.TopPayerAddressLabel,
 			&r.RevertCount, &r.SecondToFirst, &r.BlockType, &r.OrderingScore,
 			&r.DistinctTippers, &r.BaseFeeWei, &r.BaseFeeGwei,
 			&r.GasUsed, &r.GasLimit, &r.GasUsedPct,
@@ -397,7 +398,7 @@ func (s *Store) GetBlock(ctx context.Context, blockNumber uint64) (*BlockRow, er
 			toString(tip_revenue_wei) AS tip_revenue_wei,
 			tip_revenue_eth, tip_revenue_usd, eth_price_usd,
 			top_fee_gwei, top_tip_usd, median_fee_gwei,
-			top_payer_address, top_payer_name, top_payer_color_index,
+			top_payer_address, top_payer_name, top_payer_color_index, top_payer_address_label,
 			revert_count, second_to_first_ratio, block_type, ordering_score,
 			distinct_tippers,
 			toString(base_fee_per_gas) AS base_fee_per_gas_wei,
@@ -412,7 +413,7 @@ func (s *Store) GetBlock(ctx context.Context, blockNumber uint64) (*BlockRow, er
 		&r.BlockNumber, &r.BlockTimestamp, &r.Era, &r.TxCount, &r.TippedTxCount,
 		&r.TipRevenueWei, &r.TipRevenueEth, &r.TipRevenueUsd, &r.EthPriceUsd,
 		&r.TopFeeGwei, &r.TopTipUsd, &r.MedianFeeGwei,
-		&r.TopPayerAddress, &r.TopPayerName, &r.TopPayerColorIdx,
+		&r.TopPayerAddress, &r.TopPayerName, &r.TopPayerColorIdx, &r.TopPayerAddressLabel,
 		&r.RevertCount, &r.SecondToFirst, &r.BlockType, &r.OrderingScore,
 		&r.DistinctTippers, &r.BaseFeeWei, &r.BaseFeeGwei,
 		&r.GasUsed, &r.GasLimit, &r.GasUsedPct,
