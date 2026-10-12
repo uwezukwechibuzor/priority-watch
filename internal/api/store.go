@@ -545,10 +545,10 @@ func (s *Store) GetIngesterStatus(ctx context.Context) ([]IngesterStatusRow, err
 	rows, err := s.query(ctx, `
 		SELECT
 			source,
-			if(dateDiff('second', last_updated_at, now()) > 120, 'lagging',
-				if(dateDiff('second', last_updated_at, now()) > 300, 'down', 'live')) AS status,
+			if(dateDiff('second', updated_at, now()) > 120, 'lagging',
+				if(dateDiff('second', updated_at, now()) > 300, 'down', 'live')) AS status,
 			dateDiff('second', latest_timestamp, now()) AS lag_seconds,
-			latest_position, latest_timestamp, last_updated_at
+			latest_position, latest_timestamp, updated_at
 		FROM meta.source_status FINAL
 		ORDER BY source`)
 	if err != nil {

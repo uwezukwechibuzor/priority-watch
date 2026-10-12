@@ -18,9 +18,9 @@ SELECT
     toFloat64(max(base_fee_per_gas)) - toFloat64(min(base_fee_per_gas)) AS range_wei,
     -- % change from first to last block in hour
     if(min(base_fee_per_gas) > 0,
-       (toFloat64(maxBy(base_fee_per_gas, block_number))
-        - toFloat64(minBy(base_fee_per_gas, block_number)))
-       / toFloat64(minBy(base_fee_per_gas, block_number)) * 100.0,
+       (toFloat64(argMax(base_fee_per_gas, block_number))
+        - toFloat64(argMin(base_fee_per_gas, block_number)))
+       / toFloat64(argMin(base_fee_per_gas, block_number)) * 100.0,
        0.0
     ) AS hour_change_pct
 FROM {{ ref('fct_base_fee_changes') }} FINAL

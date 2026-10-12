@@ -13,11 +13,7 @@
 --   Timeboost Arbitrum: 1.74%, Ethereum: 28.83%, Base: 7.34%
 -- These are included as reference columns; computed capture rate requires
 -- opportunity-layer data from task 12 (agg_opportunity_daily).
-WITH window_days AS (
-    SELECT {{ var('window_days', 14) }} AS days
-),
-
-daily_agg AS (
+WITH daily_agg AS (
     SELECT
         date,
         era,
@@ -33,6 +29,15 @@ daily_agg AS (
         revert_rate_tipped,
         p50_fee_gwei
     FROM {{ ref('agg_health_daily') }} FINAL
+),
+
+-- Pre-compute per-era cutoff date; avoids correlated subquery (unsupported in ClickHouse 25.x)
+era_cutoff AS (
+    SELECT
+        era,
+        subtractDays(max(date), {{ var('window_days', 14) }}) AS cutoff
+    FROM daily_agg
+    GROUP BY era
 ),
 
 -- Most recent window_days rows per era for windowed metrics
@@ -59,12 +64,8 @@ era_window AS (
         avg(d.revert_rate_tipped)                                   AS avg_revert_rate,
         avg(d.p50_fee_gwei)                                         AS avg_median_fee_gwei
     FROM daily_agg d
-    CROSS JOIN window_days wd
-    WHERE d.date >= (
-        SELECT subtractDays(max(date), wd.days)
-        FROM daily_agg
-        WHERE era = d.era
-    )
+    INNER JOIN era_cutoff ec ON d.era = ec.era
+    WHERE d.date >= ec.cutoff
     GROUP BY d.era
 ),
 
@@ -85,6 +86,7 @@ era_lifetime AS (
 -- Timeboost auction clearing prices (era = 'timeboost' only)
 timeboost_totals AS (
     SELECT
+        'timeboost'                             AS era,
         sum(timeboost_proceeds_eth)             AS total_proceeds_eth,
         count()                                 AS total_rounds
     FROM {{ ref('fct_treasury_daily') }} FINAL
@@ -92,8 +94,8 @@ timeboost_totals AS (
 )
 
 SELECT
-    ew.era,
-    ew.window_start,
+    ew.era                  AS era,
+    ew.window_start         AS window_start,
     ew.window_end,
     ew.days_in_window,
     ew.window_tip_eth,
@@ -130,4 +132,4 @@ SELECT
     {{ var('window_days', 14) }}            AS window_days_var
 FROM era_window ew
 LEFT JOIN era_lifetime el ON ew.era = el.era
-LEFT JOIN timeboost_totals tt ON ew.era = 'timeboost'
+LEFT JOIN timeboost_totals tt ON ew.era = tt.era

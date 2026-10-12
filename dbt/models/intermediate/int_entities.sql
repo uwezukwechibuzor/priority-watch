@@ -71,7 +71,7 @@ heuristic_bots AS (
         toUInt8(0)                              AS verified,
         'heuristic'                             AS label_source,
         toFloat32(0.5)                          AS confidence
-    FROM {{ ref('int_tx_fees') }} FINAL AS f
+    FROM {{ ref('int_tx_fees') }} AS f FINAL
     WHERE f.to_address != ''
         AND f.input_selector != ''
     GROUP BY

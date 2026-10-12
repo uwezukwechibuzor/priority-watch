@@ -39,8 +39,8 @@ SELECT
     ) AS abs_spread_bps,
     d.swap_count_in_block,
     c.era
-FROM {{ ref('int_dex_price_per_block') }} FINAL AS d
-INNER JOIN {{ ref('int_cex_mid_at_block') }} FINAL AS c
+FROM {{ ref('int_dex_price_per_block') }} AS d FINAL
+INNER JOIN {{ ref('int_cex_mid_at_block') }} AS c FINAL
     ON d.block_number = c.block_number
     AND d.cex_symbol = c.cex_symbol
 WHERE d.has_usd_normalisation = 1

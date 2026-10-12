@@ -97,12 +97,13 @@ func (s *SQDBlockSource) Name() string { return "sqd" }
 
 // streamRequest is the JSON body posted to the /stream endpoint.
 type streamRequest struct {
-	FromBlock        uint64              `json:"fromBlock"`
-	ToBlock          *uint64             `json:"toBlock,omitempty"`
-	IncludeAllBlocks bool                `json:"includeAllBlocks"`
-	Fields           map[string]any      `json:"fields"`
-	Logs             []map[string]any    `json:"logs,omitempty"`
-	Transactions     map[string]struct{} `json:"transactions"`
+	Type             string           `json:"type"`
+	FromBlock        uint64           `json:"fromBlock"`
+	ToBlock          *uint64          `json:"toBlock,omitempty"`
+	IncludeAllBlocks bool             `json:"includeAllBlocks"`
+	Fields           map[string]any   `json:"fields"`
+	Logs             []map[string]any `json:"logs,omitempty"`
+	Transactions     []map[string]any `json:"transactions,omitempty"`
 }
 
 func fieldSelection() map[string]any {
@@ -112,31 +113,30 @@ func fieldSelection() map[string]any {
 			"gasUsed": true, "gasLimit": true, "baseFeePerGas": true,
 			"l1BlockNumber": true, "size": true,
 		},
+		// SQD v2: receipt fields are merged into transaction.
+		// l1GasUsed is the Arbitrum-specific gasUsedForL1 field.
 		"transaction": map[string]bool{
 			"hash": true, "transactionIndex": true, "from": true, "to": true,
 			"value": true, "gas": true, "gasPrice": true, "maxFeePerGas": true,
-			"maxPriorityFeePerGas": true, "type": true, "nonce": true,
-			"input": true, "blockNumber": true,
+			"maxPriorityFeePerGas": true, "type": true, "nonce": true, "input": true,
+			"status": true, "gasUsed": true, "l1GasUsed": true,
+			"effectiveGasPrice": true, "cumulativeGasUsed": true, "contractAddress": true,
 		},
 		"log": map[string]bool{
 			"address": true, "topics": true, "data": true, "logIndex": true,
-			"transactionIndex": true, "transactionHash": true, "blockNumber": true,
-		},
-		"receipt": map[string]bool{
-			"transactionHash": true, "transactionIndex": true, "blockNumber": true,
-			"status": true, "gasUsed": true, "gasUsedForL1": true,
-			"effectiveGasPrice": true, "cumulativeGasUsed": true, "contractAddress": true,
+			"transactionIndex": true, "transactionHash": true,
 		},
 	}
 }
 
 func buildRequest(from uint64, to *uint64, logAddrs []string) streamRequest {
 	req := streamRequest{
+		Type:             "evm",
 		FromBlock:        from,
 		ToBlock:          to,
 		IncludeAllBlocks: true,
 		Fields:           fieldSelection(),
-		Transactions:     map[string]struct{}{},
+		Transactions:     []map[string]any{{}},
 	}
 	if len(logAddrs) > 0 {
 		req.Logs = []map[string]any{{"address": logAddrs}}
@@ -513,15 +513,16 @@ func tryStatusLine(line []byte) (SQDStatusLine, bool) {
 }
 
 // assemble converts an SQD batch into a chain.FetchedBlock.
+// SQD v2 embeds receipt data in transactions; receipts are synthesised from them.
 func (s *SQDBlockSource) assemble(batch SQDBatch, finalized uint64) (*chain.FetchedBlock, error) {
 	block, err := toRPCBlock(batch.Header, batch.Transactions)
 	if err != nil {
 		return nil, err
 	}
 
-	receipts := make([]chain.RPCReceipt, 0, len(batch.Receipts))
-	for _, r := range batch.Receipts {
-		rr, rerr := toRPCReceipt(r, batch.Header.Hash, batch.Header.Timestamp)
+	receipts := make([]chain.RPCReceipt, 0, len(batch.Transactions))
+	for _, tx := range batch.Transactions {
+		rr, rerr := toRPCReceipt(tx, batch.Header.Number, batch.Header.Hash)
 		if rerr != nil {
 			return nil, rerr
 		}
@@ -530,7 +531,7 @@ func (s *SQDBlockSource) assemble(batch SQDBatch, finalized uint64) (*chain.Fetc
 
 	logs := make([]chain.RPCLog, 0, len(batch.Logs))
 	for _, l := range batch.Logs {
-		ll, lerr := toRPCLog(l)
+		ll, lerr := toRPCLog(l, batch.Header.Number)
 		if lerr != nil {
 			return nil, lerr
 		}

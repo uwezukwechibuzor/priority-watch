@@ -70,7 +70,7 @@ WITH swaps_with_exec_price AS (
                 THEN 1
             ELSE 0
         END AS has_usd_normalisation
-    FROM {{ ref('stg_dex_swaps') }} FINAL AS s
+    FROM {{ ref('stg_dex_swaps') }} AS s FINAL
     {% if is_incremental() %}
     WHERE s.block_timestamp > (
         SELECT subtractHours(max(block_timestamp), 1)
@@ -101,11 +101,11 @@ fees AS (
 )
 
 SELECT
-    s.block_number,
-    s.block_timestamp,
-    s.tx_hash,
-    s.log_index,
-    s.pool_address,
+    s.block_number      AS block_number,
+    s.block_timestamp   AS block_timestamp,
+    s.tx_hash           AS tx_hash,
+    s.log_index         AS log_index,
+    s.pool_address      AS pool_address,
     concat(s.dex, ' ', s.token0_symbol, '/', s.token1_symbol) AS pool_label,
     s.cex_symbol,
     s.eth_delta,
@@ -141,22 +141,22 @@ FROM swaps_with_exec_price s
 LEFT JOIN classified c ON s.tx_hash = c.tx_hash
 LEFT JOIN fees f ON s.block_number = f.block_number AND s.tx_hash = f.tx_hash
 -- Horizon CEX prices via regular joins on second-aligned timestamps
-LEFT JOIN {{ ref('stg_cex_klines') }} FINAL AS k1s
+LEFT JOIN {{ ref('stg_cex_klines') }} AS k1s FINAL
     ON k1s.venue = 'binance' AND k1s.symbol = s.cex_symbol
     AND k1s.open_time = toDateTime(s.block_timestamp) + INTERVAL 1 SECOND
-LEFT JOIN {{ ref('stg_cex_klines') }} FINAL AS k5s
+LEFT JOIN {{ ref('stg_cex_klines') }} AS k5s FINAL
     ON k5s.venue = 'binance' AND k5s.symbol = s.cex_symbol
     AND k5s.open_time = toDateTime(s.block_timestamp) + INTERVAL 5 SECOND
-LEFT JOIN {{ ref('stg_cex_klines') }} FINAL AS k10s
+LEFT JOIN {{ ref('stg_cex_klines') }} AS k10s FINAL
     ON k10s.venue = 'binance' AND k10s.symbol = s.cex_symbol
     AND k10s.open_time = toDateTime(s.block_timestamp) + INTERVAL 10 SECOND
-LEFT JOIN {{ ref('stg_cex_klines') }} FINAL AS k30s
+LEFT JOIN {{ ref('stg_cex_klines') }} AS k30s FINAL
     ON k30s.venue = 'binance' AND k30s.symbol = s.cex_symbol
     AND k30s.open_time = toDateTime(s.block_timestamp) + INTERVAL 30 SECOND
-LEFT JOIN {{ ref('stg_cex_klines') }} FINAL AS k60s
+LEFT JOIN {{ ref('stg_cex_klines') }} AS k60s FINAL
     ON k60s.venue = 'binance' AND k60s.symbol = s.cex_symbol
     AND k60s.open_time = toDateTime(s.block_timestamp) + INTERVAL 60 SECOND
-LEFT JOIN {{ ref('stg_cex_klines') }} FINAL AS k300s
+LEFT JOIN {{ ref('stg_cex_klines') }} AS k300s FINAL
     ON k300s.venue = 'binance' AND k300s.symbol = s.cex_symbol
     AND k300s.open_time = toDateTime(s.block_timestamp) + INTERVAL 300 SECOND
 WHERE s.has_usd_normalisation = 1

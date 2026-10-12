@@ -44,15 +44,15 @@ liquidation_txs AS (
 )
 
 SELECT
-    f.block_number,
-    f.block_timestamp,
-    f.tx_index,
-    f.tx_hash,
-    f.from_address,
-    f.to_address,
-    f.input_selector,
-    f.input_size,
-    f.value_wei,
+    f.block_number      AS block_number,
+    f.block_timestamp   AS block_timestamp,
+    f.tx_index          AS tx_index,
+    f.tx_hash           AS tx_hash,
+    f.from_address      AS from_address,
+    f.to_address        AS to_address,
+    f.input_selector    AS input_selector,
+    f.input_size        AS input_size,
+    f.value_wei         AS value_wei,
     coalesce(sc.swap_count, 0)                                              AS swap_count,
     toUInt8(liq.tx_hash IS NOT NULL)                                        AS is_liquidation,
     -- Final classification (highest-priority rule wins)
@@ -72,8 +72,8 @@ SELECT
             THEN 'simple_transfer'
         ELSE 'other'
     END AS tx_class,
-    f.era
-FROM {{ ref('int_tx_fees') }} FINAL AS f
+    f.era               AS era
+FROM {{ ref('int_tx_fees') }} AS f FINAL
 LEFT JOIN swap_counts sc
     ON f.block_number = sc.block_number
     AND f.tx_hash = sc.tx_hash

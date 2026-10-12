@@ -14,7 +14,7 @@
 WITH daily_fees AS (
     SELECT
         toDate(f.block_timestamp)                                       AS date,
-        f.era,
+        f.era                                                          AS era,
         sum(f.tip_paid_wei)                                            AS tip_revenue_wei,
         sum(f.tip_paid_eth)                                            AS tip_revenue_eth,
         sum(f.tip_paid_usd)                                            AS tip_revenue_usd,
@@ -25,7 +25,7 @@ WITH daily_fees AS (
         quantileExactIf(0.1)(f.priority_fee_per_gas_gwei, f.priority_fee_per_gas > 0)  AS p10_fee_gwei,
         quantileExactIf(0.5)(f.priority_fee_per_gas_gwei, f.priority_fee_per_gas > 0)  AS p50_fee_gwei,
         quantileExactIf(0.9)(f.priority_fee_per_gas_gwei, f.priority_fee_per_gas > 0)  AS p90_fee_gwei
-    FROM {{ ref('int_tx_fees') }} FINAL AS f
+    FROM {{ ref('int_tx_fees') }} AS f FINAL
     {% if is_incremental() %}
     WHERE f.block_timestamp > (
         SELECT subtractDays(max(toDateTime(date)), 1)
@@ -38,12 +38,12 @@ WITH daily_fees AS (
 daily_spam AS (
     SELECT
         toDate(ss.block_timestamp)                              AS date,
-        f.era,
+        f.era                                                   AS era,
         sum(ss.tip_wasted_wei)                                 AS tip_wasted_wei,
         sum(toFloat64(ss.tip_wasted_wei)) / 1e18               AS tip_wasted_eth,
         countIf(ss.is_reverted_tipped = 1)                     AS reverted_tipped_count
-    FROM {{ ref('int_spam_signals') }} FINAL AS ss
-    LEFT JOIN {{ ref('int_tx_fees') }} FINAL AS f
+    FROM {{ ref('int_spam_signals') }} AS ss FINAL
+    LEFT JOIN {{ ref('int_tx_fees') }} AS f FINAL
         ON ss.block_number = f.block_number AND ss.tx_index = f.tx_index
     {% if is_incremental() %}
     WHERE ss.block_timestamp > (
@@ -57,10 +57,10 @@ daily_spam AS (
 daily_user_cost AS (
     SELECT
         toDate(f.block_timestamp)                               AS date,
-        f.era,
+        f.era                                                   AS era,
         medianExactIf(f.total_fee_usd, c.tx_class = 'simple_transfer') AS median_simple_transfer_usd
-    FROM {{ ref('int_tx_fees') }} FINAL AS f
-    LEFT JOIN {{ ref('int_tx_classification') }} FINAL AS c
+    FROM {{ ref('int_tx_fees') }} AS f FINAL
+    LEFT JOIN {{ ref('int_tx_classification') }} AS c FINAL
         ON f.block_number = c.block_number AND f.tx_index = c.tx_index
     {% if is_incremental() %}
     WHERE f.block_timestamp > (
@@ -85,7 +85,7 @@ daily_blocks AS (
            0.0
         ) AS contested_share,
         avg(toFloat64(b.distinct_tippers))                     AS avg_distinct_entities_per_block
-    FROM {{ ref('fct_blocks') }} FINAL AS b
+    FROM {{ ref('fct_blocks') }} AS b FINAL
     {% if is_incremental() %}
     WHERE b.block_timestamp > (
         SELECT subtractDays(max(toDateTime(date)), 1)
@@ -126,17 +126,17 @@ daily_entity AS (
 )
 
 SELECT
-    df.date,
-    df.era,
-    df.tip_revenue_wei,
-    df.tip_revenue_eth,
-    df.tip_revenue_usd,
-    df.tx_count,
-    df.tipped_tx_count,
-    df.zero_tip_tx_count,
-    df.p10_fee_gwei,
-    df.p50_fee_gwei,
-    df.p90_fee_gwei,
+    df.date                 AS date,
+    df.era                  AS era,
+    df.tip_revenue_wei      AS tip_revenue_wei,
+    df.tip_revenue_eth      AS tip_revenue_eth,
+    df.tip_revenue_usd      AS tip_revenue_usd,
+    df.tx_count             AS tx_count,
+    df.tipped_tx_count      AS tipped_tx_count,
+    df.zero_tip_tx_count    AS zero_tip_tx_count,
+    df.p10_fee_gwei         AS p10_fee_gwei,
+    df.p50_fee_gwei         AS p50_fee_gwei,
+    df.p90_fee_gwei         AS p90_fee_gwei,
     db.block_count,
     db.expected_block_count,
     toFloat64(db.block_count) / toFloat64(db.expected_block_count) AS blocks_pct_of_expected,

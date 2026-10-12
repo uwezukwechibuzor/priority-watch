@@ -34,11 +34,11 @@ round_results AS (
         r.round,
         r.winner                                AS winner_address,
         lower(r.winner)                         AS winner_address_lower
-    FROM {{ source('raw', 'timeboost_auction_results_ext') }} FINAL AS r
+    FROM {{ source('raw', 'timeboost_auction_results_ext') }} AS r FINAL
 )
 
 SELECT
-    b.round,
+    b.round                                                             AS round,
     b.round_start_ts,
     b.round_end_ts,
     b.bid_count,

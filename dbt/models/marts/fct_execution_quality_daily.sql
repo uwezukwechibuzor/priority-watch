@@ -29,8 +29,8 @@ WITH entity_swap_markouts AS (
         avg(m.markout_usd_30s)                                     AS avg_markout_usd_30s,
         avg(m.markout_usd_60s)                                     AS avg_markout_usd_60s,
         avg(m.markout_usd_300s)                                    AS avg_markout_usd_300s
-    FROM {{ ref('fct_swap_markouts') }} FINAL AS m
-    LEFT JOIN {{ ref('int_entities') }} FINAL AS e ON m.from_address = e.address
+    FROM {{ ref('fct_swap_markouts') }} AS m FINAL
+    LEFT JOIN {{ ref('int_entities') }} AS e FINAL ON m.from_address = e.address
     {% if is_incremental() %}
     WHERE m.block_timestamp > (
         SELECT subtractDays(max(toDateTime(date)), 1)
@@ -50,8 +50,8 @@ entity_fees AS (
         countIf(f.status = 0 AND f.priority_fee_per_gas > 0)      AS reverted_tipped_count,
         sum(f.tip_paid_wei)                                        AS tip_paid_wei,
         sum(f.tip_paid_usd)                                        AS tip_paid_usd
-    FROM {{ ref('int_tx_fees') }} FINAL AS f
-    LEFT JOIN {{ ref('int_entities') }} FINAL AS e ON f.from_address = e.address
+    FROM {{ ref('int_tx_fees') }} AS f FINAL
+    LEFT JOIN {{ ref('int_entities') }} AS e FINAL ON f.from_address = e.address
     {% if is_incremental() %}
     WHERE f.block_timestamp > (
         SELECT subtractDays(max(toDateTime(date)), 1)
@@ -67,8 +67,8 @@ entity_wasted AS (
         coalesce(e.entity_name, ss.from_address)                   AS entity_name,
         sum(ss.tip_wasted_wei)                                     AS tip_wasted_wei,
         {{ wei_to_eth('sum(ss.tip_wasted_wei)') }}                 AS tip_wasted_eth
-    FROM {{ ref('int_spam_signals') }} FINAL AS ss
-    LEFT JOIN {{ ref('int_entities') }} FINAL AS e ON ss.from_address = e.address
+    FROM {{ ref('int_spam_signals') }} AS ss FINAL
+    LEFT JOIN {{ ref('int_entities') }} AS e FINAL ON ss.from_address = e.address
     {% if is_incremental() %}
     WHERE ss.block_timestamp > (
         SELECT subtractDays(max(toDateTime(date)), 1)
@@ -79,12 +79,12 @@ entity_wasted AS (
 )
 
 SELECT
-    esm.date,
-    esm.era,
-    esm.entity_name,
-    esm.entity_type,
-    esm.color_index,
-    esm.swap_count,
+    esm.date            AS date,
+    esm.era             AS era,
+    esm.entity_name     AS entity_name,
+    esm.entity_type     AS entity_type,
+    esm.color_index     AS color_index,
+    esm.swap_count      AS swap_count,
     coalesce(ef.tx_count, 0)                    AS tx_count,
     coalesce(ef.tipped_tx_count, 0)             AS tipped_tx_count,
     coalesce(ef.revert_count, 0)                AS revert_count,

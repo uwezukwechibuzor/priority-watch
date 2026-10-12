@@ -38,7 +38,7 @@ WITH ordered AS (
                 THEN 'pga'
                 ELSE 'timeboost'
             END AS era
-        FROM {{ ref('stg_blocks') }} FINAL AS b
+        FROM {{ ref('stg_blocks') }} AS b FINAL
         {% if is_incremental() %}
         WHERE b.block_timestamp > (
             SELECT subtractHours(max(block_timestamp), 1)

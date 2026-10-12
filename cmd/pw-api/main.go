@@ -34,10 +34,7 @@ func main() {
 			Username: cfg.ClickHouseROUser,
 			Password: cfg.ClickHouseROPassword,
 		},
-		Settings: clickhouse.Settings{
-			"max_execution_time": 30,
-			"readonly":           1,
-		},
+		// readonly=2 and max_execution_time are set via the pw_reader profile in users.d/pw-profiles.xml
 	})
 	if err != nil {
 		log.ErrorContext(ctx, "clickhouse open", "err", err)

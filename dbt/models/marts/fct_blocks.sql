@@ -10,15 +10,13 @@
 -- estimated_rounds) are lifted from int_block_ordering by taking the first tx in
 -- each block (all rows in a block carry the same block-level aggregates).
 WITH incremental_cutoff AS (
-    SELECT
     {% if is_incremental() %}
-        subtractHours(max(block_timestamp), 1)
-    {% else %}
-        toDateTime('1970-01-01 00:00:00')
-    {% endif %}
-    AS cutoff
+    SELECT subtractHours(max(block_timestamp), 1) AS cutoff
     FROM {{ this }} FINAL
     LIMIT 1
+    {% else %}
+    SELECT toDateTime('1970-01-01 00:00:00') AS cutoff
+    {% endif %}
 ),
 
 -- Per-block aggregates from transaction fees
@@ -39,7 +37,7 @@ block_tx_agg AS (
         quantileExactIf(0.9)(f.priority_fee_per_gas_gwei, f.priority_fee_per_gas > 0) AS p90_fee_gwei,
         argMaxIf(f.from_address, f.tip_paid_wei, f.priority_fee_per_gas > 0)  AS top_payer_address,
         countIf(f.status = 0 AND f.priority_fee_per_gas > 0)                  AS revert_count
-    FROM {{ ref('int_tx_fees') }} FINAL AS f
+    FROM {{ ref('int_tx_fees') }} AS f FINAL
     CROSS JOIN incremental_cutoff AS ic
     WHERE f.block_timestamp > ic.cutoff
     GROUP BY f.block_number, f.block_timestamp, f.era
@@ -77,35 +75,35 @@ block_meta AS (
 )
 
 SELECT
-    a.block_number,
-    a.block_timestamp,
-    a.era,
-    a.tx_count,
-    a.tipped_tx_count,
-    a.tip_revenue_wei,
-    a.tip_revenue_eth,
-    a.tip_revenue_usd,
-    a.eth_price_usd,
-    a.top_fee_gwei,
-    a.top_tip_usd,
-    a.median_fee_gwei,
-    a.p90_fee_gwei,
-    a.top_payer_address,
+    a.block_number              AS block_number,
+    a.block_timestamp           AS block_timestamp,
+    a.era                       AS era,
+    a.tx_count                  AS tx_count,
+    a.tipped_tx_count           AS tipped_tx_count,
+    a.tip_revenue_wei           AS tip_revenue_wei,
+    a.tip_revenue_eth           AS tip_revenue_eth,
+    a.tip_revenue_usd           AS tip_revenue_usd,
+    a.eth_price_usd             AS eth_price_usd,
+    a.top_fee_gwei              AS top_fee_gwei,
+    a.top_tip_usd               AS top_tip_usd,
+    a.median_fee_gwei           AS median_fee_gwei,
+    a.p90_fee_gwei              AS p90_fee_gwei,
+    a.top_payer_address         AS top_payer_address,
     coalesce(e.entity_name, a.top_payer_address)    AS top_payer_name,
     coalesce(e.color_index, toUInt8(0))             AS top_payer_color_index,
-    a.revert_count,
+    a.revert_count              AS revert_count,
     coalesce(o.second_to_first_ratio, 0.0)          AS second_to_first_ratio,
     coalesce(o.block_type, 'untipped')              AS block_type,
     coalesce(o.ordering_score, 0.0)                 AS ordering_score,
     coalesce(o.estimated_rounds, toUInt32(0))       AS estimated_rounds,
     coalesce(o.has_anomaly, toUInt8(0))             AS anomaly_count,
     coalesce(o.distinct_tippers, toUInt32(0))       AS distinct_tippers,
-    m.base_fee_per_gas,
-    m.base_fee_per_gas_gwei,
-    m.gas_used,
-    m.gas_limit,
-    m.gas_utilisation                               AS gas_used_pct
+    m.base_fee_per_gas          AS base_fee_per_gas,
+    m.base_fee_per_gas_gwei     AS base_fee_per_gas_gwei,
+    m.gas_used                  AS gas_used,
+    m.gas_limit                 AS gas_limit,
+    m.gas_utilisation           AS gas_used_pct
 FROM block_tx_agg a
 LEFT JOIN block_order_stats o ON a.block_number = o.block_number
 LEFT JOIN block_meta m ON a.block_number = m.block_number
-LEFT JOIN {{ ref('int_entities') }} FINAL AS e ON a.top_payer_address = e.address
+LEFT JOIN {{ ref('int_entities') }} AS e FINAL ON a.top_payer_address = e.address

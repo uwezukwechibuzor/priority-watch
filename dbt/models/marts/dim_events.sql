@@ -11,8 +11,7 @@
 SELECT
     id,
     label,
-    -- event_date may be empty string when not yet confirmed; coerce to NULL
-    if(event_date != '', toDate(event_date), toDate('1970-01-01'))  AS event_date,
+    event_date,
     block,
     description,
     source_url

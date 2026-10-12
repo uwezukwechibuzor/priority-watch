@@ -54,10 +54,10 @@ SELECT
     -- Tip revenue
     sumIf(f.tip_paid_usd, f.priority_fee_per_gas > 0)             AS tip_paid_usd,
     sumIf(f.tip_paid_wei, f.priority_fee_per_gas > 0)             AS tip_paid_wei
-FROM {{ ref('int_tx_fees') }} FINAL AS f
-LEFT JOIN {{ ref('int_block_ordering') }} FINAL AS o
+FROM {{ ref('int_tx_fees') }} AS f FINAL
+LEFT JOIN {{ ref('int_block_ordering') }} AS o FINAL
     ON f.block_number = o.block_number AND f.tx_index = o.tx_index
-LEFT JOIN {{ ref('int_entities') }} FINAL AS e
+LEFT JOIN {{ ref('int_entities') }} AS e FINAL
     ON f.from_address = e.address
 {% if is_incremental() %}
 WHERE f.block_timestamp > (

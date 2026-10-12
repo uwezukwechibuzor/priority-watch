@@ -15,8 +15,8 @@ WITH hour_entity AS (
         f.era,
         coalesce(e.entity_name, f.from_address)                        AS entity_name,
         sum(f.tip_paid_wei)                                            AS entity_tip_wei
-    FROM {{ ref('int_tx_fees') }} FINAL AS f
-    LEFT JOIN {{ ref('int_entities') }} FINAL AS e ON f.from_address = e.address
+    FROM {{ ref('int_tx_fees') }} AS f FINAL
+    LEFT JOIN {{ ref('int_entities') }} AS e FINAL ON f.from_address = e.address
     WHERE f.priority_fee_per_gas > 0
     {% if is_incremental() %}
         AND f.block_timestamp > (
@@ -53,9 +53,9 @@ hour_blocks AS (
         count()                                        AS block_count,
         14400                                          AS expected_block_count,
         sum(tip_revenue_wei)                           AS tip_revenue_wei,
-        sum(tip_revenue_eth)                           AS tip_revenue_eth,
+        sum(tip_revenue_eth)                           AS total_tip_revenue_eth,
         sum(tip_revenue_usd)                           AS tip_revenue_usd,
-        if(count() > 0, toFloat64(sum(tip_revenue_eth)) / toFloat64(count()), 0.0) AS avg_tip_per_block_eth,
+        avg(tip_revenue_eth)                           AS avg_tip_per_block_eth,
         max(top_fee_gwei)                              AS top_fee_gwei,
         sum(tipped_tx_count)                           AS tipped_tx_count,
         countIf(block_type = 'contested')              AS contested_block_count,
@@ -79,7 +79,7 @@ SELECT
     hb.block_count,
     hb.expected_block_count,
     hb.tip_revenue_wei,
-    hb.tip_revenue_eth,
+    hb.total_tip_revenue_eth                            AS tip_revenue_eth,
     hb.tip_revenue_usd,
     hb.avg_tip_per_block_eth,
     hb.top_fee_gwei,

@@ -61,6 +61,6 @@ SELECT
     coalesce(ls.revert_count, toUInt64(0))              AS revert_count,
     coalesce(ls.revert_rate, 0.0)                       AS revert_rate,
     coalesce(ap.avg_tip_rank, 0.0)                      AS avg_tip_rank
-FROM {{ ref('int_entities') }} FINAL AS ie
+FROM {{ ref('int_entities') }} AS ie FINAL
 LEFT JOIN lifetime_stats ls ON ie.address = ls.from_address
 LEFT JOIN avg_position ap ON ie.address = ap.from_address

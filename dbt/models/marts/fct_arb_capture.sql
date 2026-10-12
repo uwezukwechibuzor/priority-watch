@@ -23,18 +23,17 @@
 -- a loss (rare in practice; often data quality issues like missing pool coverage).
 WITH arb_swaps AS (
     SELECT
-        s.block_number,
-        s.block_timestamp,
-        s.tx_hash,
-        s.log_index,
-        s.pool_address,
-        s.usd_flow,
-        s.eth_delta,
-        s.exec_price_usd,
-        s.has_usd_normalisation,
-        s.era
-    FROM {{ ref('fct_swap_markouts') }} FINAL AS s
-    INNER JOIN {{ ref('int_tx_classification') }} FINAL AS c
+        s.block_number      AS block_number,
+        s.block_timestamp   AS block_timestamp,
+        s.tx_hash           AS tx_hash,
+        s.log_index         AS log_index,
+        s.pool_address      AS pool_address,
+        s.usd_flow          AS usd_flow,
+        s.eth_delta         AS eth_delta,
+        s.exec_price_usd    AS exec_price_usd,
+        s.era               AS era
+    FROM {{ ref('fct_swap_markouts') }} AS s FINAL
+    INNER JOIN {{ ref('int_tx_classification') }} AS c FINAL
         ON s.tx_hash = c.tx_hash AND s.block_number = c.block_number
     WHERE c.tx_class = 'atomic_arb_candidate'
     {% if is_incremental() %}

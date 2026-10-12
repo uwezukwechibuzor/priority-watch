@@ -27,22 +27,23 @@
         <allowed_path>/var/lib/clickhouse/backups/</allowed_path>
     </backups>
 
-    <!-- Memory cap for the server process; tune per host in production. -->
-    <max_server_memory_usage_to_ram_ratio>0.8</max_server_memory_usage_to_ram_ratio>
+    <!-- Memory cap: 50% of RAM to leave headroom for merges and system tables. -->
+    <max_server_memory_usage_to_ram_ratio>0.5</max_server_memory_usage_to_ram_ratio>
 
-    <!-- Query profiles referenced by users.d/pw-users.xml -->
-    <profiles>
-        <default>
-            <max_memory_usage>4294967296</max_memory_usage>  <!-- 4 GiB -->
-            <max_execution_time>120</max_execution_time>
-            <use_uncompressed_cache>0</use_uncompressed_cache>
-            <load_balancing>random</load_balancing>
-        </default>
+    <!-- Disable all system log tables to prevent OOM crashes on low-RAM hosts. -->
+    <query_log remove="1"/>
+    <query_thread_log remove="1"/>
+    <query_views_log remove="1"/>
+    <part_log remove="1"/>
+    <trace_log remove="1"/>
+    <processors_profile_log remove="1"/>
+    <latency_log remove="1"/>
+    <metric_log remove="1"/>
+    <asynchronous_metric_log remove="1"/>
+    <opentelemetry_span_log remove="1"/>
+    <crash_log remove="1"/>
+    <text_log remove="1"/>
+    <query_metric_log remove="1"/>
 
-        <readonly>
-            <readonly>1</readonly>
-            <max_execution_time>30</max_execution_time>
-            <max_memory_usage>1073741824</max_memory_usage>  <!-- 1 GiB -->
-        </readonly>
-    </profiles>
+    <!-- Query profiles are defined in users.d/pw-profiles.xml -->
 </clickhouse>

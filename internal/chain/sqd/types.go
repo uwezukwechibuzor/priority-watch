@@ -10,13 +10,12 @@ import (
 	"github.com/uwezukwechibuzor/priority-watch/internal/chain"
 )
 
-// SQDBatch is one NDJSON batch line: a block header plus its transactions,
-// logs and receipts.
+// SQDBatch is one NDJSON batch line: a block header plus its transactions and logs.
+// SQD Portal v2 merges receipt fields into transactions; there is no separate receipts array.
 type SQDBatch struct {
 	Header       SQDBlockHeader   `json:"header"`
 	Transactions []SQDTransaction `json:"transactions"`
 	Logs         []SQDLog         `json:"logs"`
-	Receipts     []SQDReceipt     `json:"receipts"`
 }
 
 // SQDBlockHeader is the SQD block header object.
@@ -33,6 +32,9 @@ type SQDBlockHeader struct {
 }
 
 // SQDTransaction is the SQD transaction object.
+// SQD Portal v2 embeds receipt fields (status, gasUsed, effectiveGasPrice, etc.)
+// directly in the transaction; there is no separate receipts array.
+// l1GasUsed is the Arbitrum-specific gasUsedForL1 value.
 type SQDTransaction struct {
 	Hash                 string `json:"hash"`
 	TransactionIndex     uint64 `json:"transactionIndex"`
@@ -46,7 +48,13 @@ type SQDTransaction struct {
 	Type                 uint64 `json:"type"`
 	Nonce                uint64 `json:"nonce"`
 	Input                string `json:"input"` // hex bytes
-	BlockNumber          uint64 `json:"blockNumber"`
+	// Receipt fields (merged in v2)
+	Status            uint64 `json:"status"`
+	GasUsed           string `json:"gasUsed,omitempty"`
+	L1GasUsed         string `json:"l1GasUsed,omitempty"` // Arbitrum gasUsedForL1
+	EffectiveGasPrice string `json:"effectiveGasPrice,omitempty"`
+	CumulativeGasUsed string `json:"cumulativeGasUsed,omitempty"`
+	ContractAddress   string `json:"contractAddress,omitempty"`
 }
 
 // SQDLog is the SQD log object.
@@ -57,20 +65,6 @@ type SQDLog struct {
 	LogIndex         uint64   `json:"logIndex"`
 	TransactionIndex uint64   `json:"transactionIndex"`
 	TransactionHash  string   `json:"transactionHash"`
-	BlockNumber      uint64   `json:"blockNumber"`
-}
-
-// SQDReceipt is the SQD receipt object.
-type SQDReceipt struct {
-	TransactionHash   string `json:"transactionHash"`
-	TransactionIndex  uint64 `json:"transactionIndex"`
-	BlockNumber       uint64 `json:"blockNumber"`
-	Status            uint64 `json:"status"`
-	GasUsed           string `json:"gasUsed"`
-	GasUsedForL1      string `json:"gasUsedForL1,omitempty"` // hex, Arbitrum-specific
-	EffectiveGasPrice string `json:"effectiveGasPrice"`
-	CumulativeGasUsed string `json:"cumulativeGasUsed"`
-	ContractAddress   string `json:"contractAddress,omitempty"`
 }
 
 // SQDForkResponse is the 409 reorg body.
@@ -215,40 +209,38 @@ func toRPCTransaction(tx SQDTransaction) (chain.RPCTransaction, error) {
 	}, nil
 }
 
-// toRPCReceipt converts an SQD receipt into a chain.RPCReceipt.
-func toRPCReceipt(r SQDReceipt, blockHash string, blockTimestamp uint64) (chain.RPCReceipt, error) {
-	_ = blockTimestamp // timestamp is sourced from the block header, not receipts
-
-	gasUsed, err := hexUint(r.GasUsed)
+// toRPCReceipt builds a chain.RPCReceipt from an SQDTransaction (SQD v2 merges receipts into txs).
+func toRPCReceipt(tx SQDTransaction, blockNumber uint64, blockHash string) (chain.RPCReceipt, error) {
+	gasUsed, err := hexUint(tx.GasUsed)
 	if err != nil {
 		return chain.RPCReceipt{}, err
 	}
-	gasUsedL1, err := hexUint(r.GasUsedForL1)
+	gasUsedL1, err := hexUint(tx.L1GasUsed)
 	if err != nil {
 		return chain.RPCReceipt{}, err
 	}
-	cumulative, err := hexUint(r.CumulativeGasUsed)
+	cumulative, err := hexUint(tx.CumulativeGasUsed)
 	if err != nil {
 		return chain.RPCReceipt{}, err
 	}
-	effGas, err := hexBig(r.EffectiveGasPrice)
+	effGas, err := hexBig(tx.EffectiveGasPrice)
 	if err != nil {
 		return chain.RPCReceipt{}, err
 	}
 
 	var contract *common.Address
-	if r.ContractAddress != "" {
-		a := common.HexToAddress(r.ContractAddress)
+	if tx.ContractAddress != "" {
+		a := common.HexToAddress(tx.ContractAddress)
 		contract = &a
 	}
 
 	return chain.RPCReceipt{
-		TransactionHash:   common.HexToHash(r.TransactionHash),
+		TransactionHash:   common.HexToHash(tx.Hash),
 		BlockHash:         common.HexToHash(blockHash),
-		BlockNumber:       hexutil.Uint64(r.BlockNumber),
-		TransactionIndex:  hexutil.Uint64(r.TransactionIndex),
+		BlockNumber:       hexutil.Uint64(blockNumber),
+		TransactionIndex:  hexutil.Uint64(tx.TransactionIndex),
 		ContractAddress:   contract,
-		Status:            hexutil.Uint64(r.Status),
+		Status:            hexutil.Uint64(tx.Status),
 		GasUsed:           hexutil.Uint64(gasUsed),
 		CumulativeGasUsed: hexutil.Uint64(cumulative),
 		EffectiveGasPrice: effGas,
@@ -257,7 +249,8 @@ func toRPCReceipt(r SQDReceipt, blockHash string, blockTimestamp uint64) (chain.
 }
 
 // toRPCLog converts an SQD log into a chain.RPCLog.
-func toRPCLog(l SQDLog) (chain.RPCLog, error) {
+// blockNumber must be supplied from the batch header since SQD v2 omits it from log objects.
+func toRPCLog(l SQDLog, blockNumber uint64) (chain.RPCLog, error) {
 	data, err := hexBytes(l.Data)
 	if err != nil {
 		return chain.RPCLog{}, err
@@ -270,7 +263,7 @@ func toRPCLog(l SQDLog) (chain.RPCLog, error) {
 		Address:          common.HexToAddress(l.Address),
 		Topics:           topics,
 		Data:             data,
-		BlockNumber:      hexutil.Uint64(l.BlockNumber),
+		BlockNumber:      hexutil.Uint64(blockNumber),
 		TransactionHash:  common.HexToHash(l.TransactionHash),
 		TransactionIndex: hexutil.Uint64(l.TransactionIndex),
 		LogIndex:         hexutil.Uint64(l.LogIndex),

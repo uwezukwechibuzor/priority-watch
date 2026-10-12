@@ -1,0 +1,17 @@
+<clickhouse>
+    <profiles>
+        <default>
+            <max_memory_usage>2147483648</max_memory_usage>
+            <max_execution_time>120</max_execution_time>
+            <use_uncompressed_cache>0</use_uncompressed_cache>
+            <load_balancing>random</load_balancing>
+        </default>
+
+        <!-- readonly=2: read-only queries allowed, query-level settings allowed -->
+        <readonly>
+            <readonly>2</readonly>
+            <max_execution_time>30</max_execution_time>
+            <max_memory_usage>1073741824</max_memory_usage>
+        </readonly>
+    </profiles>
+</clickhouse>

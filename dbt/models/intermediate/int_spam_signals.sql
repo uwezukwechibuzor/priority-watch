@@ -17,7 +17,7 @@ WITH burst_counts AS (
         f.input_selector,
         f.block_number,
         countIf(f.status = 0) AS revert_count
-    FROM {{ ref('int_tx_fees') }} FINAL AS f
+    FROM {{ ref('int_tx_fees') }} AS f FINAL
     WHERE f.priority_fee_per_gas > 0
         AND f.to_address != ''
         AND f.input_selector != ''
@@ -51,7 +51,7 @@ SELECT
     -- tip_wasted_wei: full tip even on reverts (EVM still charges gas for reverts)
     if(f.status = 0, f.tip_paid_wei, toUInt256(0))          AS tip_wasted_wei,
     toUInt8(bc.from_address IS NOT NULL)                    AS is_burst_candidate
-FROM {{ ref('int_tx_fees') }} FINAL AS f
+FROM {{ ref('int_tx_fees') }} AS f FINAL
 LEFT JOIN burst_counts bc
     ON f.from_address = bc.from_address
     AND f.to_address = bc.to_address
