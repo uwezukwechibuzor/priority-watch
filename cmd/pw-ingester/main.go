@@ -362,8 +362,11 @@ func runFollow(ctx context.Context, log *slog.Logger, sourceFlag string) error {
 		sourceName = cfg.BlockSource
 	}
 
+	// ── obs server (created first so its registry is shared with all metrics) ──
+	obsServer := obs.New(cfg.MetricsAddr, cfg.LogLevel)
+	reg := obsServer.Registry()
+
 	// ── chain HTTP client (balance snapshots + rpc source) ─────────────────────
-	reg := prometheus.NewRegistry()
 	chainClient, err := chain.New(ctx, chain.ClientConfig{
 		PrimaryURL:   rpcURLOrPlaceholder(cfg.ArbitrumRPCURL),
 		FallbackURLs: cfg.ArbitrumRPCFallbackURLs,
@@ -460,8 +463,7 @@ func runFollow(ctx context.Context, log *slog.Logger, sourceFlag string) error {
 		follower = ingest.NewSourceFollower(source, cursors, fw, metrics, followerCfg, log)
 	}
 
-	// ── obs server ─────────────────────────────────────────────────────────────
-	obsServer := obs.New(cfg.MetricsAddr, cfg.LogLevel)
+	// ── obs server (created earlier; wire health check now that follower exists)
 	obsServer.SetHealthCheck(follower.HealthFunc())
 
 	// ── run all services ──────────────────────────────────────────────────────

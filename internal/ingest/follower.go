@@ -64,6 +64,8 @@ func (w *reorgWindow) push(b blockRef) {
 	w.entries = append(w.entries, b)
 }
 
+
+
 // last returns the most recent blockRef, or zero value if empty.
 func (w *reorgWindow) last() (blockRef, bool) {
 	if len(w.entries) == 0 {
@@ -412,6 +414,7 @@ func (f *Follower) ingestAndPush(ctx context.Context, blk *chain.RPCBlock) error
 		f.metrics.HeadBlock.Set(float64(n))
 		ts := time.Unix(int64(blk.Timestamp), 0) //nolint:gosec
 		f.metrics.IngestLagSeconds.Set(time.Since(ts).Seconds())
+		f.metrics.BlocksTotal.Add(1)
 	}
 
 	if f.writers.StatusUpsert != nil {

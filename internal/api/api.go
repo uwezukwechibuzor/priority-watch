@@ -33,6 +33,8 @@ type Server struct {
 	log    *slog.Logger
 	btr    *BacktestRunner
 
+	reqDuration *prometheus.HistogramVec
+
 	// rate limiter references stored so tests can swap them
 	rateLimiterAPI      func(http.Handler) http.Handler
 	rateLimiterDatasets func(http.Handler) http.Handler
@@ -46,6 +48,15 @@ func New(cfg *config.Config, conn driver.Conn, log *slog.Logger) *Server {
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	)
 
+	reqDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "pw",
+		Subsystem: "api",
+		Name:      "request_duration_seconds",
+		Help:      "HTTP request latency by handler path.",
+		Buckets:   []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5},
+	}, []string{"handler", "method", "status"})
+	reg.MustRegister(reqDuration)
+
 	st := newStore(conn)
 	s := &Server{
 		cfg:                 cfg,
@@ -55,6 +66,7 @@ func New(cfg *config.Config, conn driver.Conn, log *slog.Logger) *Server {
 		obs:                 reg,
 		log:                 log,
 		btr:                 newBacktestRunner(st, 4, log),
+		reqDuration:         reqDuration,
 		rateLimiterAPI:      httprate.LimitByIP(60, time.Minute), //nolint:staticcheck
 		rateLimiterDatasets: httprate.LimitByIP(10, time.Minute), //nolint:staticcheck
 	}

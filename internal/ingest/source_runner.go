@@ -248,6 +248,10 @@ func (f *SourceFollower) handle(ctx context.Context, fb *chain.FetchedBlock) err
 		f.metrics.HeadBlock.Set(float64(n))
 		ts := time.Unix(int64(fb.Block.Timestamp), 0) //nolint:gosec
 		f.metrics.IngestLagSeconds.Set(time.Since(ts).Seconds())
+		if fb.FinalizedHead >= n {
+			f.metrics.LagBlocks.Set(float64(fb.FinalizedHead) - float64(n))
+		}
+		f.metrics.BlocksTotal.Add(1)
 	}
 
 	if f.writers.StatusUpsert != nil {

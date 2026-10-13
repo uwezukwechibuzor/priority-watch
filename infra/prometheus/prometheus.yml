@@ -7,17 +7,17 @@ global:
 scrape_configs:
   - job_name: pw-api
     static_configs:
-      - targets: ["api:8080"]
+      - targets: ["host.docker.internal:8080"]
     metrics_path: /metrics
 
   - job_name: pw-follower
     static_configs:
-      - targets: ["follower:9091"]
+      - targets: ["host.docker.internal:9091"]
     metrics_path: /metrics
 
   - job_name: clickhouse
     static_configs:
-      - targets: ["clickhouse:9363"]
+      - targets: ["pw-clickhouse:9363"]
     metrics_path: /metrics
 
   - job_name: prometheus

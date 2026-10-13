@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -35,20 +36,30 @@ func (s *Server) buildMiddlewareStack() {
 	// Cache + ETag — applied to the whole /api/v1 subtree in mountAPI().
 }
 
-// requestLogger is a chi middleware that emits one slog line per request.
+// requestLogger is a chi middleware that emits one slog line per request
+// and records pw_api_request_duration_seconds for Prometheus.
 func (s *Server) requestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 		defer func() {
+			elapsed := time.Since(start)
+			status := ww.Status()
 			s.log.InfoContext(r.Context(), "http",
 				"method", r.Method,
 				"path", r.URL.Path,
-				"status", ww.Status(),
+				"status", status,
 				"bytes", ww.BytesWritten(),
-				"duration_ms", time.Since(start).Milliseconds(),
+				"duration_ms", elapsed.Milliseconds(),
 				"request_id", middleware.GetReqID(r.Context()),
 			)
+			if s.reqDuration != nil {
+				s.reqDuration.WithLabelValues(
+					r.URL.Path,
+					r.Method,
+					fmt.Sprintf("%d", status),
+				).Observe(elapsed.Seconds())
+			}
 		}()
 		next.ServeHTTP(ww, r)
 	})
