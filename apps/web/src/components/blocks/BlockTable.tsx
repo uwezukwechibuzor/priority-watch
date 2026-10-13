@@ -76,16 +76,17 @@ export function BlockTable({
     return () => el.removeEventListener("keydown", handler);
   }, [rows, virtualizer, onBlockSelect]);
 
+  // flex: 0 = fixed width; flex > 0 = grows proportionally to fill available space
   const COLS = [
-    { key: "block", header: "BLOCK", width: 80 },
-    { key: "time", header: "TIME", width: 140 },
-    { key: "txs", header: "TXS", width: 60 },
-    { key: "payer", header: "TOP PAYER", width: 150 },
-    { key: "fee", header: "TOP FEE", width: 110 },
-    { key: "revenue", header: "TIP REVENUE", width: 130 },
-    { key: "ratio", header: "2ND/1ST", width: 100 },
-    { key: "tipped", header: "TIPPED", width: 70 },
-    { key: "type", header: "TYPE", width: 90 },
+    { key: "block",   header: "BLOCK",       minWidth: 112, flex: 0 },
+    { key: "time",    header: "TIME",         minWidth: 100, flex: 1 },
+    { key: "txs",     header: "TXS",          minWidth: 50,  flex: 0 },
+    { key: "payer",   header: "TOP PAYER",    minWidth: 160, flex: 2 },
+    { key: "fee",     header: "TOP FEE",      minWidth: 100, flex: 1 },
+    { key: "revenue", header: "TIP REVENUE",  minWidth: 120, flex: 1 },
+    { key: "ratio",   header: "2ND/1ST",      minWidth: 100, flex: 0 },
+    { key: "tipped",  header: "TIPPED",       minWidth: 60,  flex: 0 },
+    { key: "type",    header: "TYPE",         minWidth: 90,  flex: 0 },
   ];
 
   function renderCell(row: BlockRow, key: string) {
@@ -188,15 +189,14 @@ export function BlockTable({
           <div
             key={col.key}
             style={{
-              width: col.width,
-              minWidth: col.width,
+              minWidth: col.minWidth,
+              flex: col.flex > 0 ? col.flex : `0 0 ${col.minWidth}px`,
               padding: "6px 8px",
               fontSize: 10,
               fontWeight: 500,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
               color: "var(--color-text-muted)",
-              flexShrink: 0,
             }}
           >
             {col.header}
@@ -258,13 +258,12 @@ export function BlockTable({
                       key={col.key}
                       role="gridcell"
                       style={{
-                        width: col.width,
-                        minWidth: col.width,
+                        minWidth: col.minWidth,
+                        flex: col.flex > 0 ? col.flex : `0 0 ${col.minWidth}px`,
                         padding: "0 8px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
-                        flexShrink: 0,
                       }}
                     >
                       {renderCell(row, col.key)}
