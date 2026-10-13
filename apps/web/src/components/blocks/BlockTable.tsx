@@ -109,7 +109,9 @@ export function BlockTable({
           </span>
         );
       case "payer":
-        return (
+        return !row.top_payer_address ? (
+          <span style={{ color: "var(--color-text-muted)", fontSize: 12 }}>—</span>
+        ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
             <EntityChip
               name={row.top_payer_name || row.top_payer_address}
