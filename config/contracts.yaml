@@ -17,21 +17,21 @@ contracts:
     source_url: "https://docs.aave.com/developers/deployed-contracts/v3-mainnet/arbitrum"
     note: ""
 
-  # Fee-recipient addresses discovered in task 8 part C; filled after chain analysis.
-  # Call ArbOwnerPublic.GetNetworkFeeAccount() and GetInfraFeeAccount() via eth_call,
-  # then run analyses/fee_mechanics/03_fee_recipients.sql.
+  # Fee-recipient addresses verified via eth_call to ArbOwnerPublic (0x6b) on Arbitrum One.
+  # getNetworkFeeAccount() selector: 0x2d9125e9
+  # getInfraFeeAccount()   selector: 0xee95a824
   - name: "NetworkFeeAccount"
-    address: ""
+    address: "0x32e7AF5A8151934F3787d0cD59EB6EDd0a736b1d"
     abi_file: ""
     deployed_block: 0
-    verified: false
-    note: "ArbOwnerPublic.GetNetworkFeeAccount() result — fill after running analyses/fee_mechanics/03_fee_recipients.sql"
-    source_url: "https://github.com/OffchainLabs/nitro/blob/master/precompiles/ArbOwnerPublic.go"
+    verified: true
+    note: "ArbOwnerPublic.GetNetworkFeeAccount() — receives L2 surplus fee and PGA priority-fee tips. Arbiscan label: Arbitrum: L2 Surplus Fee."
+    source_url: "https://docs.arbitrum.foundation/deployment-addresses"
 
   - name: "InfraFeeAccount"
-    address: ""
+    address: "0xbF5041Fc07E1c866D15c749156657B8eEd0fb649"
     abi_file: ""
     deployed_block: 0
-    verified: false
-    note: "ArbOwnerPublic.GetInfraFeeAccount() result — fill after running analyses/fee_mechanics/03_fee_recipients.sql"
-    source_url: "https://github.com/OffchainLabs/nitro/blob/master/precompiles/ArbOwnerPublic.go"
+    verified: true
+    note: "ArbOwnerPublic.GetInfraFeeAccount() — receives L2 base fee (floor execution cost). Arbiscan label: Arbitrum: L2 Base Fee."
+    source_url: "https://docs.arbitrum.foundation/deployment-addresses"

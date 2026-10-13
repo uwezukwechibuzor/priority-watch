@@ -499,8 +499,8 @@ balance snapshot data is available.
 |------|---------|--------|
 | ArbOwnerPublic precompile | 0x000000000000000000000000000000000000006b | https://github.com/OffchainLabs/nitro |
 | ArbGasInfo precompile | 0x000000000000000000000000000000000000006c | https://github.com/OffchainLabs/nitro |
-| NetworkFeeAccount | TBD (task 8 part C) | ArbOwnerPublic.GetNetworkFeeAccount() |
-| InfraFeeAccount | TBD (task 8 part C) | ArbOwnerPublic.GetInfraFeeAccount() |
+| NetworkFeeAccount | 0x32e7AF5A8151934F3787d0cD59EB6EDd0a736b1d | ArbOwnerPublic.GetNetworkFeeAccount() — verified via eth_call; Arbiscan: "L2 Surplus Fee"; source: https://docs.arbitrum.foundation/deployment-addresses |
+| InfraFeeAccount | 0xbF5041Fc07E1c866D15c749156657B8eEd0fb649 | ArbOwnerPublic.GetInfraFeeAccount() — verified via eth_call; Arbiscan: "L2 Base Fee"; source: https://docs.arbitrum.foundation/deployment-addresses |
 
 ---
 

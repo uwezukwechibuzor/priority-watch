@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -442,9 +443,18 @@ func runFollow(ctx context.Context, log *slog.Logger, sourceFlag string) error {
 	cursors := ingest.NewCursorStore(conn, "follower")
 	metrics := ingest.NewFollowerMetrics(reg)
 
+	// Verified via eth_call to ArbOwnerPublic (0x6b) on Arbitrum One.
+	// NetworkFeeAccount receives PGA tips (L2 surplus fee).
+	// InfraFeeAccount receives L2 base fee.
+	feeRecipients := []common.Address{
+		common.HexToAddress("0x32e7AF5A8151934F3787d0cD59EB6EDd0a736b1d"), // NetworkFeeAccount
+		common.HexToAddress("0xbF5041Fc07E1c866D15c749156657B8eEd0fb649"), // InfraFeeAccount
+	}
+
 	followerCfg := ingest.FollowerConfig{
-		LogAddresses: logAddrs,
-		GapThreshold: cfg.GapThreshold,
+		LogAddresses:  logAddrs,
+		GapThreshold:  cfg.GapThreshold,
+		FeeRecipients: feeRecipients,
 	}
 
 	// follower is either the RPC-native Follower or the BlockSource-backed
