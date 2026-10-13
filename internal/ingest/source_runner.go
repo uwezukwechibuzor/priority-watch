@@ -179,9 +179,15 @@ func (f *SourceFollower) Run(ctx context.Context) error {
 		if err := f.handle(ctx, fb); err != nil {
 			f.log.ErrorContext(ctx, "handle block error",
 				"block", uint64(fb.Block.Number), "err", err)
+			if f.metrics != nil {
+				f.metrics.RpcErrorsTotal.Add(1)
+			}
 		}
 	}
 	if err := <-errc; err != nil && ctx.Err() == nil {
+		if f.metrics != nil {
+			f.metrics.RpcErrorsTotal.Add(1)
+		}
 		return err
 	}
 	return ctx.Err()

@@ -8,6 +8,7 @@ type FollowerMetrics struct {
 	IngestLagSeconds   prometheus.Gauge
 	LagBlocks          prometheus.Gauge
 	BlocksTotal        prometheus.Counter
+	RpcErrorsTotal     prometheus.Counter
 	ReorgsTotal        prometheus.Counter
 	SafeLagBlocks      prometheus.Gauge
 	FinalizedLagBlocks prometheus.Gauge
@@ -39,6 +40,12 @@ func NewFollowerMetrics(reg prometheus.Registerer) *FollowerMetrics {
 		Name:      "blocks_total",
 		Help:      "Total blocks ingested by the follower.",
 	})
+	rpcErrorsTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "pw",
+		Subsystem: "follower",
+		Name:      "rpc_errors_total",
+		Help:      "Total errors returned by the block source (SQD, HyperSync, or RPC).",
+	})
 	reorgsTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "pw",
 		Subsystem: "follower",
@@ -58,13 +65,14 @@ func NewFollowerMetrics(reg prometheus.Registerer) *FollowerMetrics {
 		Help:      "Number of blocks the head is ahead of the finalized block.",
 	})
 
-	reg.MustRegister(headBlock, ingestLag, lagBlocks, blocksTotal, reorgsTotal, safeLag, finalizedLag)
+	reg.MustRegister(headBlock, ingestLag, lagBlocks, blocksTotal, rpcErrorsTotal, reorgsTotal, safeLag, finalizedLag)
 
 	return &FollowerMetrics{
 		HeadBlock:          headBlock,
 		IngestLagSeconds:   ingestLag,
 		LagBlocks:          lagBlocks,
 		BlocksTotal:        blocksTotal,
+		RpcErrorsTotal:     rpcErrorsTotal,
 		ReorgsTotal:        reorgsTotal,
 		SafeLagBlocks:      safeLag,
 		FinalizedLagBlocks: finalizedLag,
