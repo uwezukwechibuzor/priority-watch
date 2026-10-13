@@ -10,6 +10,9 @@
 -- ASOF JOIN to the nearest preceding Binance 1s kline for ETH/USD conversion.
 -- Era classification is deferred to a variable; PGA activation block defaults to 0
 -- (all blocks treated as timeboost) until set by task 8 verification.
+-- Push the incremental cutoff into each side of the JOIN so ClickHouse can prune
+-- to the current-month partition on stg_blocks and stg_receipts, avoiding a full
+-- table scan of 7M+ rows to build hash tables (OOM on a 4 GB VPS).
 WITH tx_base AS (
     SELECT
         t.block_number          AS block_number,
@@ -33,15 +36,33 @@ WITH tx_base AS (
         r.gas_used_for_l2       AS gas_used_for_l2,
         r.effective_gas_price   AS effective_gas_price
     FROM {{ ref('stg_transactions') }} AS t FINAL
-    INNER JOIN {{ ref('stg_blocks') }} AS b FINAL
-        ON t.block_number = b.block_number
-    INNER JOIN {{ ref('stg_receipts') }} AS r FINAL
-        ON t.block_number = r.block_number
-        AND t.tx_index = r.tx_index
+    INNER JOIN (
+        SELECT block_number, base_fee_per_gas
+        FROM {{ ref('stg_blocks') }} FINAL
+        {% if is_incremental() %}
+        WHERE block_timestamp > subtractHours(
+            ifNull((SELECT max(block_timestamp) FROM {{ this }} FINAL),
+                   toDateTime64('1970-01-01 00:00:00', 3, 'UTC')),
+            1
+        )
+        {% endif %}
+    ) AS b ON t.block_number = b.block_number
+    INNER JOIN (
+        SELECT block_number, tx_index, status, gas_used, gas_used_for_l1, gas_used_for_l2, effective_gas_price
+        FROM {{ ref('stg_receipts') }} FINAL
+        {% if is_incremental() %}
+        WHERE block_timestamp > subtractHours(
+            ifNull((SELECT max(block_timestamp) FROM {{ this }} FINAL),
+                   toDateTime64('1970-01-01 00:00:00', 3, 'UTC')),
+            1
+        )
+        {% endif %}
+    ) AS r ON t.block_number = r.block_number AND t.tx_index = r.tx_index
     {% if is_incremental() %}
-    WHERE t.block_timestamp > (
-        SELECT subtractHours(max(block_timestamp), 1)
-        FROM {{ this }} FINAL
+    WHERE t.block_timestamp > subtractHours(
+        ifNull((SELECT max(block_timestamp) FROM {{ this }} FINAL),
+               toDateTime64('1970-01-01 00:00:00', 3, 'UTC')),
+        1
     )
     {% endif %}
 ),

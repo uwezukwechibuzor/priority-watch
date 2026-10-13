@@ -52,21 +52,51 @@ SELECT
     coalesce(e.color_index, toUInt8(0))                        AS color_index,
     coalesce(e.label_source, 'unlabelled')                     AS label_source,
     coalesce(e.address_label, '')                              AS entity_address_label
-FROM {{ ref('int_tx_fees') }} AS f FINAL
-LEFT JOIN {{ ref('int_block_ordering') }} AS o FINAL
-    ON f.block_number = o.block_number
-    AND f.tx_index = o.tx_index
-LEFT JOIN {{ ref('int_tx_classification') }} AS c FINAL
-    ON f.block_number = c.block_number
-    AND f.tx_index = c.tx_index
-LEFT JOIN {{ ref('int_spam_signals') }} AS ss FINAL
-    ON f.block_number = ss.block_number
-    AND f.tx_index = ss.tx_index
+-- Push the incremental cutoff into each large JOIN side to allow partition pruning
+-- and avoid building multi-GB hash tables on a 4 GB VPS. int_entities is tiny (260 rows),
+-- no filter needed there.
+FROM (
+    SELECT * FROM {{ ref('int_tx_fees') }} FINAL
+    {% if is_incremental() %}
+    WHERE block_timestamp > subtractHours(
+        ifNull((SELECT max(block_timestamp) FROM {{ this }} FINAL),
+               toDateTime64('1970-01-01 00:00:00', 3, 'UTC')),
+        1
+    )
+    {% endif %}
+) AS f
+LEFT JOIN (
+    SELECT block_number, tx_index, tip_rank, block_type, tipped_tx_count, second_to_first_ratio
+    FROM {{ ref('int_block_ordering') }} FINAL
+    {% if is_incremental() %}
+    WHERE block_timestamp > subtractHours(
+        ifNull((SELECT max(block_timestamp) FROM {{ this }} FINAL),
+               toDateTime64('1970-01-01 00:00:00', 3, 'UTC')),
+        1
+    )
+    {% endif %}
+) AS o ON f.block_number = o.block_number AND f.tx_index = o.tx_index
+LEFT JOIN (
+    SELECT block_number, tx_index, tx_class, swap_count, is_liquidation
+    FROM {{ ref('int_tx_classification') }} FINAL
+    {% if is_incremental() %}
+    WHERE block_timestamp > subtractHours(
+        ifNull((SELECT max(block_timestamp) FROM {{ this }} FINAL),
+               toDateTime64('1970-01-01 00:00:00', 3, 'UTC')),
+        1
+    )
+    {% endif %}
+) AS c ON f.block_number = c.block_number AND f.tx_index = c.tx_index
+LEFT JOIN (
+    SELECT block_number, tx_index, is_reverted_tipped, tip_wasted_wei, is_burst_candidate
+    FROM {{ ref('int_spam_signals') }} FINAL
+    {% if is_incremental() %}
+    WHERE block_timestamp > subtractHours(
+        ifNull((SELECT max(block_timestamp) FROM {{ this }} FINAL),
+               toDateTime64('1970-01-01 00:00:00', 3, 'UTC')),
+        1
+    )
+    {% endif %}
+) AS ss ON f.block_number = ss.block_number AND f.tx_index = ss.tx_index
 LEFT JOIN {{ ref('int_entities') }} AS e FINAL
     ON f.from_address = e.address
-{% if is_incremental() %}
-WHERE f.block_timestamp > (
-    SELECT subtractHours(max(block_timestamp), 1)
-    FROM {{ this }} FINAL
-)
-{% endif %}

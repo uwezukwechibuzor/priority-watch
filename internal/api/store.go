@@ -140,7 +140,7 @@ func (s *Store) GetBlocks(ctx context.Context, p BlocksParams) ([]BlockRow, erro
 		WHERE %s
 		ORDER BY block_number DESC
 		LIMIT @limit
-		SETTINGS max_threads=2, max_memory_usage=1500000000`, where)
+		SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120`, where)
 	args = append(args, namedParam("limit", p.Limit))
 
 	rows, err := s.query(ctx, sql, args...)
@@ -220,7 +220,7 @@ func (s *Store) GetBlockKPIs(ctx context.Context, rangeStr string, day *string) 
 				avg(top_fee_gwei)               AS avg_top_fee
 			FROM marts.agg_blocks_hourly FINAL
 			WHERE %s
-			SETTINGS max_threads=2, max_memory_usage=1500000000
+			SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120
 		)`, where)
 
 	var (
@@ -346,7 +346,7 @@ func (s *Store) GetPayerShare(ctx context.Context, rangeStr string) ([]PayerShar
 		CROSS JOIN totals t
 		ORDER BY a.tip_eth DESC
 		LIMIT 10
-		SETTINGS max_threads=2, max_memory_usage=1500000000`
+		SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120`
 
 	rows, err := s.query(ctx, sql, namedParam("cutoff", cutoff))
 	if err != nil {
@@ -429,7 +429,7 @@ func (s *Store) GetBlock(ctx context.Context, blockNumber uint64) (*BlockRow, er
 			ifNotFinite(coalesce(gas_used_pct, 0.0), 0.0) AS gas_used_pct
 		FROM marts.fct_blocks FINAL
 		WHERE block_number = @block_number
-		SETTINGS max_threads=2, max_memory_usage=1500000000`
+		SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120`
 
 	var r BlockRow
 	row := s.queryRow(ctx, sql, namedParam("block_number", blockNumber))
@@ -492,7 +492,7 @@ func (s *Store) GetBlockTxs(ctx context.Context, blockNumber uint64, cursor *uin
 		WHERE %s
 		ORDER BY tx_index ASC
 		LIMIT @limit
-		SETTINGS max_threads=2, max_memory_usage=1500000000`, where)
+		SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120`, where)
 
 	rows, err := s.query(ctx, sql, args...)
 	if err != nil {
@@ -667,7 +667,7 @@ func (s *Store) GetTreasuryDaily(ctx context.Context, rangeStr string) ([]Treasu
 		FROM marts.fct_treasury_daily FINAL
 		WHERE date >= toDate(@cutoff)
 		ORDER BY date DESC
-		SETTINGS max_threads=2, max_memory_usage=1500000000`,
+		SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120`,
 		namedParam("cutoff", cutoff))
 	if err != nil {
 		return nil, fmt.Errorf("GetTreasuryDaily: %w", err)
@@ -714,7 +714,7 @@ func (s *Store) GetTreasurySummary(ctx context.Context) (TreasurySummary, error)
 			if(count() > 0, sum(total_tip_eth)/count()*365, 0) AS projected_annual,
 			count() AS day_count
 		FROM marts.fct_treasury_daily FINAL
-		SETTINGS max_threads=2, max_memory_usage=1500000000`)
+		SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120`)
 	if err := row.Scan(
 		&s2.TotalTipEth, &s2.TotalTipUsd, &wei,
 		&s2.TreasuryEth, &s2.DeveloperGuildEth,
