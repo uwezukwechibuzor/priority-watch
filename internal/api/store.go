@@ -480,7 +480,9 @@ func (s *Store) GetBlockTxs(ctx context.Context, blockNumber uint64, cursor *uin
 			block_number, tx_index, tx_hash, tx_type, from_address, to_address,
 			status, gas_used, priority_fee_per_gas_gwei,
 			tip_paid_eth, tip_paid_usd, toString(tip_paid_wei) AS tip_paid_wei,
-			tip_rank, tx_class, entity_name, entity_type, color_index,
+			tip_rank, tx_class,
+			if(entity_name != '', entity_name, from_address) AS entity_name,
+			if(entity_type != '', entity_type, 'unknown') AS entity_type, color_index,
 			entity_address_label, is_reverted_tipped
 		FROM marts.fct_transactions FINAL
 		WHERE %s
