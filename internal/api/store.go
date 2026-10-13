@@ -139,7 +139,8 @@ func (s *Store) GetBlocks(ctx context.Context, p BlocksParams) ([]BlockRow, erro
 		FROM marts.fct_blocks FINAL
 		WHERE %s
 		ORDER BY block_number DESC
-		LIMIT @limit`, where)
+		LIMIT @limit
+		SETTINGS max_threads=2, max_memory_usage=1500000000`, where)
 	args = append(args, namedParam("limit", p.Limit))
 
 	rows, err := s.query(ctx, sql, args...)
@@ -219,6 +220,7 @@ func (s *Store) GetBlockKPIs(ctx context.Context, rangeStr string, day *string) 
 				avg(top_fee_gwei)               AS avg_top_fee
 			FROM marts.agg_blocks_hourly FINAL
 			WHERE %s
+			SETTINGS max_threads=2, max_memory_usage=1500000000
 		)`, where)
 
 	var (
@@ -343,7 +345,8 @@ func (s *Store) GetPayerShare(ctx context.Context, rangeStr string) ([]PayerShar
 		FROM agg a
 		CROSS JOIN totals t
 		ORDER BY a.tip_eth DESC
-		LIMIT 10`
+		LIMIT 10
+		SETTINGS max_threads=2, max_memory_usage=1500000000`
 
 	rows, err := s.query(ctx, sql, namedParam("cutoff", cutoff))
 	if err != nil {
@@ -425,7 +428,8 @@ func (s *Store) GetBlock(ctx context.Context, blockNumber uint64) (*BlockRow, er
 			gas_used, gas_limit,
 			ifNotFinite(coalesce(gas_used_pct, 0.0), 0.0) AS gas_used_pct
 		FROM marts.fct_blocks FINAL
-		WHERE block_number = @block_number`
+		WHERE block_number = @block_number
+		SETTINGS max_threads=2, max_memory_usage=1500000000`
 
 	var r BlockRow
 	row := s.queryRow(ctx, sql, namedParam("block_number", blockNumber))
@@ -487,7 +491,8 @@ func (s *Store) GetBlockTxs(ctx context.Context, blockNumber uint64, cursor *uin
 		FROM marts.fct_transactions FINAL
 		WHERE %s
 		ORDER BY tx_index ASC
-		LIMIT @limit`, where)
+		LIMIT @limit
+		SETTINGS max_threads=2, max_memory_usage=1500000000`, where)
 
 	rows, err := s.query(ctx, sql, args...)
 	if err != nil {
@@ -590,14 +595,26 @@ type IngesterStatusRow struct {
 }
 
 func (s *Store) GetIngesterStatus(ctx context.Context) ([]IngesterStatusRow, error) {
+	// argMax dedup instead of FINAL: meta.source_status gets one INSERT per block
+	// (~4/s), creating many small parts. FINAL on many parts causes full table scans
+	// that OOM ClickHouse. GROUP BY source + argMax(col, updated_at) is equivalent
+	// to ReplacingMergeTree(updated_at) FINAL but reads only the index, not all parts.
 	rows, err := s.query(ctx, `
 		SELECT
 			source,
-			if(dateDiff('second', updated_at, now()) > 120, 'lagging',
-				if(dateDiff('second', updated_at, now()) > 300, 'down', 'live')) AS status,
-			dateDiff('second', latest_timestamp, now()) AS lag_seconds,
-			latest_position, latest_timestamp, updated_at
-		FROM meta.source_status FINAL
+			if(dateDiff('second', upd, now()) > 120, 'lagging',
+				if(dateDiff('second', upd, now()) > 300, 'down', 'live')) AS status,
+			dateDiff('second', lat, now()) AS lag_seconds,
+			pos, lat, upd
+		FROM (
+			SELECT
+				source,
+				argMax(latest_position, updated_at)  AS pos,
+				argMax(latest_timestamp, updated_at) AS lat,
+				max(updated_at)                      AS upd
+			FROM meta.source_status
+			GROUP BY source
+		)
 		ORDER BY source`)
 	if err != nil {
 		return nil, fmt.Errorf("GetIngesterStatus: %w", err)
@@ -649,7 +666,8 @@ func (s *Store) GetTreasuryDaily(ctx context.Context, rangeStr string) ([]Treasu
 			tx_count, tipped_tx_count, status
 		FROM marts.fct_treasury_daily FINAL
 		WHERE date >= toDate(@cutoff)
-		ORDER BY date DESC`,
+		ORDER BY date DESC
+		SETTINGS max_threads=2, max_memory_usage=1500000000`,
 		namedParam("cutoff", cutoff))
 	if err != nil {
 		return nil, fmt.Errorf("GetTreasuryDaily: %w", err)
@@ -695,7 +713,8 @@ func (s *Store) GetTreasurySummary(ctx context.Context) (TreasurySummary, error)
 			if(count() > 0, sum(total_tip_eth)/count(), 0) AS avg_daily,
 			if(count() > 0, sum(total_tip_eth)/count()*365, 0) AS projected_annual,
 			count() AS day_count
-		FROM marts.fct_treasury_daily FINAL`)
+		FROM marts.fct_treasury_daily FINAL
+		SETTINGS max_threads=2, max_memory_usage=1500000000`)
 	if err := row.Scan(
 		&s2.TotalTipEth, &s2.TotalTipUsd, &wei,
 		&s2.TreasuryEth, &s2.DeveloperGuildEth,

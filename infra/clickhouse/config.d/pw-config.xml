@@ -27,8 +27,9 @@
         <allowed_path>/var/lib/clickhouse/backups/</allowed_path>
     </backups>
 
-    <!-- Memory cap: 75% of the 4 GiB Docker limit = ~3 GiB for queries + merges. -->
-    <max_server_memory_usage_to_ram_ratio>0.75</max_server_memory_usage_to_ram_ratio>
+    <!-- Memory cap: 50% of VM RAM. The Docker VM (3.8 GiB) is shared with
+         PostgreSQL, pw-api, and the ingester; 0.75 causes OOM on startup. -->
+    <max_server_memory_usage_to_ram_ratio>0.50</max_server_memory_usage_to_ram_ratio>
 
     <!-- Disable all system log tables to prevent OOM crashes on low-RAM hosts. -->
     <query_log remove="1"/>

@@ -66,7 +66,7 @@ func rangeCutoff(r string) (time.Time, error) {
 	case "30d":
 		return now.Add(-30 * 24 * time.Hour), nil
 	case "all":
-		return time.Unix(0, 0).UTC(), nil
+		return now.Add(-365 * 24 * time.Hour), nil
 	default:
 		return time.Time{}, fmt.Errorf("range must be one of: 1h,24h,7d,30d,all — got %q", r)
 	}

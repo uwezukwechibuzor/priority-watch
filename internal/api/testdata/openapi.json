@@ -296,7 +296,7 @@
             "type": "string"
           },
           "distinct_tippers": {
-            "format": "int32",
+            "format": "int64",
             "minimum": 0,
             "type": "integer"
           },
@@ -361,6 +361,9 @@
           "top_payer_address": {
             "type": "string"
           },
+          "top_payer_address_label": {
+            "type": "string"
+          },
           "top_payer_color_index": {
             "format": "int32",
             "minimum": 0,
@@ -395,6 +398,7 @@
           "top_payer_address",
           "top_payer_name",
           "top_payer_color_index",
+          "top_payer_address_label",
           "revert_count",
           "second_to_first_ratio",
           "block_type",
@@ -1484,6 +1488,9 @@
       "PayerShareRow": {
         "additionalProperties": false,
         "properties": {
+          "address_label": {
+            "type": "string"
+          },
           "avg_tip_rank": {
             "format": "double",
             "type": "number"
@@ -1525,6 +1532,7 @@
           "entity_name",
           "entity_type",
           "color_index",
+          "address_label",
           "tip_eth",
           "tip_usd",
           "share_pct",
@@ -2104,6 +2112,9 @@
             "minimum": 0,
             "type": "integer"
           },
+          "entity_address_label": {
+            "type": "string"
+          },
           "entity_name": {
             "type": "string"
           },
@@ -2186,6 +2197,7 @@
           "entity_name",
           "entity_type",
           "color_index",
+          "entity_address_label",
           "is_reverted_tipped"
         ],
         "type": "object"
