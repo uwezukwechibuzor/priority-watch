@@ -53,6 +53,7 @@ export interface BlocksResponse {
 
 export interface BlockKPIs {
   block_count: number;
+  max_block_number: number;
   tip_revenue_wei: string;
   tip_revenue_eth: number;
   tip_revenue_usd: number;

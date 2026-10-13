@@ -31,7 +31,7 @@ export function BlocksKpiStrip({ kpis, series, loading }: BlocksKpiStripProps) {
       <KpiTile
         label="BLOCKS"
         value={compact(kpis?.block_count ?? 0)}
-        subtext="of ~345,600 expected"
+        subtext={kpis?.max_block_number ? `height: ${kpis.max_block_number.toLocaleString()}` : "—"}
         loading={loading}
       >
         <Sparkline data={series.map((p) => p.block_count)} />

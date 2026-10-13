@@ -171,6 +171,7 @@ func (s *Store) GetBlocks(ctx context.Context, p BlocksParams) ([]BlockRow, erro
 // BlockKPIs aggregates summary statistics for a range.
 type BlockKPIs struct {
 	BlockCount     uint64  `json:"block_count"`
+	MaxBlockNumber uint64  `json:"max_block_number"`
 	TipRevenueWei  string  `json:"tip_revenue_wei"`
 	TipRevenueEth  float64 `json:"tip_revenue_eth"`
 	TipRevenueUsd  float64 `json:"tip_revenue_usd"`
@@ -198,6 +199,7 @@ func (s *Store) GetBlockKPIs(ctx context.Context, rangeStr string, day *string) 
 	sql := fmt.Sprintf(`
 		SELECT
 			tot_blocks                                                  AS block_count,
+			(SELECT max(block_number) FROM marts.fct_blocks FINAL)     AS max_block_number,
 			toString(tot_tip_wei)                                       AS tip_revenue_wei,
 			tot_tip_eth                                                 AS tip_revenue_eth,
 			tot_tip_usd                                                 AS tip_revenue_usd,
@@ -229,7 +231,7 @@ func (s *Store) GetBlockKPIs(ctx context.Context, rangeStr string, day *string) 
 	)
 	row := s.queryRow(ctx, sql, args...)
 	if err := row.Scan(
-		&kpi.BlockCount, &kpi.TipRevenueWei, &kpi.TipRevenueEth, &kpi.TipRevenueUsd,
+		&kpi.BlockCount, &kpi.MaxBlockNumber, &kpi.TipRevenueWei, &kpi.TipRevenueEth, &kpi.TipRevenueUsd,
 		&kpi.AvgTipEth, &kpi.ContestedShare, &kpi.TopPayerName, &kpi.TopPayerShare,
 		&hhi, &kpi.AvgTopFeeGwei,
 	); err != nil {
