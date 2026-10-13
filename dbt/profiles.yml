@@ -16,6 +16,8 @@ priority_watch:
       sync_request_timeout: 5
       compress_block_size: 1048576
       compression: lz4
+      custom_settings:
+        max_execution_time: 600
 
     prod:
       type: clickhouse

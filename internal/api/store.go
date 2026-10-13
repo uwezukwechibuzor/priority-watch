@@ -120,14 +120,22 @@ func (s *Store) GetBlocks(ctx context.Context, p BlocksParams) ([]BlockRow, erro
 		SELECT
 			block_number, block_timestamp, era, tx_count, tipped_tx_count,
 			toString(tip_revenue_wei) AS tip_revenue_wei,
-			tip_revenue_eth, tip_revenue_usd, eth_price_usd,
-			top_fee_gwei, top_tip_usd, median_fee_gwei,
-			top_payer_address, top_payer_name, top_payer_color_index,
-			revert_count, second_to_first_ratio, block_type, ordering_score,
+			ifNotFinite(tip_revenue_eth, 0.0) AS tip_revenue_eth,
+			ifNotFinite(tip_revenue_usd, 0.0) AS tip_revenue_usd,
+			ifNotFinite(eth_price_usd, 0.0) AS eth_price_usd,
+			ifNotFinite(top_fee_gwei, 0.0) AS top_fee_gwei,
+			ifNotFinite(top_tip_usd, 0.0) AS top_tip_usd,
+			ifNotFinite(median_fee_gwei, 0.0) AS median_fee_gwei,
+			top_payer_address, top_payer_name, top_payer_color_index, top_payer_address_label,
+			revert_count,
+			ifNotFinite(second_to_first_ratio, 0.0) AS second_to_first_ratio,
+			block_type,
+			ifNotFinite(ordering_score, 0.0) AS ordering_score,
 			distinct_tippers,
 			toString(base_fee_per_gas) AS base_fee_per_gas_wei,
-			base_fee_per_gas_gwei, gas_used, gas_limit,
-				coalesce(gas_used_pct, 0.0) AS gas_used_pct
+			ifNotFinite(base_fee_per_gas_gwei, 0.0) AS base_fee_per_gas_gwei,
+			gas_used, gas_limit,
+			ifNotFinite(coalesce(gas_used_pct, 0.0), 0.0) AS gas_used_pct
 		FROM marts.fct_blocks FINAL
 		WHERE %s
 		ORDER BY block_number DESC
@@ -400,14 +408,22 @@ func (s *Store) GetBlock(ctx context.Context, blockNumber uint64) (*BlockRow, er
 		SELECT
 			block_number, block_timestamp, era, tx_count, tipped_tx_count,
 			toString(tip_revenue_wei) AS tip_revenue_wei,
-			tip_revenue_eth, tip_revenue_usd, eth_price_usd,
-			top_fee_gwei, top_tip_usd, median_fee_gwei,
+			ifNotFinite(tip_revenue_eth, 0.0) AS tip_revenue_eth,
+			ifNotFinite(tip_revenue_usd, 0.0) AS tip_revenue_usd,
+			ifNotFinite(eth_price_usd, 0.0) AS eth_price_usd,
+			ifNotFinite(top_fee_gwei, 0.0) AS top_fee_gwei,
+			ifNotFinite(top_tip_usd, 0.0) AS top_tip_usd,
+			ifNotFinite(median_fee_gwei, 0.0) AS median_fee_gwei,
 			top_payer_address, top_payer_name, top_payer_color_index, top_payer_address_label,
-			revert_count, second_to_first_ratio, block_type, ordering_score,
+			revert_count,
+			ifNotFinite(second_to_first_ratio, 0.0) AS second_to_first_ratio,
+			block_type,
+			ifNotFinite(ordering_score, 0.0) AS ordering_score,
 			distinct_tippers,
 			toString(base_fee_per_gas) AS base_fee_per_gas_wei,
-			base_fee_per_gas_gwei, gas_used, gas_limit,
-				coalesce(gas_used_pct, 0.0) AS gas_used_pct
+			ifNotFinite(base_fee_per_gas_gwei, 0.0) AS base_fee_per_gas_gwei,
+			gas_used, gas_limit,
+			ifNotFinite(coalesce(gas_used_pct, 0.0), 0.0) AS gas_used_pct
 		FROM marts.fct_blocks FINAL
 		WHERE block_number = @block_number`
 
