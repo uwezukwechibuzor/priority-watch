@@ -34,7 +34,7 @@ type listBlocksOutput struct {
 	}
 }
 
-func registerBlockHandlers(api huma.API, st *Store) {
+func registerBlockHandlers(api huma.API, st *Store, headFunc func(context.Context) (uint64, error)) {
 	huma.Register(api, huma.Operation{
 		OperationID: "list-blocks",
 		Method:      http.MethodGet,
@@ -87,6 +87,11 @@ func registerBlockHandlers(api huma.API, st *Store) {
 		kpis, err := st.GetBlockKPIs(ctx, input.Range, day)
 		if err != nil {
 			return nil, huma.Error500InternalServerError("query failed", err)
+		}
+		if headFunc != nil {
+			if head, herr := headFunc(ctx); herr == nil && head > 0 {
+				kpis.MaxBlockNumber = head
+			}
 		}
 		return &kpisOutput{Body: kpis}, nil
 	})

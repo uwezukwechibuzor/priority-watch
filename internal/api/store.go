@@ -199,7 +199,6 @@ func (s *Store) GetBlockKPIs(ctx context.Context, rangeStr string, day *string) 
 	sql := fmt.Sprintf(`
 		SELECT
 			tot_blocks                                                  AS block_count,
-			(SELECT max(block_number) FROM marts.fct_blocks FINAL)     AS max_block_number,
 			toString(tot_tip_wei)                                       AS tip_revenue_wei,
 			tot_tip_eth                                                 AS tip_revenue_eth,
 			tot_tip_usd                                                 AS tip_revenue_usd,
@@ -231,7 +230,7 @@ func (s *Store) GetBlockKPIs(ctx context.Context, rangeStr string, day *string) 
 	)
 	row := s.queryRow(ctx, sql, args...)
 	if err := row.Scan(
-		&kpi.BlockCount, &kpi.MaxBlockNumber, &kpi.TipRevenueWei, &kpi.TipRevenueEth, &kpi.TipRevenueUsd,
+		&kpi.BlockCount, &kpi.TipRevenueWei, &kpi.TipRevenueEth, &kpi.TipRevenueUsd,
 		&kpi.AvgTipEth, &kpi.ContestedShare, &kpi.TopPayerName, &kpi.TopPayerShare,
 		&hhi, &kpi.AvgTopFeeGwei,
 	); err != nil {

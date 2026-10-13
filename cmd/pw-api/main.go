@@ -13,6 +13,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 
 	"github.com/uwezukwechibuzor/priority-watch/internal/api"
+	"github.com/uwezukwechibuzor/priority-watch/internal/chain"
 	"github.com/uwezukwechibuzor/priority-watch/internal/config"
 )
 
@@ -50,6 +51,27 @@ func main() {
 	}
 
 	srv := api.New(cfg, conn, log)
+
+	if cfg.ArbitrumRPCURL != "" {
+		rpcClient, cerr := chain.New(ctx, chain.ClientConfig{
+			PrimaryURL:   cfg.ArbitrumRPCURL,
+			FallbackURLs: cfg.ArbitrumRPCFallbackURLs,
+			RPS:          cfg.ArbitrumRPCRPS,
+			Logger:       log,
+		})
+		if cerr != nil {
+			log.WarnContext(ctx, "chain client init failed — chain head unavailable", "err", cerr)
+		} else {
+			srv.WithHeadFunc(func(ctx context.Context) (uint64, error) {
+				blk, err := rpcClient.Head(ctx)
+				if err != nil {
+					return 0, err
+				}
+				return uint64(blk.Number), nil
+			})
+		}
+	}
+
 	if err := srv.Run(ctx); err != nil {
 		log.ErrorContext(ctx, "server error", "err", err)
 		os.Exit(1)

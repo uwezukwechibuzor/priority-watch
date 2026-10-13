@@ -35,9 +35,19 @@ type Server struct {
 
 	reqDuration *prometheus.HistogramVec
 
+	// headFunc returns the live chain tip block number. Optional — if nil,
+	// max_block_number in KPI responses falls back to 0.
+	headFunc func(context.Context) (uint64, error)
+
 	// rate limiter references stored so tests can swap them
 	rateLimiterAPI      func(http.Handler) http.Handler
 	rateLimiterDatasets func(http.Handler) http.Handler
+}
+
+// WithHeadFunc sets the function used to fetch the live chain tip block number.
+func (s *Server) WithHeadFunc(f func(context.Context) (uint64, error)) *Server {
+	s.headFunc = f
+	return s
 }
 
 // New creates a Server with the given config and read-only ClickHouse connection.
@@ -111,7 +121,12 @@ func (s *Server) mountRoutes() {
 		r.Use(s.cacheMiddleware)
 
 		// Register typed huma handlers (all mounted on s.api which uses r).
-		registerBlockHandlers(s.api, s.store)
+		registerBlockHandlers(s.api, s.store, func(ctx context.Context) (uint64, error) {
+				if s.headFunc == nil {
+					return 0, nil
+				}
+				return s.headFunc(ctx)
+			})
 		registerHealthHandlers(s.api, s.store)
 		registerTreasuryHandlers(s.api, s.store)
 		registerCompareHandlers(s.api, s.store)
