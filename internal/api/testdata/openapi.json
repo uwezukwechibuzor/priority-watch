@@ -1352,8 +1352,8 @@
         "additionalProperties": false,
         "properties": {
           "lag_seconds": {
-            "format": "double",
-            "type": "number"
+            "format": "int64",
+            "type": "integer"
           },
           "last_updated_at": {
             "format": "date-time",

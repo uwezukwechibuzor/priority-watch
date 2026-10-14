@@ -658,7 +658,7 @@ func (s *Store) GetHealthDaily(ctx context.Context, rangeStr string) ([]HealthDa
 type IngesterStatusRow struct {
 	Source          string    `json:"source"`
 	Status          string    `json:"status"`
-	LagSeconds      float64   `json:"lag_seconds"`
+	LagSeconds      int64     `json:"lag_seconds"`
 	LatestPosition  string    `json:"latest_position"`
 	LatestTimestamp time.Time `json:"latest_timestamp"`
 	LastUpdatedAt   time.Time `json:"last_updated_at"`
@@ -672,8 +672,8 @@ func (s *Store) GetIngesterStatus(ctx context.Context) ([]IngesterStatusRow, err
 	rows, err := s.query(ctx, `
 		SELECT
 			source,
-			if(dateDiff('second', upd, now()) > 120, 'lagging',
-				if(dateDiff('second', upd, now()) > 300, 'down', 'live')) AS status,
+			if(dateDiff('second', upd, now()) > 300, 'down',
+				if(dateDiff('second', upd, now()) > 120, 'lagging', 'live')) AS status,
 			dateDiff('second', lat, now()) AS lag_seconds,
 			pos, lat, upd
 		FROM (
