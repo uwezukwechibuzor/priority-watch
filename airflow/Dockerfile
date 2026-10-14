@@ -13,8 +13,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 
 # Copy source (only what pw-ingester needs).
-COPY cmd/pw-ingester/ ./cmd/pw-ingester/
-COPY internal/           ./internal/
+COPY cmd/pw-ingester/          ./cmd/pw-ingester/
+COPY internal/                 ./internal/
+COPY infra/clickhouse/migrations/ ./infra/clickhouse/migrations/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
