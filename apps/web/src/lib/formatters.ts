@@ -12,7 +12,7 @@ export function weiToEth(wei: string | number | bigint): string {
 
 export function formatEth(eth: number, fractionDigits = 6): string {
   if (eth === 0) return "0 ETH";
-  if (eth < 0.000001) return `${(eth * ETH_DECIMALS).toFixed(2)} gwei`;
+  if (eth < 0.000001) return `${(eth * GWEI_DECIMALS).toFixed(4)} gwei`;
   return `${eth.toFixed(fractionDigits)} ETH`;
 }
 

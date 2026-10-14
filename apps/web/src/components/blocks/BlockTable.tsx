@@ -77,16 +77,17 @@ export function BlockTable({
   }, [rows, virtualizer, onBlockSelect]);
 
   // flex: 0 = fixed width; flex > 0 = grows proportionally to fill available space
+  // align: "right" for numeric columns so values sit under their headers
   const COLS = [
-    { key: "block",   header: "BLOCK",       minWidth: 112, flex: 0 },
-    { key: "time",    header: "TIME",         minWidth: 100, flex: 1 },
-    { key: "txs",     header: "TXS",          minWidth: 50,  flex: 0 },
-    { key: "payer",   header: "TOP PAYER",    minWidth: 160, flex: 2 },
-    { key: "fee",     header: "TOP FEE",      minWidth: 100, flex: 1 },
-    { key: "revenue", header: "TIP REVENUE",  minWidth: 120, flex: 1 },
-    { key: "ratio",   header: "2ND/1ST",      minWidth: 100, flex: 0 },
-    { key: "tipped",  header: "TIPPED",       minWidth: 60,  flex: 0 },
-    { key: "type",    header: "TYPE",         minWidth: 90,  flex: 0 },
+    { key: "block", header: "BLOCK", minWidth: 108, flex: 0, align: "left" as const },
+    { key: "time", header: "TIME", minWidth: 88, flex: 1, align: "left" as const },
+    { key: "txs", header: "TXS", minWidth: 44, flex: 0, align: "right" as const },
+    { key: "payer", header: "TOP PAYER", minWidth: 160, flex: 2, align: "left" as const },
+    { key: "fee", header: "TOP FEE", minWidth: 96, flex: 1, align: "right" as const },
+    { key: "revenue", header: "TIP REVENUE", minWidth: 110, flex: 1, align: "right" as const },
+    { key: "ratio", header: "2ND/1ST", minWidth: 96, flex: 0, align: "right" as const },
+    { key: "tipped", header: "TIPPED", minWidth: 56, flex: 0, align: "right" as const },
+    { key: "type", header: "TYPE", minWidth: 88, flex: 0, align: "left" as const },
   ];
 
   function renderCell(row: BlockRow, key: string) {
@@ -197,6 +198,7 @@ export function BlockTable({
               textTransform: "uppercase",
               letterSpacing: "0.06em",
               color: "var(--color-text-muted)",
+              textAlign: col.align,
             }}
           >
             {col.header}
@@ -264,6 +266,10 @@ export function BlockTable({
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
+                        textAlign: col.align,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: col.align === "right" ? "flex-end" : "flex-start",
                       }}
                     >
                       {renderCell(row, col.key)}

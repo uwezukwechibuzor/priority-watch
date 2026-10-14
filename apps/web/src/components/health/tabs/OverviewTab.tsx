@@ -2,7 +2,6 @@ import type { EventRow, HealthDailyRow, PayerShareRow } from "@/api/types";
 import { TxStatusChart } from "@/components/health/TxStatusChart";
 import { type Column, DataTable, Panel } from "@/components/ui";
 import { entityColor, formatEth, formatPct } from "@/lib/formatters";
-import { Sparkline } from "@/lib/sparkline";
 import { useECharts } from "@/lib/use-echarts";
 import type { EChartsOption } from "echarts";
 
@@ -288,9 +287,9 @@ function LeaderboardTable({ rows }: { rows: PayerShareRow[] }) {
     {
       key: "entity",
       header: "Entity",
-      minWidth: 140,
+      minWidth: 180,
       render: (row) => (
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <span
             style={{
               width: 8,
@@ -300,21 +299,27 @@ function LeaderboardTable({ rows }: { rows: PayerShareRow[] }) {
               flexShrink: 0,
             }}
           />
-          <span style={{ fontSize: 12 }}>{row.entity_name}</span>
+          <span
+            style={{
+              fontSize: 12,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {row.entity_name}
+          </span>
         </span>
       ),
     },
     {
       key: "tips",
       header: "Tips (ETH)",
-      width: 120,
+      width: 130,
       align: "right",
       render: (row) => (
-        <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-          <span className="tabular" style={{ fontSize: 12 }}>
-            {formatEth(row.tip_eth)}
-          </span>
-          <Sparkline data={[row.tip_eth]} height={20} color={entityColor(row.color_index)} />
+        <span className="tabular" style={{ fontSize: 12 }}>
+          {formatEth(row.tip_eth)}
         </span>
       ),
     },
@@ -332,7 +337,7 @@ function LeaderboardTable({ rows }: { rows: PayerShareRow[] }) {
     {
       key: "revert",
       header: "Revert Rate",
-      width: 90,
+      width: 100,
       align: "right",
       render: (row) => (
         <span
@@ -349,7 +354,7 @@ function LeaderboardTable({ rows }: { rows: PayerShareRow[] }) {
     {
       key: "avg_rank",
       header: "Avg Position",
-      width: 90,
+      width: 100,
       align: "right",
       render: (row) => (
         <span className="tabular" style={{ fontSize: 12 }}>
