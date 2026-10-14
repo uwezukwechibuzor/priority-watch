@@ -387,22 +387,37 @@ func (s *Store) GetAllPayers(ctx context.Context, limit int) ([]AllPayerRow, err
 	if limit <= 0 || limit > 1000 {
 		limit = 200
 	}
-	// agg_payer_share_daily is a 1k-row daily aggregate — orders of magnitude
-	// faster than scanning 7M-row fct_transactions FINAL (40s → <3s).
-	// entity_name is either a label like "Bot (0xabc…)" or the raw from_address;
-	// extract() pulls the embedded hex address in both cases.
+	// Two-CTE approach: rank from the tiny daily aggregate (fast), then look up
+	// the top contract from fct_transactions WITHOUT FINAL for just those 200
+	// entities. Removing FINAL on the contract lookup cuts time from 40s → ~1.5s.
 	sql := fmt.Sprintf(`
+		WITH top AS (
+			SELECT entity_name, sum(tip_eth) AS tip_eth, sum(tx_count) AS tx_count
+			FROM marts.agg_payer_share_daily FINAL
+			GROUP BY entity_name
+			ORDER BY tip_eth DESC
+			LIMIT %d
+		),
+		contracts AS (
+			SELECT
+				entity_name,
+				anyIf(from_address,         from_address         != '') AS from_address,
+				argMaxIf(to_address,         tip_paid_eth, to_address         != '') AS top_contract,
+				argMaxIf(entity_address_label, tip_paid_eth, entity_address_label != '') AS contract_label
+			FROM marts.fct_transactions
+			WHERE entity_name IN (SELECT entity_name FROM top)
+			GROUP BY entity_name
+		)
 		SELECT
-			coalesce(nullIf(extract(entity_name, '0x[0-9a-fA-F]{40}'), ''), entity_name) AS from_address,
-			entity_name,
-			''               AS top_contract,
-			''               AS contract_label,
-			sum(tip_eth)     AS tip_eth,
-			sum(tx_count)    AS tx_count
-		FROM marts.agg_payer_share_daily FINAL
-		GROUP BY entity_name
-		ORDER BY tip_eth DESC
-		LIMIT %d
+			coalesce(nullIf(c.from_address, ''), t.entity_name) AS from_address,
+			t.entity_name,
+			coalesce(c.top_contract, '')    AS top_contract,
+			coalesce(c.contract_label, '')  AS contract_label,
+			t.tip_eth,
+			t.tx_count
+		FROM top t
+		LEFT JOIN contracts c ON t.entity_name = c.entity_name
+		ORDER BY t.tip_eth DESC
 		SETTINGS max_threads=4, max_memory_usage=1500000000, max_execution_time=60`, limit)
 
 	rows, err := s.query(ctx, sql)
