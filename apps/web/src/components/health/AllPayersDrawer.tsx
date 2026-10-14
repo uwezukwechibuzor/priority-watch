@@ -21,6 +21,76 @@ function displayName(r: AllPayerRow): string {
   return r.entity_name !== r.from_address ? r.entity_name : shortAddr(r.from_address);
 }
 
+function PayersBarChart({ rows }: { rows: AllPayerRow[] }) {
+  const top = rows.slice(0, 20);
+  const labels = top.map((r) => displayName(r));
+  const values = top.map((r) => +r.tip_eth.toFixed(6));
+
+  const option = useMemo<EChartsOption>(
+    () => ({
+      grid: { left: 120, right: 60, top: 8, bottom: 8, containLabel: false },
+      xAxis: {
+        type: "value",
+        axisLabel: { color: "#6b7280", fontSize: 10, formatter: (v: number) => `${v.toFixed(3)}` },
+        splitLine: { lineStyle: { color: "#2a2a2a" } },
+      },
+      yAxis: {
+        type: "category",
+        data: [...labels].reverse(),
+        axisLabel: {
+          color: "#9ca3af",
+          fontSize: 10,
+          width: 110,
+          overflow: "truncate",
+          fontFamily: "var(--font-mono, monospace)",
+        },
+        axisTick: { show: false },
+        axisLine: { show: false },
+      },
+      series: [
+        {
+          type: "bar",
+          data: [...values].reverse(),
+          barMaxWidth: 16,
+          itemStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 1,
+              y2: 0,
+              colorStops: [
+                { offset: 0, color: "#2563eb" },
+                { offset: 1, color: "#38bdf8" },
+              ],
+            },
+            borderRadius: [0, 3, 3, 0],
+          },
+          label: {
+            show: true,
+            position: "right",
+            fontSize: 10,
+            color: "#9ca3af",
+            formatter: (p: { value: number }) => `${p.value.toFixed(4)} ETH`,
+          },
+        },
+      ],
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params: { name: string; value: number }[]) => {
+          const p = params[0];
+          return `${p.name}<br/>${p.value.toFixed(6)} ETH`;
+        },
+      },
+    }),
+    [labels, values],
+  );
+
+  const ref = useECharts(option, [option]);
+  return <div ref={ref} style={{ width: "100%", height: top.length * 28 + 20 }} />;
+}
+
 function PayersTreemap({ rows }: { rows: AllPayerRow[] }) {
   const totalEth = rows.reduce((s, r) => s + r.tip_eth, 0);
 
@@ -115,6 +185,31 @@ export function AllPayersDrawer({ open, onClose }: AllPayersDrawerProps) {
             All Payers — Total Tip (ETH) · hover for details
           </div>
           <PayersTreemap rows={rows} />
+        </div>
+      )}
+
+      {/* Top-20 bar chart */}
+      {!isLoading && rows.length > 0 && (
+        <div
+          style={{
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: "1px solid var(--color-border)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: "var(--color-text-muted)",
+              marginBottom: 8,
+            }}
+          >
+            Top 20 Payers — Total Tip (ETH)
+          </div>
+          <PayersBarChart rows={rows} />
         </div>
       )}
 
