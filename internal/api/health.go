@@ -197,6 +197,29 @@ func registerHealthHandlers(api huma.API, st *Store) {
 		return out, nil
 	})
 
+	// GET /api/v1/health/tx-status
+	type txStatusOutput struct {
+		Body struct {
+			Data []TxStatusRow `json:"data"`
+		}
+	}
+	huma.Register(api, huma.Operation{
+		OperationID: "get-health-tx-status",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/health/tx-status",
+		Tags:        []string{"Health"},
+		Summary:     "Success vs failed transaction counts over time",
+		Description: "Returns per-bucket counts of successful (status=1) and failed (status=0) transactions. Granularity: 1h→minute, 24h→hour, 7d→6h, 30d/all→day.",
+	}, func(ctx context.Context, input *rangeInput) (*txStatusOutput, error) {
+		rows, err := st.GetTxStatus(ctx, input.Range)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("query failed", err)
+		}
+		out := &txStatusOutput{}
+		out.Body.Data = rows
+		return out, nil
+	})
+
 	// GET /api/v1/health/payers
 	type allPayersInput struct {
 		Limit int `query:"limit" default:"200" minimum:"1" maximum:"1000"`

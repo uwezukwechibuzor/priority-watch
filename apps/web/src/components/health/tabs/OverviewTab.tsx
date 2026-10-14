@@ -1,4 +1,5 @@
 import type { EventRow, HealthDailyRow, PayerShareRow } from "@/api/types";
+import { TxStatusChart } from "@/components/health/TxStatusChart";
 import { type Column, DataTable, Panel } from "@/components/ui";
 import { entityColor, formatEth, formatPct } from "@/lib/formatters";
 import { Sparkline } from "@/lib/sparkline";
@@ -375,6 +376,7 @@ export function OverviewTab({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <RevenueChart daily={daily} events={events} />
+      <TxStatusChart />
       <HhiChart concentration={concentration} />
       <CompetitionChart competition={competition} />
       <LeaderboardTable rows={leaderboard} />

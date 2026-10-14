@@ -8,6 +8,7 @@ import type {
   PayerShareRow,
   TreasuryDailyRow,
   TreasurySummary,
+  TxStatusRow,
 } from "@/api/types";
 import { queryOptions } from "@tanstack/react-query";
 
@@ -116,6 +117,17 @@ export function treasuryReconQuery(range: string) {
     queryFn: () =>
       apiFetch<{ data: TreasuryDailyRow[] | null }>(
         `/api/v1/treasury/reconciliation?${buildQS({ range })}`,
+      ).then((r) => r.data ?? []),
+    staleTime: 60_000,
+  });
+}
+
+export function txStatusQuery(range: string) {
+  return queryOptions({
+    queryKey: ["health", "tx-status", range],
+    queryFn: () =>
+      apiFetch<{ data: TxStatusRow[] | null }>(
+        `/api/v1/health/tx-status?${buildQS({ range })}`,
       ).then((r) => r.data ?? []),
     staleTime: 60_000,
   });

@@ -79,6 +79,12 @@ export interface PayerShareRow {
   avg_tip_rank: number;
 }
 
+export interface TxStatusRow {
+  ts: string;
+  success_count: number;
+  fail_count: number;
+}
+
 export interface AllPayerRow {
   from_address: string;
   entity_name: string;

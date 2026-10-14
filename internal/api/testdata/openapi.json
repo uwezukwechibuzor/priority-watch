@@ -1,6 +1,68 @@
 {
   "components": {
     "schemas": {
+      "AllPayerRow": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_label": {
+            "type": "string"
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "from_address": {
+            "type": "string"
+          },
+          "tip_eth": {
+            "format": "double",
+            "type": "number"
+          },
+          "to_address": {
+            "type": "string"
+          },
+          "tx_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from_address",
+          "entity_name",
+          "to_address",
+          "contract_label",
+          "tip_eth",
+          "tx_count"
+        ],
+        "type": "object"
+      },
+      "AllPayersOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/AllPayersOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AllPayerRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "BacktestRunRow": {
         "additionalProperties": false,
         "properties": {
@@ -230,6 +292,11 @@
           "hhi_band": {
             "type": "string"
           },
+          "max_block_number": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
           "tip_revenue_eth": {
             "format": "double",
             "type": "number"
@@ -251,6 +318,7 @@
         },
         "required": [
           "block_count",
+          "max_block_number",
           "tip_revenue_wei",
           "tip_revenue_eth",
           "tip_revenue_usd",
@@ -2202,6 +2270,58 @@
         ],
         "type": "object"
       },
+      "TxStatusOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/TxStatusOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TxStatusRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "TxStatusRow": {
+        "additionalProperties": false,
+        "properties": {
+          "fail_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "success_count": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "ts": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts",
+          "success_count",
+          "fail_count"
+        ],
+        "type": "object"
+      },
       "UserCostOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -3398,6 +3518,52 @@
         ]
       }
     },
+    "/api/v1/health/payers": {
+      "get": {
+        "description": "Returns every tipping address grouped with the contract most interacted with, ordered by total tip paid descending.",
+        "operationId": "get-health-payers",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 200,
+              "format": "int64",
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllPayersOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "All payers with contract and tip history",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
     "/api/v1/health/revenue": {
       "get": {
         "operationId": "get-health-revenue",
@@ -3491,6 +3657,56 @@
           }
         },
         "summary": "Daily revert rates (tipped vs. untipped txs)",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/tx-status": {
+      "get": {
+        "description": "Returns per-bucket counts of successful (status=1) and failed (status=0) transactions. Granularity: 1h→minute, 24h→hour, 7d→6h, 30d/all→day.",
+        "operationId": "get-health-tx-status",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "1h",
+                "24h",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TxStatusOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Success vs failed transaction counts over time",
         "tags": [
           "Health"
         ]

@@ -1258,6 +1258,62 @@ func (s *Store) Search(ctx context.Context, q string) ([]SearchResult, error) {
 	return out, rows.Err()
 }
 
+// TxStatusRow is one time-bucket of success/fail transaction counts.
+type TxStatusRow struct {
+	Ts           time.Time `json:"ts"`
+	SuccessCount uint64    `json:"success_count"`
+	FailCount    uint64    `json:"fail_count"`
+}
+
+// GetTxStatus returns per-bucket success/fail tx counts for the given range.
+// Bucket granularity: 1h→minute, 24h→hour, 7d→6-hour, 30d/all→day.
+func (s *Store) GetTxStatus(ctx context.Context, rangeStr string) ([]TxStatusRow, error) {
+	cutoff, err := rangeCutoff(rangeStr)
+	if err != nil {
+		return nil, err
+	}
+
+	var bucketExpr string
+	switch rangeStr {
+	case "1h":
+		bucketExpr = "toStartOfMinute(block_timestamp)"
+	case "24h":
+		bucketExpr = "toStartOfHour(block_timestamp)"
+	case "7d":
+		bucketExpr = "toStartOfInterval(block_timestamp, INTERVAL 6 HOUR)"
+	default:
+		bucketExpr = "toStartOfDay(block_timestamp)"
+	}
+
+	rows, err := s.query(ctx,
+		fmt.Sprintf(`
+			SELECT
+				%s AS ts,
+				countIf(status = 1) AS success_count,
+				countIf(status = 0) AS fail_count
+			FROM marts.fct_transactions FINAL
+			WHERE block_timestamp >= @cutoff
+			GROUP BY ts
+			ORDER BY ts
+			SETTINGS max_threads=4, max_memory_usage=1500000000, max_execution_time=60`,
+			bucketExpr),
+		namedParam("cutoff", cutoff))
+	if err != nil {
+		return nil, fmt.Errorf("GetTxStatus: %w", err)
+	}
+	defer rows.Close() //nolint:errcheck
+
+	var out []TxStatusRow
+	for rows.Next() {
+		var r TxStatusRow
+		if err := rows.Scan(&r.Ts, &r.SuccessCount, &r.FailCount); err != nil {
+			return nil, fmt.Errorf("GetTxStatus scan: %w", err)
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
 // namedParam is a convenience wrapper for clickhouse named parameters.
 func namedParam(name string, value any) driver.NamedValue {
 	return clickhouse.Named(name, value)

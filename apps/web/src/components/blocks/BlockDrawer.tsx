@@ -23,7 +23,9 @@ function entityLabel(tx: TxRow): string {
 }
 
 function contractLine(tx: TxRow): string {
-  return tx.entity_address_label ? `<span style="color:#6b7280">${tx.entity_address_label}</span>` : "";
+  return tx.entity_address_label
+    ? `<span style="color:#6b7280">${tx.entity_address_label}</span>`
+    : "";
 }
 
 function FeeLadderChart({ txs }: { txs: TxRow[] }) {
@@ -98,7 +100,11 @@ function FeeLadderChart({ txs }: { txs: TxRow[] }) {
       <div className="label" style={{ marginBottom: 6 }}>
         FEE LADDER (2ND/1ST:{" "}
         <span style={{ color: "#f59e0b" }}>
-          {((tipped[1].priority_fee_per_gas_gwei / tipped[0].priority_fee_per_gas_gwei) * 100).toFixed(1)}%
+          {(
+            (tipped[1].priority_fee_per_gas_gwei / tipped[0].priority_fee_per_gas_gwei) *
+            100
+          ).toFixed(1)}
+          %
         </span>
         )
       </div>
@@ -154,7 +160,9 @@ function TipRevenueChart({ txs }: { txs: TxRow[] }) {
           `Tip: ${p.value.toFixed(8)} ETH`,
           `Share: ${share}% of block tips`,
           `Gas: ${tx.gas_used.toLocaleString()}`,
-        ].filter(Boolean).join("<br/>");
+        ]
+          .filter(Boolean)
+          .join("<br/>");
       },
     },
     series: [
@@ -170,8 +178,10 @@ function TipRevenueChart({ txs }: { txs: TxRow[] }) {
           position: "right",
           fontSize: 9,
           color: "#9ca3af",
-          formatter: (p: { value: number }) =>
-            totalEth > 0 ? `${((p.value / totalEth) * 100).toFixed(1)}%` : "",
+          formatter: (raw: unknown) => {
+            const v = (raw as { value: number }).value;
+            return totalEth > 0 ? `${((v / totalEth) * 100).toFixed(1)}%` : "";
+          },
         },
       },
     ],
@@ -217,7 +227,7 @@ function TxClassChart({ txs }: { txs: TxRow[] }) {
       type: "category",
       data: entries.map(([cls]) => cls),
       inverse: true,
-      axisLabel: { fontSize: 10, color: "#d1d5db", textTransform: "capitalize" },
+      axisLabel: { fontSize: 10, color: "#d1d5db" },
       axisLine: { show: false },
       axisTick: { show: false },
     },
@@ -241,7 +251,7 @@ function TxClassChart({ txs }: { txs: TxRow[] }) {
           position: "right",
           fontSize: 10,
           color: "#9ca3af",
-          formatter: (p: { value: number }) => String(p.value),
+          formatter: (raw: unknown) => String((raw as { value: number }).value),
         },
       },
     ],
@@ -258,14 +268,12 @@ function TxClassChart({ txs }: { txs: TxRow[] }) {
 }
 
 function BasePriorityStackChart({ txs, baseFeeGwei }: { txs: TxRow[]; baseFeeGwei: number }) {
-  const sorted = txs
-    .filter((t) => t.gas_used > 0)
-    .sort((a, b) => a.tip_rank - b.tip_rank);
+  const sorted = txs.filter((t) => t.gas_used > 0).sort((a, b) => a.tip_rank - b.tip_rank);
   if (sorted.length === 0) return null;
 
   const labels = sorted.map((t) => entityLabel(t));
   const baseFees = sorted.map((t) => +(baseFeeGwei * (t.gas_used / 1e9)).toFixed(8));
-  const tipFees = sorted.map((t) => +(t.tip_paid_eth));
+  const tipFees = sorted.map((t) => +t.tip_paid_eth);
   const chartHeight = Math.max(100, sorted.length * 26 + 40);
 
   const option: EChartsOption = {
@@ -315,7 +323,9 @@ function BasePriorityStackChart({ txs, baseFeeGwei }: { txs: TxRow[]; baseFeeGwe
           `Base Fee: ${base.toFixed(8)} ETH`,
           `Priority Fee: ${tip.toFixed(8)} ETH`,
           `PGA share: ${pct}%`,
-        ].filter(Boolean).join("<br/>");
+        ]
+          .filter(Boolean)
+          .join("<br/>");
       },
     },
     series: [
@@ -348,9 +358,7 @@ function BasePriorityStackChart({ txs, baseFeeGwei }: { txs: TxRow[]; baseFeeGwe
 }
 
 function CumulativeTipChart({ txs }: { txs: TxRow[] }) {
-  const sorted = txs
-    .filter((t) => t.tip_paid_eth > 0)
-    .sort((a, b) => a.tip_rank - b.tip_rank);
+  const sorted = txs.filter((t) => t.tip_paid_eth > 0).sort((a, b) => a.tip_rank - b.tip_rank);
   if (sorted.length < 2) return null;
 
   const total = sorted.reduce((s, t) => s + t.tip_paid_eth, 0);
@@ -389,7 +397,9 @@ function CumulativeTipChart({ txs }: { txs: TxRow[] }) {
           contractLine(tx),
           `Cumulative: ${p.value}% of block tips`,
           `This tx: ${tx.tip_paid_eth.toFixed(8)} ETH`,
-        ].filter(Boolean).join("<br/>");
+        ]
+          .filter(Boolean)
+          .join("<br/>");
       },
     },
     series: [
@@ -486,7 +496,7 @@ function PGAParticipantsChart({ txs }: { txs: TxRow[] }) {
           position: "right",
           fontSize: 9,
           color: "#9ca3af",
-          formatter: (p: { value: number }) => p.value.toFixed(4),
+          formatter: (raw: unknown) => (raw as { value: number }).value.toFixed(4),
         },
       },
     ],
@@ -586,7 +596,9 @@ export function BlockDrawer({ blockNumber, onClose }: BlockDrawerProps) {
           {/* Tx classification — what types of activity competed */}
           {txs.length > 0 && <TxClassChart txs={txs} />}
           {/* Base fee vs priority fee stacked per tx */}
-          {txs.length > 0 && block && <BasePriorityStackChart txs={txs} baseFeeGwei={block.base_fee_per_gas_gwei} />}
+          {txs.length > 0 && block && (
+            <BasePriorityStackChart txs={txs} baseFeeGwei={block.base_fee_per_gas_gwei} />
+          )}
           {/* Cumulative tip revenue waterfall */}
           {txs.length > 0 && <CumulativeTipChart txs={txs} />}
 

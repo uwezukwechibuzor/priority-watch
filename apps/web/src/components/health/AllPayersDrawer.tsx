@@ -71,15 +71,15 @@ function PayersBarChart({ rows }: { rows: AllPayerRow[] }) {
             position: "right",
             fontSize: 10,
             color: "#9ca3af",
-            formatter: (p: { value: number }) => `${p.value.toFixed(4)} ETH`,
+            formatter: (raw: unknown) => `${(raw as { value: number }).value.toFixed(4)} ETH`,
           },
         },
       ],
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "shadow" },
-        formatter: (params: { name: string; value: number }[]) => {
-          const p = params[0];
+        formatter: (raw: unknown) => {
+          const p = (raw as { name: string; value: number }[])[0];
           return `${p.name}<br/>${p.value.toFixed(6)} ETH`;
         },
       },
@@ -97,13 +97,15 @@ function PayersTreemap({ rows }: { rows: AllPayerRow[] }) {
   const option = useMemo<EChartsOption>(
     () => ({
       tooltip: {
-        formatter: (p: { name: string; value: number; data: { txCount: number } }) =>
-          [
+        formatter: (raw: unknown) => {
+          const p = raw as { name: string; value: number; data: { txCount: number } };
+          return [
             `<span style="font-family:monospace;font-size:11px">${p.name}</span>`,
             `<b>${p.value.toFixed(6)} ETH</b>`,
             `${((p.value / totalEth) * 100).toFixed(2)}% of total`,
             `${p.data.txCount.toLocaleString()} txs`,
-          ].join("<br/>"),
+          ].join("<br/>");
+        },
       },
       series: [
         {
@@ -128,8 +130,10 @@ function PayersTreemap({ rows }: { rows: AllPayerRow[] }) {
               color: "#e5e7eb",
               fontSize: Math.max(9, 13 - Math.floor(i / 20)),
               fontFamily: "var(--font-mono, monospace)",
-              formatter: ({ name, value }: { name: string; value: number }) =>
-                i < 40 ? `${name}\n${(value as number).toFixed(4)} ETH` : name,
+              formatter: (p: unknown) => {
+                const { name, value } = p as { name: string; value: number };
+                return i < 40 ? `${name}\n${value.toFixed(4)} ETH` : name;
+              },
             },
           })),
           emphasis: {
