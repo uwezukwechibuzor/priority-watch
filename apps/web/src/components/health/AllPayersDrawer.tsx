@@ -3,8 +3,8 @@ import { Drawer } from "@/components/ui/Drawer";
 import { formatEth } from "@/lib/formatters";
 import { useECharts } from "@/lib/use-echarts";
 import { allPayersQuery } from "@/queries/health";
-import type { EChartsOption } from "echarts";
 import { useQuery } from "@tanstack/react-query";
+import type { EChartsOption } from "echarts";
 import { useMemo, useState } from "react";
 
 interface AllPayersDrawerProps {
@@ -17,74 +17,62 @@ function shortAddr(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
-function PayersBarChart({ rows }: { rows: AllPayerRow[] }) {
-  const top = rows.slice(0, 20);
-  const labels = top.map((r) =>
-    r.entity_name !== r.from_address ? r.entity_name : shortAddr(r.from_address),
-  );
-  const values = top.map((r) => +r.tip_eth.toFixed(6));
+function displayName(r: AllPayerRow): string {
+  return r.entity_name !== r.from_address ? r.entity_name : shortAddr(r.from_address);
+}
+
+function PayersTreemap({ rows }: { rows: AllPayerRow[] }) {
+  const totalEth = rows.reduce((s, r) => s + r.tip_eth, 0);
 
   const option = useMemo<EChartsOption>(
     () => ({
-      grid: { left: 120, right: 60, top: 8, bottom: 8, containLabel: false },
-      xAxis: {
-        type: "value",
-        axisLabel: { color: "#6b7280", fontSize: 10, formatter: (v: number) => `${v.toFixed(3)}` },
-        splitLine: { lineStyle: { color: "#2a2a2a" } },
-      },
-      yAxis: {
-        type: "category",
-        data: [...labels].reverse(),
-        axisLabel: {
-          color: "#9ca3af",
-          fontSize: 10,
-          width: 110,
-          overflow: "truncate",
-          fontFamily: "var(--font-mono, monospace)",
-        },
-        axisTick: { show: false },
-        axisLine: { show: false },
+      tooltip: {
+        formatter: (p: { name: string; value: number; data: { txCount: number } }) =>
+          [
+            `<span style="font-family:monospace;font-size:11px">${p.name}</span>`,
+            `<b>${p.value.toFixed(6)} ETH</b>`,
+            `${((p.value / totalEth) * 100).toFixed(2)}% of total`,
+            `${p.data.txCount.toLocaleString()} txs`,
+          ].join("<br/>"),
       },
       series: [
         {
-          type: "bar",
-          data: [...values].reverse(),
-          barMaxWidth: 16,
-          itemStyle: {
-            color: {
-              type: "linear",
-              x: 0, y: 0, x2: 1, y2: 0,
-              colorStops: [
-                { offset: 0, color: "#2563eb" },
-                { offset: 1, color: "#38bdf8" },
-              ],
+          type: "treemap",
+          roam: false,
+          nodeClick: false,
+          breadcrumb: { show: false },
+          width: "100%",
+          height: "100%",
+          data: rows.map((r, i) => ({
+            name: displayName(r),
+            value: +r.tip_eth.toFixed(8),
+            txCount: r.tx_count,
+            itemStyle: {
+              color: `hsl(${210 + ((i * 7) % 60)}, ${70 - (i % 3) * 10}%, ${38 - Math.min(i, 20) * 0.6}%)`,
+              borderColor: "#111",
+              borderWidth: 1,
+              gapWidth: 1,
             },
-            borderRadius: [0, 3, 3, 0],
-          },
-          label: {
-            show: true,
-            position: "right",
-            fontSize: 10,
-            color: "#9ca3af",
-            formatter: (p: { value: number }) => `${p.value.toFixed(4)} ETH`,
+            label: {
+              show: true,
+              color: "#e5e7eb",
+              fontSize: Math.max(9, 13 - Math.floor(i / 20)),
+              fontFamily: "var(--font-mono, monospace)",
+              formatter: ({ name, value }: { name: string; value: number }) =>
+                i < 40 ? `${name}\n${(value as number).toFixed(4)} ETH` : name,
+            },
+          })),
+          emphasis: {
+            itemStyle: { borderColor: "#38bdf8", borderWidth: 2 },
           },
         },
       ],
-      tooltip: {
-        trigger: "axis",
-        axisPointer: { type: "shadow" },
-        formatter: (params: { name: string; value: number }[]) => {
-          const p = params[0];
-          return `${p.name}<br/>${p.value.toFixed(6)} ETH`;
-        },
-      },
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rows],
+    [rows, totalEth],
   );
 
   const ref = useECharts(option, [option]);
-  return <div ref={ref} style={{ width: "100%", height: top.length * 28 + 20 }} />;
+  return <div ref={ref} style={{ width: "100%", height: 420 }} />;
 }
 
 export function AllPayersDrawer({ open, onClose }: AllPayersDrawerProps) {
@@ -105,7 +93,7 @@ export function AllPayersDrawer({ open, onClose }: AllPayersDrawerProps) {
 
   return (
     <Drawer open={open} onClose={onClose} title="ALL PAYERS — HISTORICAL" width={780}>
-      {/* Bar chart — top 20 by tip */}
+      {/* Treemap — all payers by tip */}
       {!isLoading && rows.length > 0 && (
         <div
           style={{
@@ -124,9 +112,9 @@ export function AllPayersDrawer({ open, onClose }: AllPayersDrawerProps) {
               marginBottom: 8,
             }}
           >
-            Top 20 Payers — Total Tip (ETH)
+            All Payers — Total Tip (ETH) · hover for details
           </div>
-          <PayersBarChart rows={rows} />
+          <PayersTreemap rows={rows} />
         </div>
       )}
 
@@ -221,7 +209,8 @@ export function AllPayersDrawer({ open, onClose }: AllPayersDrawerProps) {
           color: "var(--color-text-muted)",
         }}
       >
-        {filtered.length} payers{filter ? ` (filtered from ${rows.length})` : ""} · all-time · contract = most-tipped interaction
+        {filtered.length} payers{filter ? ` (filtered from ${rows.length})` : ""} · all-time ·
+        contract = most-tipped interaction
       </div>
     </Drawer>
   );
@@ -269,7 +258,11 @@ function PayerRow({ rank, row }: { rank: number; row: AllPayerRow }) {
         {row.to_address ? (
           <span
             title={row.to_address}
-            style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-text-muted)" }}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              color: "var(--color-text-muted)",
+            }}
           >
             {shortAddr(row.to_address)}
           </span>
