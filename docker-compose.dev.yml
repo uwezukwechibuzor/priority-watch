@@ -28,3 +28,12 @@ services:
   postgres:
     ports:
       - "5432:5432"
+
+  api:
+    environment:
+      # Override .env's localhost:9000 — inside the container the CH service is reachable as clickhouse:9000.
+      CLICKHOUSE_ADDR: clickhouse:9000
+    # distroless image has no shell/wget; disable the inherited healthcheck in dev.
+    # The API is considered ready once the container starts (Docker treats NONE as immediately healthy).
+    healthcheck:
+      test: ["NONE"]

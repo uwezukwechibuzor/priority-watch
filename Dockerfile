@@ -25,7 +25,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     -o /out/service ./cmd/${SERVICE}
 
 # ── Stage 2: Minimal runtime ────────────────────────────────────────────────────
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12:debug-nonroot
 
 COPY --from=builder /out/service /service
 
