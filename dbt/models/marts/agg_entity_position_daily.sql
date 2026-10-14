@@ -21,7 +21,7 @@
 SELECT
     toDate(f.block_timestamp)                                       AS date,
     f.era,
-    coalesce(e.entity_name, f.from_address)                        AS entity_name,
+    coalesce(nullIf(e.entity_name, ''), f.from_address)                        AS entity_name,
     coalesce(e.entity_type, 'unknown')                             AS entity_type,
     coalesce(e.color_index, toUInt8(0))                            AS color_index,
     count()                                                        AS tx_count,

@@ -17,7 +17,7 @@ WITH entity_swap_markouts AS (
     SELECT
         toDate(m.block_timestamp)                                   AS date,
         m.era,
-        coalesce(e.entity_name, m.from_address)                    AS entity_name,
+        coalesce(nullIf(e.entity_name, ''), m.from_address)                    AS entity_name,
         coalesce(e.entity_type, 'unknown')                         AS entity_type,
         coalesce(e.color_index, toUInt8(0))                        AS color_index,
         -- Swap counts
@@ -43,7 +43,7 @@ WITH entity_swap_markouts AS (
 entity_fees AS (
     SELECT
         toDate(f.block_timestamp)                                   AS date,
-        coalesce(e.entity_name, f.from_address)                    AS entity_name,
+        coalesce(nullIf(e.entity_name, ''), f.from_address)                    AS entity_name,
         count()                                                    AS tx_count,
         countIf(f.priority_fee_per_gas > 0)                       AS tipped_tx_count,
         countIf(f.status = 0)                                     AS revert_count,
@@ -64,7 +64,7 @@ entity_fees AS (
 entity_wasted AS (
     SELECT
         toDate(ss.block_timestamp)                                  AS date,
-        coalesce(e.entity_name, ss.from_address)                   AS entity_name,
+        coalesce(nullIf(e.entity_name, ''), ss.from_address)                   AS entity_name,
         sum(ss.tip_wasted_wei)                                     AS tip_wasted_wei,
         {{ wei_to_eth('sum(ss.tip_wasted_wei)') }}                 AS tip_wasted_eth
     FROM {{ ref('int_spam_signals') }} AS ss FINAL

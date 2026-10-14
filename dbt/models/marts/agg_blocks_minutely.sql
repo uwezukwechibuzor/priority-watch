@@ -12,7 +12,7 @@ WITH minute_entity AS (
     SELECT
         toStartOfMinute(f.block_timestamp)                              AS minute,
         f.era,
-        coalesce(e.entity_name, f.from_address)                        AS entity_name,
+        coalesce(nullIf(e.entity_name, ''), f.from_address)                        AS entity_name,
         sum(f.tip_paid_wei)                                            AS entity_tip_wei
     FROM {{ ref('int_tx_fees') }} AS f FINAL
     LEFT JOIN {{ ref('int_entities') }} AS e FINAL ON f.from_address = e.address

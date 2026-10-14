@@ -13,7 +13,7 @@
 WITH daily_entity AS (
     SELECT
         toDate(f.block_timestamp)                               AS date,
-        coalesce(e.entity_name, f.from_address)                AS entity_name,
+        coalesce(nullIf(e.entity_name, ''), f.from_address)                AS entity_name,
         coalesce(e.entity_type, 'unknown')                     AS entity_type,
         coalesce(e.color_index, toUInt8(0))                    AS color_index,
         coalesce(e.label_source, 'unlabelled')                 AS label_source,
@@ -42,7 +42,7 @@ WITH daily_entity AS (
 daily_contested AS (
     SELECT
         toDate(o.block_timestamp)                               AS date,
-        coalesce(e.entity_name, o.from_address)                AS entity_name,
+        coalesce(nullIf(e.entity_name, ''), o.from_address)                AS entity_name,
         countDistinctIf(o.block_number, o.block_type = 'contested') AS contested_blocks
     FROM {{ ref('int_block_ordering') }} AS o FINAL
     LEFT JOIN {{ ref('int_entities') }} AS e FINAL ON o.from_address = e.address
@@ -60,7 +60,7 @@ daily_contested AS (
 daily_rank AS (
     SELECT
         toDate(o.block_timestamp)                               AS date,
-        coalesce(e.entity_name, o.from_address)                AS entity_name,
+        coalesce(nullIf(e.entity_name, ''), o.from_address)                AS entity_name,
         avg(toFloat64(o.tip_rank))                             AS avg_tip_rank
     FROM {{ ref('int_block_ordering') }} AS o FINAL
     LEFT JOIN {{ ref('int_entities') }} AS e FINAL ON o.from_address = e.address

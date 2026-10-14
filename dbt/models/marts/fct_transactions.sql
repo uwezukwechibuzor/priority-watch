@@ -47,7 +47,7 @@ SELECT
     coalesce(ss.tip_wasted_wei, toUInt256(0))                  AS tip_wasted_wei,
     coalesce(ss.is_burst_candidate, toUInt8(0))                AS is_burst_candidate,
     -- Entity labels from int_entities
-    coalesce(e.entity_name, f.from_address)                    AS entity_name,
+    coalesce(nullIf(e.entity_name, ''), f.from_address)                    AS entity_name,
     coalesce(e.entity_type, 'unknown')                         AS entity_type,
     coalesce(e.color_index, toUInt8(0))                        AS color_index,
     coalesce(e.label_source, 'unlabelled')                     AS label_source,
