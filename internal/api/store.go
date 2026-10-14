@@ -1314,6 +1314,37 @@ func (s *Store) GetTxStatus(ctx context.Context, rangeStr string) ([]TxStatusRow
 	return out, rows.Err()
 }
 
+// ContractRow is one known contract address with its human-readable name.
+type ContractRow struct {
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	Note    string `json:"note"`
+}
+
+// GetContracts returns all verified contract labels from the contracts seed table.
+// Results are sorted by name; the caller may cache aggressively.
+func (s *Store) GetContracts(ctx context.Context) ([]ContractRow, error) {
+	rows, err := s.query(ctx, `
+		SELECT name, lower(address) AS address, note
+		FROM meta.contracts FINAL
+		WHERE address != ''
+		ORDER BY name`)
+	if err != nil {
+		return nil, fmt.Errorf("GetContracts: %w", err)
+	}
+	defer rows.Close() //nolint:errcheck
+
+	var out []ContractRow
+	for rows.Next() {
+		var r ContractRow
+		if err := rows.Scan(&r.Name, &r.Address, &r.Note); err != nil {
+			return nil, fmt.Errorf("GetContracts scan: %w", err)
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
 // namedParam is a convenience wrapper for clickhouse named parameters.
 func namedParam(name string, value any) driver.NamedValue {
 	return clickhouse.Named(name, value)

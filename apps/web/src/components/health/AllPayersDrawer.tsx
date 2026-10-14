@@ -2,6 +2,7 @@ import type { AllPayerRow } from "@/api/types";
 import { Drawer } from "@/components/ui/Drawer";
 import { formatEth } from "@/lib/formatters";
 import { useECharts } from "@/lib/use-echarts";
+import { resolveContractLabel, useContractNames } from "@/queries/contracts";
 import { allPayersQuery } from "@/queries/health";
 import { useQuery } from "@tanstack/react-query";
 import type { EChartsOption } from "echarts";
@@ -155,6 +156,7 @@ export function AllPayersDrawer({ open, onClose }: AllPayersDrawerProps) {
     enabled: open,
   });
   const [filter, setFilter] = useState("");
+  const contractNames = useContractNames();
 
   const filtered = filter
     ? rows.filter(
@@ -282,7 +284,12 @@ export function AllPayersDrawer({ open, onClose }: AllPayersDrawerProps) {
                   </tr>
                 ))
               : filtered.map((row, idx) => (
-                  <PayerRow key={row.from_address} rank={idx + 1} row={row} />
+                  <PayerRow
+                    key={row.from_address}
+                    rank={idx + 1}
+                    row={row}
+                    contractNames={contractNames}
+                  />
                 ))}
           </tbody>
         </table>
@@ -315,8 +322,18 @@ export function AllPayersDrawer({ open, onClose }: AllPayersDrawerProps) {
   );
 }
 
-function PayerRow({ rank, row }: { rank: number; row: AllPayerRow }) {
+function PayerRow({
+  rank,
+  row,
+  contractNames,
+}: { rank: number; row: AllPayerRow; contractNames: Map<string, string> }) {
   const isEntity = row.entity_name !== row.from_address;
+  const contractName = row.to_address
+    ? (contractNames.get(row.to_address.toLowerCase()) ?? null)
+    : null;
+  const resolvedLabel = row.contract_label
+    ? resolveContractLabel(row.contract_label, contractNames)
+    : null;
 
   return (
     <tr
@@ -355,22 +372,38 @@ function PayerRow({ rank, row }: { rank: number; row: AllPayerRow }) {
       </td>
       <td style={{ padding: "7px 8px" }}>
         {row.to_address ? (
-          <span
-            title={row.to_address}
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              color: "var(--color-text-muted)",
-            }}
-          >
-            {shortAddr(row.to_address)}
-          </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {contractName && (
+              <span
+                style={{
+                  padding: "1px 5px",
+                  background: "var(--color-bg-base)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 3,
+                  fontSize: 10,
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                {contractName}
+              </span>
+            )}
+            <span
+              title={row.to_address}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                color: "var(--color-text-muted)",
+              }}
+            >
+              {shortAddr(row.to_address)}
+            </span>
+          </div>
         ) : (
           <span style={{ color: "var(--color-text-muted)" }}>—</span>
         )}
       </td>
       <td style={{ padding: "7px 8px" }}>
-        {row.contract_label ? (
+        {resolvedLabel ? (
           <span
             style={{
               padding: "2px 6px",
@@ -381,7 +414,7 @@ function PayerRow({ rank, row }: { rank: number; row: AllPayerRow }) {
               color: "var(--color-text-primary)",
             }}
           >
-            {row.contract_label}
+            {resolvedLabel}
           </span>
         ) : (
           <span style={{ color: "var(--color-text-muted)" }}>—</span>

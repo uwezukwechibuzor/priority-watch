@@ -34,8 +34,8 @@ func TestValidateBlock(t *testing.T) {
 		{
 			name: "empty block",
 			block: chain.RPCBlock{
-				Number:       1,
-				Transactions: nil,
+				RPCBlockHeader: chain.RPCBlockHeader{Number: 1},
+				Transactions:   nil,
 			},
 			receipts: nil,
 			wantErr:  false,
@@ -43,8 +43,8 @@ func TestValidateBlock(t *testing.T) {
 		{
 			name: "matching tx and receipt",
 			block: chain.RPCBlock{
-				Number:       100,
-				Transactions: []chain.RPCTransaction{makeTx(hash1)},
+				RPCBlockHeader: chain.RPCBlockHeader{Number: 100},
+				Transactions:   []chain.RPCTransaction{makeTx(hash1)},
 			},
 			receipts: []chain.RPCReceipt{makeReceipt(hash1, 100)},
 			wantErr:  false,
@@ -52,8 +52,8 @@ func TestValidateBlock(t *testing.T) {
 		{
 			name: "receipt count mismatch",
 			block: chain.RPCBlock{
-				Number:       100,
-				Transactions: []chain.RPCTransaction{makeTx(hash1)},
+				RPCBlockHeader: chain.RPCBlockHeader{Number: 100},
+				Transactions:   []chain.RPCTransaction{makeTx(hash1)},
 			},
 			receipts: []chain.RPCReceipt{},
 			wantErr:  true,
@@ -61,8 +61,8 @@ func TestValidateBlock(t *testing.T) {
 		{
 			name: "receipt tx hash mismatch",
 			block: chain.RPCBlock{
-				Number:       100,
-				Transactions: []chain.RPCTransaction{makeTx(hash1)},
+				RPCBlockHeader: chain.RPCBlockHeader{Number: 100},
+				Transactions:   []chain.RPCTransaction{makeTx(hash1)},
 			},
 			receipts: []chain.RPCReceipt{makeReceipt(hash2, 100)},
 			wantErr:  true,
@@ -70,8 +70,8 @@ func TestValidateBlock(t *testing.T) {
 		{
 			name: "receipt block number mismatch",
 			block: chain.RPCBlock{
-				Number:       100,
-				Transactions: []chain.RPCTransaction{makeTx(hash1)},
+				RPCBlockHeader: chain.RPCBlockHeader{Number: 100},
+				Transactions:   []chain.RPCTransaction{makeTx(hash1)},
 			},
 			receipts: []chain.RPCReceipt{makeReceipt(hash1, 99)},
 			wantErr:  true,
@@ -79,8 +79,8 @@ func TestValidateBlock(t *testing.T) {
 		{
 			name: "two txs both match",
 			block: chain.RPCBlock{
-				Number:       200,
-				Transactions: []chain.RPCTransaction{makeTx(hash1), makeTx(hash2)},
+				RPCBlockHeader: chain.RPCBlockHeader{Number: 200},
+				Transactions:   []chain.RPCTransaction{makeTx(hash1), makeTx(hash2)},
 			},
 			receipts: []chain.RPCReceipt{makeReceipt(hash1, 200), makeReceipt(hash2, 200)},
 			wantErr:  false,
@@ -131,8 +131,10 @@ func TestValidateBlockHash(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			block := &chain.RPCBlock{
-				Number: 1,
-				Hash:   tc.blockHash,
+				RPCBlockHeader: chain.RPCBlockHeader{
+					Number: 1,
+					Hash:   tc.blockHash,
+				},
 			}
 			err := ValidateBlockHash(block, tc.expectedParentHash)
 			if tc.wantErr != (err != nil) {

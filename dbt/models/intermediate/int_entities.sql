@@ -61,6 +61,8 @@ contract_entities AS (
 
 -- Heuristic: EOAs sending 3+ txs to the same contract+selector in a single block.
 -- Uses int_tx_fees which already has from_address and to_address.
+-- address_label carries the raw to_address; the API layer resolves it to a contract
+-- name via the /api/v1/contracts lookup (avoids GROUP BY memory pressure on 4 GB VPS).
 heuristic_bots AS (
     SELECT
         f.from_address                          AS address,

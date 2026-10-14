@@ -619,6 +619,53 @@
         ],
         "type": "object"
       },
+      "ContractRow": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "address",
+          "note"
+        ],
+        "type": "object"
+      },
+      "ContractsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "//schemas/ContractsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ContractRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "CreateBacktestInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -2993,6 +3040,38 @@
         "summary": "Side-by-side Timeboost vs. PGA era metrics",
         "tags": [
           "Compare"
+        ]
+      }
+    },
+    "/api/v1/contracts": {
+      "get": {
+        "description": "Returns all known contract addresses with human-readable names. Use as a client-side lookup map: address (lowercase) → name. This list is stable between deploys; cache aggressively (ETag / 1 h TTL).",
+        "operationId": "list-contracts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Known contract addresses and names",
+        "tags": [
+          "Reference"
         ]
       }
     },

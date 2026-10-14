@@ -138,6 +138,7 @@ func (s *Server) mountRoutes() {
 		registerPricingHandlers(s.api, s.store)
 		registerModelEvalHandlers(s.api, s.store)
 		registerBacktestHandlers(s.api, s.btr)
+		registerContractHandlers(s.api, s.store)
 	})
 
 	// Datasets endpoint: separate (lower) rate limit, no cache (streaming).

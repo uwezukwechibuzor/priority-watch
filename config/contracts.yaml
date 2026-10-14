@@ -1,7 +1,7 @@
 # Contract addresses on Arbitrum One relevant to PGA analytics.
 # Never invent addresses — verify from official Arbitrum docs or on-chain deployment.
 contracts:
-  - name: "ExpressLaneAuction"
+  - name: "Timeboost Auction"
     address: "0x65f07c7d521164a4d5dac6eb8fac8da067a3b78f"
     abi_file: "timeboost_auction.json"
     deployed_block: 0   # filled in task 8 after on-chain check
@@ -9,7 +9,8 @@ contracts:
     source_url: "https://github.com/OffchainLabs/nitro-contracts/tree/11f6b90bd3322992c36d9f0549f82a6f92e14e6f/src/express-lane-auction"
     note: "Timeboost Express Lane Auction on Arbitrum One. Verify address on Arbiscan."
 
-  - name: "AaveV3Pool"
+  # ── Aave ─────────────────────────────────────────────────────────────────────
+  - name: "Aave V3 Pool"
     address: "0x794a61358d6845594f94dc1db02a252b5b4814ad"
     abi_file: "aave_v3_pool.json"
     deployed_block: 0
@@ -17,19 +18,131 @@ contracts:
     source_url: "https://docs.aave.com/developers/deployed-contracts/v3-mainnet/arbitrum"
     note: ""
 
-  # Fee-recipient addresses verified via eth_call to ArbOwnerPublic (0x6b) on Arbitrum One.
+  # ── Uniswap ───────────────────────────────────────────────────────────────────
+  - name: "Uniswap V3 Factory"
+    address: "0x1f98431c8ad98523631ae4a59f267346ea31f984"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.uniswap.org/contracts/v3/reference/deployments/arbitrum-deployments"
+    note: "Uniswap V3 factory — deploys pool contracts."
+
+  - name: "Uniswap V3 Router"
+    address: "0xe592427a0aece92de3edee1f18e0157c05861564"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.uniswap.org/contracts/v3/reference/deployments/arbitrum-deployments"
+    note: "Uniswap V3 SwapRouter (original)."
+
+  - name: "Uniswap V3 Router 2"
+    address: "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.uniswap.org/contracts/v3/reference/deployments/arbitrum-deployments"
+    note: "Uniswap SwapRouter02 — supports single/multi-hop and permit2."
+
+  - name: "Uniswap Universal Router"
+    address: "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.uniswap.org/contracts/v3/reference/deployments/arbitrum-deployments"
+    note: "Uniswap Universal Router — handles ERC20/NFT/Permit2 in one call."
+
+  # ── Balancer ──────────────────────────────────────────────────────────────────
+  - name: "Balancer V2 Vault"
+    address: "0xba12222222228d8ba445958a75a0704d566bf2c8"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.balancer.fi/reference/contracts/deployment-addresses/arbitrum.html"
+    note: "Balancer V2 Vault — same address on every chain Balancer supports."
+
+  # ── SushiSwap ─────────────────────────────────────────────────────────────────
+  - name: "SushiSwap V2 Router"
+    address: "0x1b02da8cb0d097eb8d57a175b88c7d8b47997506"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.sushi.com/docs/Products/Classic%20AMM/Deployment%20Addresses"
+    note: "SushiSwap V2 UniswapV2-compatible router on Arbitrum."
+
+  # ── 1inch ─────────────────────────────────────────────────────────────────────
+  - name: "1inch Router V5"
+    address: "0x1111111254eeb25477b68fb85ed929f73a960582"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.1inch.io/docs/aggregation-protocol/smart-contract/AggregationRouterV5"
+    note: "1inch AggregationRouterV5."
+
+  - name: "1inch Router V6"
+    address: "0x111111125421ca6dc452d289314280a0f8842a65"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.1inch.io/docs/aggregation-protocol/smart-contract/AggregationRouterV6"
+    note: "1inch AggregationRouterV6."
+
+  # ── GMX ───────────────────────────────────────────────────────────────────────
+  - name: "GMX Router"
+    address: "0xabbc5f99639c9b6bcb58544ddf04efa6802f4064"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://gmxio.gitbook.io/gmx/contracts"
+    note: "GMX V1 Router on Arbitrum."
+
+  - name: "GMX Position Router"
+    address: "0xb87a436b93ffe9d75c5cfa7bacfff96430b09868"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://gmxio.gitbook.io/gmx/contracts"
+    note: "GMX V1 PositionRouter — creates/decreases leveraged positions."
+
+  - name: "GMX Order Book"
+    address: "0x09f77e8a13de9a35a7231028187e9fd5db8a2acb"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://gmxio.gitbook.io/gmx/contracts"
+    note: "GMX V1 OrderBook."
+
+  # ── Camelot ───────────────────────────────────────────────────────────────────
+  - name: "Camelot V2 Router"
+    address: "0xc873fecbd354f5a56e00e710b90ef4201db2448d"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://docs.camelot.exchange/contracts/deployed-contracts"
+    note: "Camelot V2 AMM Router on Arbitrum."
+
+  # ── Paraswap ──────────────────────────────────────────────────────────────────
+  - name: "Paraswap Augustus V5"
+    address: "0xdef171fe48cf0115b1d80b88dc8eab59176fee57"
+    abi_file: ""
+    deployed_block: 0
+    verified: true
+    source_url: "https://developers.paraswap.network/smart-contracts"
+    note: "Paraswap AugustusSwapper V5."
+
+  # ── Fee recipients (Arbitrum protocol) ───────────────────────────────────────
+  # Verified via eth_call to ArbOwnerPublic (0x6b) on Arbitrum One.
   # getNetworkFeeAccount() selector: 0x2d9125e9
   # getInfraFeeAccount()   selector: 0xee95a824
-  - name: "NetworkFeeAccount"
-    address: "0x32e7AF5A8151934F3787d0cD59EB6EDd0a736b1d"
+  - name: "Network Fee Account"
+    address: "0x32e7af5a8151934f3787d0cd59eb6edd0a736b1d"
     abi_file: ""
     deployed_block: 0
     verified: true
     note: "ArbOwnerPublic.GetNetworkFeeAccount() — receives L2 surplus fee and PGA priority-fee tips. Arbiscan label: Arbitrum: L2 Surplus Fee."
     source_url: "https://docs.arbitrum.foundation/deployment-addresses"
 
-  - name: "InfraFeeAccount"
-    address: "0xbF5041Fc07E1c866D15c749156657B8eEd0fb649"
+  - name: "Infra Fee Account"
+    address: "0xbf5041fc07e1c866d15c749156657b8eed0fb649"
     abi_file: ""
     deployed_block: 0
     verified: true

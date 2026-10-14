@@ -38,15 +38,17 @@ func hexHash(s string) common.Hash    { return common.HexToHash(s) }
 func makeMinimalBlock() *chain.RPCBlock {
 	idx := hexutil.Uint64(0)
 	return &chain.RPCBlock{
-		Number:        hexU64(1000),
-		Hash:          hexHash("0xabcdef"),
-		ParentHash:    hexHash("0x123456"),
-		Timestamp:     hexU64(1_700_000_000),
-		L1BlockNumber: hexU64(99),
-		BaseFeePerGas: mustBig("1000000000"),
-		GasUsed:       hexU64(21000),
-		GasLimit:      hexU64(30_000_000),
-		Size:          hexU64(512),
+		RPCBlockHeader: chain.RPCBlockHeader{
+			Number:        hexU64(1000),
+			Hash:          hexHash("0xabcdef"),
+			ParentHash:    hexHash("0x123456"),
+			Timestamp:     hexU64(1_700_000_000),
+			L1BlockNumber: hexU64(99),
+			BaseFeePerGas: mustBig("1000000000"),
+			GasUsed:       hexU64(21000),
+			GasLimit:      hexU64(30_000_000),
+			Size:          hexU64(512),
+		},
 		Transactions: []chain.RPCTransaction{
 			{
 				Hash:                 hexHash("0x111"),

@@ -85,6 +85,12 @@ export interface TxStatusRow {
   fail_count: number;
 }
 
+export interface ContractRow {
+  name: string;
+  address: string;
+  note: string;
+}
+
 export interface AllPayerRow {
   from_address: string;
   entity_name: string;

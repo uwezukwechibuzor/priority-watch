@@ -2,6 +2,7 @@ import type { BlockRow } from "@/api/types";
 import { EntityChip, RatioBar, TypeBadge } from "@/components/ui";
 import { compact, formatEth, formatGwei, relativeTime } from "@/lib/formatters";
 import { type ListBlocksParams, blocksInfiniteQuery } from "@/queries/blocks";
+import { resolveContractLabel, useContractNames } from "@/queries/contracts";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
@@ -24,6 +25,8 @@ export function BlockTable({
     ...blocksInfiniteQuery(params),
     refetchInterval: liveMode ? 2000 : false,
   });
+
+  const contractNames = useContractNames();
 
   const rows = data?.pages.flatMap((p) => p.data ?? []) ?? [];
 
@@ -132,9 +135,9 @@ export function BlockTable({
                   whiteSpace: "nowrap",
                   maxWidth: 140,
                 }}
-                title={`Interacted with: ${row.top_payer_address_label}`}
+                title={`Interacted with: ${resolveContractLabel(row.top_payer_address_label, contractNames)}`}
               >
-                {row.top_payer_address_label}
+                {resolveContractLabel(row.top_payer_address_label, contractNames)}
               </span>
             )}
           </div>
