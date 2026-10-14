@@ -390,14 +390,18 @@ func (s *Store) GetAllPayers(ctx context.Context, limit int) ([]AllPayerRow, err
 	sql := fmt.Sprintf(`
 		SELECT
 			from_address,
-			if(entity_name != '' AND entity_name != from_address, entity_name, from_address) AS entity_name,
-			argMaxIf(to_address,   tip_paid_eth, to_address   != '')                         AS top_contract,
-			argMaxIf(entity_address_label, tip_paid_eth, entity_address_label != '')         AS contract_label,
-			sum(tip_paid_eth)   AS tip_eth,
-			count()             AS tx_count
+			if(
+				anyIf(entity_name, entity_name != '' AND entity_name != from_address) != '',
+				anyIf(entity_name, entity_name != '' AND entity_name != from_address),
+				from_address
+			) AS entity_name,
+			argMaxIf(to_address,          tip_paid_eth, to_address          != '') AS top_contract,
+			argMaxIf(entity_address_label, tip_paid_eth, entity_address_label != '') AS contract_label,
+			sum(tip_paid_eth) AS tip_eth,
+			count()           AS tx_count
 		FROM marts.fct_transactions FINAL
 		WHERE tip_paid_eth > 0
-		GROUP BY from_address, entity_name
+		GROUP BY from_address
 		ORDER BY tip_eth DESC
 		LIMIT %d
 		SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120`, limit)
