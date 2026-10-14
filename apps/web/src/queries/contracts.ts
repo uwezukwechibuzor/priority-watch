@@ -29,12 +29,12 @@ export function useContractName(address: string | undefined): string | null {
   return names.get(address.toLowerCase()) ?? null;
 }
 
-/** Resolves a "calls 0x..." label produced by the heuristic-bot dbt model.
- *  Falls back to the original label when the address is not in the registry. */
-export function resolveContractLabel(label: string, names: Map<string, string>): string {
+/** Resolves a "calls 0x..." label to "calls <Name>" when the address is known.
+ *  Returns null when not found so callers can show "—" instead of the raw address. */
+export function resolveContractLabel(label: string, names: Map<string, string>): string | null {
   const CALLS_PREFIX = "calls 0x";
   if (!label.startsWith(CALLS_PREFIX)) return label;
   const addr = label.slice("calls ".length).toLowerCase();
   const name = names.get(addr);
-  return name ? `calls ${name}` : label;
+  return name ? `calls ${name}` : null;
 }

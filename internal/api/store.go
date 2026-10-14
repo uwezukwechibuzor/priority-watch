@@ -1326,7 +1326,7 @@ type ContractRow struct {
 func (s *Store) GetContracts(ctx context.Context) ([]ContractRow, error) {
 	rows, err := s.query(ctx, `
 		SELECT name, lower(address) AS address, note
-		FROM meta.contracts FINAL
+		FROM meta.contracts
 		WHERE address != ''
 		ORDER BY name`)
 	if err != nil {

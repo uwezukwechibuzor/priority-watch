@@ -123,23 +123,26 @@ export function BlockTable({
               colorIndex={row.top_payer_color_index}
               address={row.top_payer_address}
             />
-            {row.top_payer_address_label && (
-              <span
-                style={{
-                  fontSize: 9,
-                  color: "var(--color-text-muted)",
-                  fontFamily: "var(--font-mono)",
-                  paddingLeft: 10,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  maxWidth: 140,
-                }}
-                title={`Interacted with: ${resolveContractLabel(row.top_payer_address_label, contractNames)}`}
-              >
-                {resolveContractLabel(row.top_payer_address_label, contractNames)}
-              </span>
-            )}
+            {(() => {
+              const resolved = resolveContractLabel(row.top_payer_address_label, contractNames);
+              return resolved ? (
+                <span
+                  style={{
+                    fontSize: 9,
+                    color: "var(--color-text-muted)",
+                    fontFamily: "var(--font-mono)",
+                    paddingLeft: 10,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    maxWidth: 140,
+                  }}
+                  title={`Interacted with: ${resolved}`}
+                >
+                  {resolved}
+                </span>
+              ) : null;
+            })()}
           </div>
         );
       case "fee":
