@@ -79,6 +79,15 @@ export interface PayerShareRow {
   avg_tip_rank: number;
 }
 
+export interface AllPayerRow {
+  from_address: string;
+  entity_name: string;
+  to_address: string;
+  contract_label: string;
+  tip_eth: number;
+  tx_count: number;
+}
+
 export interface ModelEvalRow {
   eval_date: string;
   model_name: string;

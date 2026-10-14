@@ -196,4 +196,30 @@ func registerHealthHandlers(api huma.API, st *Store) {
 		out.Body.Data = rows
 		return out, nil
 	})
+
+	// GET /api/v1/health/payers
+	type allPayersInput struct {
+		Limit int `query:"limit" default:"200" minimum:"1" maximum:"1000"`
+	}
+	type allPayersOutput struct {
+		Body struct {
+			Data []AllPayerRow `json:"data"`
+		}
+	}
+	huma.Register(api, huma.Operation{
+		OperationID: "get-health-payers",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/health/payers",
+		Tags:        []string{"Health"},
+		Summary:     "All payers with contract and tip history",
+		Description: "Returns every tipping address grouped with the contract most interacted with, ordered by total tip paid descending.",
+	}, func(ctx context.Context, input *allPayersInput) (*allPayersOutput, error) {
+		rows, err := st.GetAllPayers(ctx, input.Limit)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("query failed", err)
+		}
+		out := &allPayersOutput{}
+		out.Body.Data = rows
+		return out, nil
+	})
 }

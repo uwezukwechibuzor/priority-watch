@@ -371,6 +371,57 @@ func (s *Store) GetPayerShare(ctx context.Context, rangeStr string) ([]PayerShar
 	return out, rows.Err()
 }
 
+// AllPayerRow is one row in the all-payers historical table.
+type AllPayerRow struct {
+	FromAddress   string  `json:"from_address"`
+	EntityName    string  `json:"entity_name"`
+	ToAddress     string  `json:"to_address"`
+	ContractLabel string  `json:"contract_label"`
+	TipEth        float64 `json:"tip_eth"`
+	TxCount       uint64  `json:"tx_count"`
+}
+
+// GetAllPayers returns every payer address grouped with the contract they most
+// frequently interacted with, ordered by total tip paid descending.
+func (s *Store) GetAllPayers(ctx context.Context, limit int) ([]AllPayerRow, error) {
+	if limit <= 0 || limit > 1000 {
+		limit = 200
+	}
+	sql := fmt.Sprintf(`
+		SELECT
+			from_address,
+			if(entity_name != '' AND entity_name != from_address, entity_name, from_address) AS entity_name,
+			argMaxIf(to_address,   tip_paid_eth, to_address   != '')                         AS top_contract,
+			argMaxIf(entity_address_label, tip_paid_eth, entity_address_label != '')         AS contract_label,
+			sum(tip_paid_eth)   AS tip_eth,
+			count()             AS tx_count
+		FROM marts.fct_transactions FINAL
+		WHERE tip_paid_eth > 0
+		GROUP BY from_address, entity_name
+		ORDER BY tip_eth DESC
+		LIMIT %d
+		SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120`, limit)
+
+	rows, err := s.query(ctx, sql)
+	if err != nil {
+		return nil, fmt.Errorf("GetAllPayers: %w", err)
+	}
+	defer rows.Close() //nolint:errcheck
+
+	var out []AllPayerRow
+	for rows.Next() {
+		var r AllPayerRow
+		if err := rows.Scan(
+			&r.FromAddress, &r.EntityName, &r.ToAddress, &r.ContractLabel,
+			&r.TipEth, &r.TxCount,
+		); err != nil {
+			return nil, fmt.Errorf("GetAllPayers scan: %w", err)
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
 // TippedHistRow is one bin of the tipped-tx-count histogram.
 type TippedHistRow struct {
 	Bin        string `json:"bin"`

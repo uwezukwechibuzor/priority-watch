@@ -1,5 +1,6 @@
 import { apiFetch } from "@/api/client";
 import type {
+  AllPayerRow,
   BaseFeeHourlyRow,
   EraComparisonRow,
   HealthDailyRow,
@@ -119,6 +120,15 @@ export function treasuryReconQuery(range: string) {
     staleTime: 60_000,
   });
 }
+
+export const allPayersQuery = queryOptions({
+  queryKey: ["health", "payers"],
+  queryFn: () =>
+    apiFetch<{ data: AllPayerRow[] | null }>("/api/v1/health/payers?limit=200").then(
+      (r) => r.data ?? [],
+    ),
+  staleTime: 300_000,
+});
 
 export function compareErasQuery(windowDays: number) {
   return queryOptions({

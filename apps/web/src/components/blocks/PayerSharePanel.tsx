@@ -1,6 +1,8 @@
 import type { PayerShareRow } from "@/api/types";
+import { AllPayersDrawer } from "@/components/health/AllPayersDrawer";
 import { Panel, Skeleton } from "@/components/ui";
 import { entityColor, formatPct } from "@/lib/formatters";
+import { useState } from "react";
 
 interface PayerSharePanelProps {
   data: PayerShareRow[] | null;
@@ -10,9 +12,31 @@ interface PayerSharePanelProps {
 
 export function PayerSharePanel({ data, loading = false, onPayerClick }: PayerSharePanelProps) {
   const rows = data?.slice(0, 5) ?? [];
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <Panel title="TOP PAYERS">
+    <>
+    <AllPayersDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+    <Panel
+      title="TOP PAYERS"
+      action={
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          style={{
+            background: "none",
+            border: "1px solid var(--color-border)",
+            borderRadius: 4,
+            padding: "2px 8px",
+            fontSize: 11,
+            color: "var(--color-text-muted)",
+            cursor: "pointer",
+          }}
+        >
+          View All
+        </button>
+      }
+    >
       {loading ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {Array.from({ length: 5 }, (_, i) => (
@@ -127,5 +151,6 @@ export function PayerSharePanel({ data, loading = false, onPayerClick }: PayerSh
         </div>
       )}
     </Panel>
+    </>
   );
 }
