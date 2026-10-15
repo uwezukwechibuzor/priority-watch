@@ -28,6 +28,7 @@ from _shared import DEFAULT_ARGS
     catchup=False,
     tags=["pga", "ops", "backup"],
     default_args=DEFAULT_ARGS,
+    is_paused_upon_creation=False,
     doc_md=__doc__,
 )
 def pw_clickhouse_backup() -> None:

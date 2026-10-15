@@ -29,6 +29,7 @@ _DBT = f"/home/airflow/.local/bin/dbt --profiles-dir {DBT_PROFILES_DIR} --projec
     tags=["pga", "dbt", "nightly"],
     default_args=DEFAULT_ARGS,
     max_active_runs=1,
+    is_paused_upon_creation=False,
     doc_md=__doc__,
 )
 def pw_dbt_nightly() -> None:

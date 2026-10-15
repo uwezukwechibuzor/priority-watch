@@ -46,6 +46,7 @@ def _ch_client():
     tags=["pga", "monitoring", "ops"],
     default_args=DEFAULT_ARGS,
     max_active_runs=1,
+    is_paused_upon_creation=False,
     doc_md=__doc__,
 )
 def pw_monitoring() -> None:

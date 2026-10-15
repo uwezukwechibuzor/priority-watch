@@ -31,6 +31,7 @@ _ALLOWED_GAP_SECONDS = 300  # tolerate up to 5 minutes of gaps before alerting
     catchup=False,
     tags=["pga", "cex", "binance"],
     default_args=DEFAULT_ARGS,
+    is_paused_upon_creation=False,
     doc_md=__doc__,
 )
 def pw_cex_daily() -> None:
