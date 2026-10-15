@@ -14,8 +14,6 @@ priority_watch:
       connect_timeout: 10
       send_receive_timeout: 300
       sync_request_timeout: 5
-      compress_block_size: 1048576
-      compression: lz4
       custom_settings:
         max_execution_time: 600
 
@@ -32,5 +30,3 @@ priority_watch:
       connect_timeout: 10
       send_receive_timeout: 300
       sync_request_timeout: 5
-      compress_block_size: 1048576
-      compression: lz4

@@ -9,10 +9,17 @@ services:
       AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
 
   airflow-scheduler:
+    environment:
+      # .env sets CLICKHOUSE_HOST=localhost for local tooling; override to Docker service name.
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "9000"
+      CLICKHOUSE_RO_USER: ${CLICKHOUSE_RO_USER:-pw_reader}
+      CLICKHOUSE_RO_PASSWORD: ${CLICKHOUSE_RO_PASSWORD:-readonly}
     volumes:
       # Live-mount DAGs and dbt for fast iteration — no rebuild needed.
+      # dbt must be writable: Cosmos writes target/partial_parse.msgpack at DAG-parse time.
       - ./airflow/dags:/opt/airflow/dags:ro
-      - ./dbt:/opt/airflow/dbt:ro
+      - ./dbt:/opt/airflow/dbt
 
   airflow-triggerer:
     volumes:
@@ -24,6 +31,10 @@ services:
       - "8123:8123"
       - "9000:9000"
       - "9363:9363"
+    deploy:
+      resources:
+        limits:
+          memory: 10G
 
   postgres:
     ports:

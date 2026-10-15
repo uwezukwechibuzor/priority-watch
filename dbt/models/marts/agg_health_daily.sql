@@ -43,8 +43,15 @@ daily_spam AS (
         sum(toFloat64(ss.tip_wasted_wei)) / 1e18               AS tip_wasted_eth,
         countIf(ss.is_reverted_tipped = 1)                     AS reverted_tipped_count
     FROM {{ ref('int_spam_signals') }} AS ss FINAL
-    LEFT JOIN {{ ref('int_tx_fees') }} AS f FINAL
-        ON ss.block_number = f.block_number AND ss.tx_index = f.tx_index
+    LEFT JOIN (
+        SELECT block_number, tx_index, era
+        FROM {{ ref('int_tx_fees') }} FINAL
+        {% if is_incremental() %}
+        WHERE block_timestamp > (
+            SELECT subtractDays(max(toDateTime(date)), 1) FROM {{ this }} FINAL
+        )
+        {% endif %}
+    ) AS f ON ss.block_number = f.block_number AND ss.tx_index = f.tx_index
     {% if is_incremental() %}
     WHERE ss.block_timestamp > (
         SELECT subtractDays(max(toDateTime(date)), 1)
@@ -59,15 +66,27 @@ daily_user_cost AS (
         toDate(f.block_timestamp)                               AS date,
         f.era                                                   AS era,
         medianExactIf(f.total_fee_usd, c.tx_class = 'simple_transfer') AS median_simple_transfer_usd
-    FROM {{ ref('int_tx_fees') }} AS f FINAL
-    LEFT JOIN {{ ref('int_tx_classification') }} AS c FINAL
-        ON f.block_number = c.block_number AND f.tx_index = c.tx_index
-    {% if is_incremental() %}
-    WHERE f.block_timestamp > (
-        SELECT subtractDays(max(toDateTime(date)), 1)
-        FROM {{ this }} FINAL
-    )
-    {% endif %}
+    FROM (
+        SELECT block_number, tx_index, block_timestamp, era, total_fee_usd
+        FROM {{ ref('int_tx_fees') }} FINAL
+        {% if is_incremental() %}
+        WHERE block_timestamp > (
+            SELECT subtractDays(max(toDateTime(date)), 1) FROM {{ this }} FINAL
+        )
+        {% endif %}
+    ) AS f
+    LEFT JOIN (
+        SELECT block_number, tx_index, tx_class
+        FROM {{ ref('int_tx_classification') }} FINAL
+        {% if is_incremental() %}
+        WHERE block_number IN (
+            SELECT DISTINCT block_number FROM {{ ref('int_tx_fees') }} FINAL
+            WHERE block_timestamp > (
+                SELECT subtractDays(max(toDateTime(date)), 1) FROM {{ this }} FINAL
+            )
+        )
+        {% endif %}
+    ) AS c ON f.block_number = c.block_number AND f.tx_index = c.tx_index
     GROUP BY date, f.era
 ),
 

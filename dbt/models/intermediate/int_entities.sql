@@ -76,6 +76,7 @@ heuristic_bots AS (
     FROM {{ ref('int_tx_fees') }} AS f FINAL
     WHERE f.to_address != ''
         AND f.input_selector != ''
+        AND f.block_timestamp >= now() - INTERVAL 30 DAY
     GROUP BY
         f.block_number,
         f.from_address,
