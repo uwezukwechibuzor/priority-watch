@@ -18,7 +18,7 @@ from airflow.operators.bash import BashOperator
 
 from _shared import DBT_PROFILES_DIR, DBT_PROJECT_DIR, DEFAULT_ARGS
 
-_DBT = f"/home/airflow/.local/bin/dbt --profiles-dir {DBT_PROFILES_DIR} --project-dir {DBT_PROJECT_DIR}"
+_DBT = f"/home/airflow/.local/bin/dbt --profiles-dir {DBT_PROFILES_DIR} --project-dir {DBT_PROJECT_DIR} --target dev"
 
 
 @dag(
@@ -44,7 +44,9 @@ def pw_dbt_nightly() -> None:
 
     docs_generate = BashOperator(
         task_id="dbt_docs_generate",
-        bash_command=f"{_DBT} docs generate --target-path /opt/airflow/docs",
+        # Writes manifest.json to target/ (used by pw_dbt_incremental LoadMode.DBT_MANIFEST)
+        # and catalog + index.html to /opt/airflow/docs for the Caddy /dbt-docs route.
+        bash_command=f"{_DBT} docs generate && cp /opt/airflow/dbt/target/index.html /opt/airflow/docs/ 2>/dev/null || true",
     )
 
     full_test >> source_freshness >> docs_generate

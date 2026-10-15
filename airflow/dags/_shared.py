@@ -37,6 +37,8 @@ DEFAULT_ARGS: dict[str, Any] = {
 DBT_PROJECT_DIR = "/opt/airflow/dbt"
 DBT_PROFILES_DIR = "/opt/airflow/dbt"
 DBT_EXECUTABLE = "/home/airflow/.local/bin/dbt"
+DBT_MANIFEST_PATH = "/opt/airflow/dbt/target/manifest.json"
+DBT_TARGET = "dev"
 
 # Airflow Dataset URI produced by the block ingester; consumed by pw_dbt_incremental.
 RAW_BLOCKS_DATASET_URI = "clickhouse://raw.blocks"

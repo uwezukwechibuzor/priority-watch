@@ -6,7 +6,7 @@ name: priority-watch
 services:
   airflow-webserver:
     environment:
-      AIRFLOW__LOGGING__LOGGING_LEVEL: DEBUG
+      AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
 
   airflow-scheduler:
     environment:
@@ -15,6 +15,10 @@ services:
       CLICKHOUSE_PORT: "9000"
       CLICKHOUSE_RO_USER: ${CLICKHOUSE_RO_USER:-pw_reader}
       CLICKHOUSE_RO_PASSWORD: ${CLICKHOUSE_RO_PASSWORD:-readonly}
+      # Limit parallelism to avoid OOM on <4 GB Docker Desktop VM.
+      AIRFLOW__CORE__PARALLELISM: "4"
+      AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "4"
+      AIRFLOW__LOCAL_EXECUTOR__PARALLELISM: "2"
     volumes:
       # Live-mount DAGs and dbt for fast iteration — no rebuild needed.
       # dbt must be writable: Cosmos writes target/partial_parse.msgpack at DAG-parse time.
