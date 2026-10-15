@@ -153,7 +153,3 @@ Requirements: Docker 25+, Docker Compose v2, Go 1.26+, Node 22+, pnpm 10+.
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
----
-
-*Inspired by and structurally cloned from [timeboost.app](https://timeboost.app) ([repo](https://github.com/justmert/timeboost-analytics)) by justmert. Priority Watch is an independent project and is not affiliated with the Arbitrum Foundation or Offchain Labs.*
