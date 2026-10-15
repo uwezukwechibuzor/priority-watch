@@ -55,6 +55,14 @@ services:
       - "8123:8123"
       - "9000:9000"
       - "9363:9363"
+    # Use lightweight HTTP ping — clickhouse-client startup is slow in Docker Desktop
+    # and causes the 5s healthcheck timeout to fire continuously.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     deploy:
       resources:
         limits:

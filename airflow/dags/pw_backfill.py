@@ -18,9 +18,9 @@ from airflow.decorators import dag, task
 from airflow.models.param import Param
 from airflow.operators.python import get_current_context
 
-from _shared import DEFAULT_ARGS, RAW_BLOCKS_DATASET_URI
+from _shared import DEFAULT_ARGS
 
-RAW_BLOCKS_DATASET = Dataset(RAW_BLOCKS_DATASET_URI)
+RAW_BLOCKS_DATASET = Dataset("clickhouse://raw.blocks")
 
 
 @dag(
