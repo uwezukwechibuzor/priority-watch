@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/big"
 	"time"
 
@@ -216,9 +217,9 @@ func (s *Store) GetBlockKPIs(ctx context.Context, rangeStr string, day *string) 
 				sum(tip_revenue_eth)            AS tot_tip_eth,
 				sum(tip_revenue_usd)            AS tot_tip_usd,
 				sum(contested_block_count)      AS tot_contested,
-				avg(top_payer_share)            AS avg_top_payer_share,
-				avg(toFloat64(hhi))             AS avg_hhi_val,
-				avg(top_fee_gwei)               AS avg_top_fee
+				ifNotFinite(avg(top_payer_share), 0.0)   AS avg_top_payer_share,
+				ifNotFinite(avg(toFloat64(hhi)), 0.0)    AS avg_hhi_val,
+				ifNotFinite(avg(top_fee_gwei), 0.0)      AS avg_top_fee
 			FROM marts.agg_blocks_hourly FINAL
 			WHERE %s
 			SETTINGS max_threads=2, max_memory_usage=1500000000, max_execution_time=120
@@ -236,8 +237,12 @@ func (s *Store) GetBlockKPIs(ctx context.Context, rangeStr string, day *string) 
 	); err != nil {
 		return BlockKPIs{}, fmt.Errorf("GetBlockKPIs: %w", err)
 	}
-	kpi.HHI = hhi
-	kpi.HHIBand = HHIBand(hhi)
+	kpi.HHI = finiteFloat(hhi)
+	kpi.HHIBand = HHIBand(kpi.HHI)
+	kpi.TopPayerShare = finiteFloat(kpi.TopPayerShare)
+	kpi.AvgTopFeeGwei = finiteFloat(kpi.AvgTopFeeGwei)
+	kpi.AvgTipEth = finiteFloat(kpi.AvgTipEth)
+	kpi.ContestedShare = finiteFloat(kpi.ContestedShare)
 	return kpi, nil
 }
 
@@ -1348,4 +1353,13 @@ func (s *Store) GetContracts(ctx context.Context) ([]ContractRow, error) {
 // namedParam is a convenience wrapper for clickhouse named parameters.
 func namedParam(name string, value any) driver.NamedValue {
 	return clickhouse.Named(name, value)
+}
+
+// finiteFloat converts NaN and ±Inf to 0 so json.Marshal never panics.
+// ClickHouse avg() returns NaN when there are no rows to aggregate.
+func finiteFloat(f float64) float64 {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0
+	}
+	return f
 }
