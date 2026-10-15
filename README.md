@@ -156,18 +156,4 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-## How this maps to the Entropy data engineer role
-
-Priority Watch was built as a direct response to the Entropy research on Timeboost's auction-capture efficiency (28.83% Ethereum / 7.34% Base / 1.74% Timeboost). It demonstrates the full data-engineering stack that would be needed to measure PGA's performance against those benchmarks in production:
-
-- **Arbitrum chain ingestion at full speed** — 250 ms blocks, live reorg handling, idempotent backfill over any block range, resumable cursors
-- **dbt transformation pipeline** — typed staging → derived intermediate metrics → business-layer aggregates, all incremental with 1-hour reorg overlap
-- **CEX-DEX spread and markout measurement** — Binance 1s klines, Uniswap V3 sqrtPriceX96 to USD normalisation, 6-horizon P&L attribution
-- **Entity resolution** — labelled searcher/MM/protocol clusters from config/entities.yaml, HHI concentration tracking
-- **End-to-end API and dashboard** — same metric definitions exposed programmatically and visually, with a pricing model and strategy backtester
-
-This repo is open-source at [github.com/uwezukwechibuzor/priority-watch](https://github.com/uwezukwechibuzor/priority-watch).
-
----
-
 *Inspired by and structurally cloned from [timeboost.app](https://timeboost.app) ([repo](https://github.com/justmert/timeboost-analytics)) by justmert. Priority Watch is an independent project and is not affiliated with the Arbitrum Foundation or Offchain Labs.*
