@@ -12,7 +12,7 @@ SELECT
     b.block_number,
     b.tx_count                          AS expected_receipt_count,
     coalesce(r.actual_count, 0)         AS actual_receipt_count
-FROM {{ ref('stg_blocks') }} FINAL AS b
+FROM {{ ref('stg_blocks') }} AS b FINAL
 LEFT JOIN (
     SELECT
         block_number,

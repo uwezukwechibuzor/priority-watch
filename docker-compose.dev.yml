@@ -7,20 +7,35 @@ services:
   airflow-webserver:
     environment:
       AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
+      AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: "120"
+      # Prevent google-auth from probing the GCP metadata server (169.254.169.254).
+      # In Docker Desktop that probe hangs for ~120s, blocking Airflow startup.
+      NO_GCE_CHECK: "true"
+      GOOGLE_CLOUD_DISABLE_GRPC: "1"
 
   airflow-scheduler:
+    healthcheck:
+      test: ["NONE"]
     environment:
       # .env sets CLICKHOUSE_HOST=localhost for local tooling; override to Docker service name.
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: "9000"
       CLICKHOUSE_RO_USER: ${CLICKHOUSE_RO_USER:-pw_reader}
       CLICKHOUSE_RO_PASSWORD: ${CLICKHOUSE_RO_PASSWORD:-readonly}
-      # Limit parallelism to avoid OOM on <4 GB Docker Desktop VM.
-      # Each dbt task forks a ~300 MB Python process; 1 at a time keeps peak
-      # memory under control. Raise after increasing Docker Desktop VM to ≥8 GB.
-      AIRFLOW__CORE__PARALLELISM: "2"
+      # 2 concurrent dbt tasks (~600 MB peak) leaves enough memory headroom for
+      # the scheduler's DAG file processor to re-import Cosmos without page-thrashing.
+      AIRFLOW__CORE__PARALLELISM: "4"
       AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "2"
-      AIRFLOW__LOCAL_EXECUTOR__PARALLELISM: "1"
+      AIRFLOW__LOCAL_EXECUTOR__PARALLELISM: "2"
+      # Cosmos reads the 1.3 MB manifest at DAG-parse time.
+      # 300s timeout handles worst-case memory pressure; re-parse every 10 min.
+      AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: "300"
+      AIRFLOW__CORE__DAG_FILE_PROCESSOR_TIMEOUT: "600"
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "600"
+      # Prevent google-auth from probing the GCP metadata server (169.254.169.254).
+      # In Docker Desktop that probe hangs for ~120s, blocking Airflow startup.
+      NO_GCE_CHECK: "true"
+      GOOGLE_CLOUD_DISABLE_GRPC: "1"
     volumes:
       # Live-mount DAGs and dbt for fast iteration — no rebuild needed.
       # dbt must be writable: Cosmos writes target/partial_parse.msgpack at DAG-parse time.
@@ -28,6 +43,9 @@ services:
       - ./dbt:/opt/airflow/dbt
 
   airflow-triggerer:
+    environment:
+      NO_GCE_CHECK: "true"
+      GOOGLE_CLOUD_DISABLE_GRPC: "1"
     volumes:
       - ./airflow/dags:/opt/airflow/dags:ro
 

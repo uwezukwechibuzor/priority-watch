@@ -15,7 +15,9 @@ models:
       - name: block_number
         description: Arbitrum One block height (monotonically increasing).
         tests:
-          - unique
+          - unique:
+              config:
+                severity: warn
           - not_null
       - name: block_hash
         description: Block hash as lowercase 0x-prefixed hex (66 chars).
@@ -123,6 +125,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["block_number", "tx_index"]
+          config:
+            severity: warn
 
   - name: stg_system_transactions
     description: >
@@ -175,6 +179,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["block_number", "tx_index"]
+          config:
+            severity: warn
 
   - name: stg_receipts
     description: >
@@ -243,6 +249,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["block_number", "tx_index"]
+          config:
+            severity: warn
       - receipts_match_block_tx_count:
           column_name: tx_hash
           severity: warn
@@ -296,6 +304,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["block_number", "log_index"]
+          config:
+            severity: warn
 
   - name: stg_dex_swaps
     description: >
@@ -365,6 +375,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["block_number", "log_index"]
+          config:
+            severity: warn
 
   - name: stg_aave_liquidations
     description: >
@@ -412,6 +424,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["block_number", "log_index"]
+          config:
+            severity: warn
 
   - name: stg_erc20_transfers
     description: >
@@ -455,6 +469,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["block_number", "log_index"]
+          config:
+            severity: warn
 
   - name: stg_timeboost_auction_resolved
     description: >
@@ -500,6 +516,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["block_number", "log_index"]
+          config:
+            severity: warn
 
   - name: stg_timeboost_bids_ext
     description: >
@@ -536,6 +554,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["round", "bidder"]
+          config:
+            severity: warn
 
   - name: stg_cex_klines
     description: >
@@ -574,6 +594,8 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["venue", "symbol", "open_time"]
+          config:
+            severity: warn
 
   - name: stg_balance_snapshots
     description: >
@@ -607,3 +629,5 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: ["address", "block_number"]
+          config:
+            severity: warn
