@@ -5,6 +5,8 @@
             <max_execution_time>600</max_execution_time>
             <use_uncompressed_cache>0</use_uncompressed_cache>
             <load_balancing>random</load_balancing>
+            <!-- Limit query parallelism so dbt runs don't spike memory on 4 GB VM. -->
+            <max_threads>2</max_threads>
         </default>
 
         <!-- readonly=2: read-only queries allowed, query-level settings allowed -->

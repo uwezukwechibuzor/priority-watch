@@ -16,9 +16,11 @@ services:
       CLICKHOUSE_RO_USER: ${CLICKHOUSE_RO_USER:-pw_reader}
       CLICKHOUSE_RO_PASSWORD: ${CLICKHOUSE_RO_PASSWORD:-readonly}
       # Limit parallelism to avoid OOM on <4 GB Docker Desktop VM.
-      AIRFLOW__CORE__PARALLELISM: "4"
-      AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "4"
-      AIRFLOW__LOCAL_EXECUTOR__PARALLELISM: "2"
+      # Each dbt task forks a ~300 MB Python process; 1 at a time keeps peak
+      # memory under control. Raise after increasing Docker Desktop VM to ≥8 GB.
+      AIRFLOW__CORE__PARALLELISM: "2"
+      AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "2"
+      AIRFLOW__LOCAL_EXECUTOR__PARALLELISM: "1"
     volumes:
       # Live-mount DAGs and dbt for fast iteration — no rebuild needed.
       # dbt must be writable: Cosmos writes target/partial_parse.msgpack at DAG-parse time.
