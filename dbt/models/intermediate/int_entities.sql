@@ -73,10 +73,10 @@ heuristic_bots AS (
         toUInt8(0)                              AS verified,
         'heuristic'                             AS label_source,
         toFloat32(0.5)                          AS confidence
-    FROM {{ ref('int_tx_fees') }} AS f FINAL
+    FROM {{ ref('int_tx_fees') }} AS f
     WHERE f.to_address != ''
         AND f.input_selector != ''
-        AND f.block_timestamp >= now() - INTERVAL 30 DAY
+        AND f.block_timestamp >= now() - INTERVAL 7 DAY
     GROUP BY
         f.block_number,
         f.from_address,
