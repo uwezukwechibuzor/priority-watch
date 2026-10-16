@@ -94,7 +94,7 @@ SELECT
     if(e.address_label != '', e.address_label, '')  AS top_payer_address_label,
     a.revert_count              AS revert_count,
     coalesce(o.second_to_first_ratio, 0.0)          AS second_to_first_ratio,
-    coalesce(o.block_type, 'untipped')              AS block_type,
+    if(o.block_type != '', o.block_type, 'untipped') AS block_type,
     coalesce(o.ordering_score, 0.0)                 AS ordering_score,
     coalesce(o.estimated_rounds, toUInt32(0))       AS estimated_rounds,
     coalesce(o.has_anomaly, toUInt8(0))             AS anomaly_count,
