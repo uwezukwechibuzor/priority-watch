@@ -1,13 +1,15 @@
 type BlockType = "contested" | "single" | "untipped";
 
-const BADGE_STYLE: Record<BlockType, { bg: string; color: string }> = {
+const BADGE_STYLE: Record<string, { bg: string; color: string }> = {
   contested: { bg: "rgba(168,85,247,0.15)", color: "var(--color-purple)" },
   single: { bg: "rgba(59,130,246,0.15)", color: "var(--color-accent)" },
   untipped: { bg: "rgba(107,114,128,0.15)", color: "var(--color-text-muted)" },
 };
 
-export function TypeBadge({ type }: { type: BlockType }) {
-  const s = BADGE_STYLE[type];
+const FALLBACK = { bg: "rgba(107,114,128,0.15)", color: "var(--color-text-muted)" };
+
+export function TypeBadge({ type }: { type: BlockType | string }) {
+  const s = BADGE_STYLE[type] ?? FALLBACK;
   return (
     <span
       style={{

@@ -36,7 +36,7 @@ export interface BlockRow {
   top_payer_address_label: string;
   revert_count: number;
   second_to_first_ratio: number;
-  block_type: "contested" | "single" | "untipped";
+  block_type: "contested" | "single" | "untipped" | string;
   ordering_score: number;
   distinct_tippers: number;
   base_fee_per_gas_wei: string;
