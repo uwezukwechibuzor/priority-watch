@@ -24,9 +24,9 @@ services:
       CLICKHOUSE_RO_PASSWORD: ${CLICKHOUSE_RO_PASSWORD:-readonly}
       # 2 concurrent dbt tasks (~600 MB peak) leaves enough memory headroom for
       # the scheduler's DAG file processor to re-import Cosmos without page-thrashing.
-      AIRFLOW__CORE__PARALLELISM: "4"
-      AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "2"
-      AIRFLOW__LOCAL_EXECUTOR__PARALLELISM: "2"
+      AIRFLOW__CORE__PARALLELISM: "8"
+      AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "4"
+      AIRFLOW__LOCAL_EXECUTOR__PARALLELISM: "4"
       # Cosmos reads the 1.3 MB manifest at DAG-parse time.
       # 300s timeout handles worst-case memory pressure; re-parse every 10 min.
       AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: "300"

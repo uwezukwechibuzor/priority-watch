@@ -1,8 +1,9 @@
 """pw_dbt_incremental — run dbt incremental models every 10 minutes.
 
 Uses Astronomer Cosmos to render dbt models as native Airflow tasks.
-Runs in three sequential groups: staging → intermediate → marts, with
-dbt test executed after each model (TestBehavior.AFTER_EACH).
+Runs in three sequential groups: staging → intermediate → marts.
+Tests are skipped here — they run in pw_dbt_nightly to avoid scanning
+multi-million-row tables (stg_logs, stg_transactions) every 10 minutes.
 """
 from __future__ import annotations
 
@@ -44,7 +45,7 @@ _execution_config = ExecutionConfig(
 def _render(tag: str) -> RenderConfig:
     return RenderConfig(
         select=[f"tag:{tag}"],
-        test_behavior=TestBehavior.AFTER_EACH,
+        test_behavior=TestBehavior.NONE,
         load_method=LoadMode.DBT_MANIFEST,
     )
 
