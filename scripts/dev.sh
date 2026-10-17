@@ -127,6 +127,36 @@ else
   log "starting ClickHouse..."
   CH_DATA="$ROOT/.dev-clickhouse"
   mkdir -p "$CH_DATA"
+
+  # Write a users config so the local ClickHouse password matches CLICKHOUSE_PASSWORD in .env
+  cat > "$CH_DATA/dev-users.xml" <<EOF
+<clickhouse>
+    <users>
+        <default>
+            <password>${CLICKHOUSE_PASSWORD:-}</password>
+            <networks><ip>::/0</ip></networks>
+            <profile>default</profile>
+            <quota>default</quota>
+        </default>
+    </users>
+    <profiles>
+        <default/>
+    </profiles>
+    <quotas>
+        <default>
+            <interval>
+                <duration>3600</duration>
+                <queries>0</queries>
+                <errors>0</errors>
+                <result_rows>0</result_rows>
+                <read_rows>0</read_rows>
+                <execution_time>0</execution_time>
+            </interval>
+        </default>
+    </quotas>
+</clickhouse>
+EOF
+
   start_service "clickhouse" $CH_CMD \
     -- \
     --path="$CH_DATA" \
@@ -134,7 +164,8 @@ else
     --http_port=8123 \
     --logger.console=1 \
     --logger.level=warning \
-    --listen_host=127.0.0.1
+    --listen_host=127.0.0.1 \
+    --users_config="$CH_DATA/dev-users.xml"
 
   log "waiting for ClickHouse to be ready..."
   for i in $(seq 1 30); do

@@ -44,6 +44,15 @@ Thumbs.db
 infra/clickhouse/data/
 infra/clickhouse/users.d/default-user.xml
 
+# Local dev stack (make dev / scripts/dev.sh)
+.dev-clickhouse/
+.dev-logs/
+preprocessed_configs/
+access/
+
+# Claude Code worktrees
+.claude/worktrees/
+
 # Grafana provisioning secrets
 infra/grafana/grafana.ini
 
