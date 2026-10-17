@@ -85,7 +85,10 @@ All Wei values are returned as decimal strings (no floating-point loss). Timesta
 
 ---
 
-## Run locally
+## Run locally (no Docker)
+
+The fastest way to run the stack on your laptop — no Docker, no Airflow, no Postgres.
+Requires: ClickHouse, Go 1.26+, pnpm 10+.
 
 ```bash
 # 1. Clone and configure
@@ -93,7 +96,57 @@ git clone https://github.com/uwezukwechibuzor/priority-watch.git
 cd priority-watch
 cp .env.example .env          # fill in ARBITRUM_RPC_URL and ARBITRUM_WS_URL
 
-# 2. One-time setup (install hooks and Go tools)
+# 2. Install ClickHouse (if not already installed)
+brew install clickhouse        # macOS
+# or: curl https://clickhouse.com/ | sh
+
+# 3. One-time setup (install hooks and Go tools)
+make setup
+
+# 4. Start everything (ClickHouse + API + live follower + frontend)
+make dev
+```
+
+Services started by `make dev`:
+
+| Service | URL |
+|---------|-----|
+| Dashboard (Vite) | http://localhost:5173 |
+| REST API | http://localhost:8080/api/v1 |
+| API docs (Scalar) | http://localhost:8080/docs |
+| ClickHouse HTTP | http://localhost:8123 |
+
+Logs go to `.dev-logs/`. Press `Ctrl+C` to stop everything cleanly.
+
+**Refreshing dashboard data** — the live follower writes raw blocks continuously, but
+the mart tables (which the API reads) need dbt to transform them. Run this whenever
+you want fresh data in the UI:
+
+```bash
+pip install dbt-clickhouse     # one-time
+cd dbt && dbt run --profiles-dir . --target dev
+```
+
+**Skip the live follower** (saves CPU/RAM, useful if you only want to browse existing data):
+
+```bash
+make dev-no-follow
+```
+
+---
+
+## Run with Docker
+
+Full production-equivalent stack including Airflow (which runs dbt automatically every 10 min).
+Requires: Docker 25+, Docker Compose v2.
+
+```bash
+# 1. Clone and configure
+git clone https://github.com/uwezukwechibuzor/priority-watch.git
+cd priority-watch
+cp .env.example .env          # fill in ARBITRUM_RPC_URL and ARBITRUM_WS_URL
+
+# 2. One-time setup
 make setup
 
 # 3. Start the stack (ClickHouse, Postgres, Airflow)
