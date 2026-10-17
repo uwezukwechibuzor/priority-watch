@@ -119,86 +119,127 @@ Requirements: Docker 25+, Docker Compose v2, Go 1.26+, Node 22+, pnpm 10+.
 
 ## Architecture
 
+### 1 — Data ingestion
+
+How raw blockchain and price data gets into ClickHouse.
+
 ```mermaid
-flowchart TD
-    %% ── External data sources ──────────────────────────────────────────
-    subgraph SOURCES["External Sources"]
+flowchart LR
+    subgraph EXT["External Sources"]
+        SQD["SQD Portal\nprimary block stream"]
+        HYP["Envio HyperSync\nfallback stream"]
         ARB["Arbitrum One\nJSON-RPC / WebSocket"]
-        SQD["SQD Portal\n(primary block stream)"]
-        HYP["Envio HyperSync\n(fallback stream)"]
-        BIN["Binance WebSocket\n(1s klines)"]
-        TB["Timeboost baseline\n(Parquet import)"]
+        BIN["Binance\n1s klines WebSocket"]
+        TB["Timeboost baseline\nParquet import"]
     end
 
-    %% ── Go ingester binary ──────────────────────────────────────────────
-    subgraph INGESTER["cmd/pw-ingester  (Go binary)"]
-        direction TB
+    subgraph CHAIN["internal/chain  —  BlockSource"]
+        SRC["FailoverBlockSource\nSQDBlockSource\nHyperSyncSource\nRPCBlockSource"]
+    end
+
+    subgraph INGESTER["cmd/pw-ingester"]
         BF["backfill\nhistorical range"]
         FW["follow\nlive per-block"]
         CEX["cex\nklines forward-fill"]
-        ITB["import-timeboost\nbaseline loader"]
+        ITB["import-timeboost"]
         MIG["migrate\nClickHouse DDL"]
     end
 
-    %% ── internal Go packages ────────────────────────────────────────────
-    subgraph INTERNAL["internal/  (shared Go packages)"]
-        direction LR
-        CFG["config\nenv-var loader"]
-        OBS["obs\nslog · Prometheus\n/healthz · /metrics"]
-        CHN["chain\nBlockSource interface\nRPCBlockSource\nSQDBlockSource\nHyperSyncSource\nFailoverBlockSource"]
-        STR["store\nClickHouse writer\nmigrations\nmeta cursors"]
-        ING["ingest\nblock backfill\nlive follower\nreorg handling"]
-        CEXP["cex\nBinance REST+WS\ndaily catch-up"]
-        MDL["models\nfee pricing models\nbacktest engine"]
-        API_PKG["api\nHTTP handlers\nOpenAPI · caching\nrate limits"]
+    subgraph CFG["config/"]
+        YML["entities.yaml\npools.yaml\ncontracts.yaml\nevents.yaml"]
     end
 
-    %% ── config/ reference data ─────────────────────────────────────────
-    subgraph CONFIG["config/  (reference YAML)"]
-        ENT["entities.yaml\naddress labels"]
-        POOLS["pools.yaml\nDEX pool addresses"]
-        CTR["contracts.yaml\nverified contracts"]
-        EVT["events.yaml\non-chain events"]
-    end
-
-    %% ── ClickHouse (raw + meta) ─────────────────────────────────────────
-    subgraph CH["ClickHouse  (primary store)"]
-        direction TB
+    subgraph CH["ClickHouse"]
         RAW["raw.*\nblocks · transactions\nreceipts · logs\ncex_klines · reorg_log"]
-        META["meta.*\ningest_cursors · source_status\nschema_migrations\nentities · pools · contracts"]
+        META["meta.*\ningest_cursors · source_status\nschema_migrations\nseeds"]
     end
 
-    %% ── dbt transformation pipeline ─────────────────────────────────────
-    subgraph DBT["dbt/  (transformation pipeline)"]
-        direction TB
-        SEEDS["seeds/\nentities · pools\ncontracts · events\nbenchmarks"]
-        STG["staging/*\nstg_blocks · stg_transactions\nstg_receipts · stg_logs\nstg_cex_klines · stg_dex_swaps\nstg_erc20_transfers · stg_timeboost_*\nstg_balance_snapshots · stg_aave_liquidations"]
-        INT["intermediate/*\nint_tx_fees · int_block_ordering\nint_entities · int_tx_classification\nint_dex_price_per_block · int_cex_mid_at_block\nint_timeboost_rounds · int_spam_signals"]
-        MRT["marts/*\nfct_blocks · fct_transactions\nfct_treasury_daily · fct_swap_markouts\nfct_spread_per_block · fct_arb_capture\nfct_base_fee_changes · fct_execution_quality_daily\nagg_blocks_hourly · agg_blocks_minutely\nagg_payer_share_daily · agg_spread_heatmap\nagg_spread_histogram · agg_base_fee_hourly\nagg_health_daily · agg_era_comparison\nagg_entity_position_daily · agg_tipped_tx_hist_daily\ndim_entities · dim_events"]
-        MACRO["macros/\nhex_conversions\nunit_conversions\ngenerate_schema_name"]
+    SQD & HYP & ARB --> SRC
+    SRC --> FW --> RAW
+    SRC --> BF --> RAW
+    BIN --> CEX --> RAW
+    TB  --> ITB --> RAW
+    MIG --> META
+    YML --> META
+```
+
+---
+
+### 2 — Transformation pipeline
+
+How raw data becomes analytics-ready tables, and how Airflow keeps them fresh.
+
+```mermaid
+flowchart TD
+    subgraph CH["ClickHouse"]
+        RAW["raw.*\nblocks · transactions\nreceipts · logs · cex_klines"]
+        META["meta.*\nseeds · cursors"]
     end
 
-    %% ── Airflow orchestration ────────────────────────────────────────────
-    subgraph AF["airflow/  (orchestration)"]
-        direction LR
-        DAG1["pw_dbt_incremental\nevery 10 min"]
-        DAG2["pw_dbt_nightly\n02:00 UTC"]
-        DAG3["pw_monitoring\nevery 5 min"]
-        DAG4["pw_cex_daily\n01:00 UTC"]
-        DAG5["pw_backfill\nmanual"]
-        DAG6["pw_clickhouse_backup\n03:00 UTC"]
-        DAG7["pw_timeboost_baseline\nmanual"]
+    subgraph DBT["dbt/"]
+        SEEDS["seeds/\nentities · pools · contracts\nevents · benchmarks"]
+        MACRO["macros/\nhex_conversions\nunit_conversions"]
+
+        subgraph STG["staging/"]
+            S1["stg_blocks\nstg_transactions\nstg_receipts\nstg_logs"]
+            S2["stg_cex_klines\nstg_dex_swaps\nstg_erc20_transfers"]
+            S3["stg_timeboost_bids_ext\nstg_timeboost_auction_resolved\nstg_balance_snapshots\nstg_aave_liquidations\nstg_system_transactions"]
+        end
+
+        subgraph INT["intermediate/"]
+            I1["int_tx_fees\nint_block_ordering\nint_entities"]
+            I2["int_tx_classification\nint_dex_price_per_block\nint_cex_mid_at_block"]
+            I3["int_timeboost_rounds\nint_spam_signals"]
+        end
+
+        subgraph MRT["marts/"]
+            M1["fct_blocks · fct_transactions\nfct_treasury_daily\nfct_arb_capture"]
+            M2["fct_swap_markouts\nfct_spread_per_block\nfct_base_fee_changes\nfct_execution_quality_daily"]
+            M3["agg_blocks_hourly · agg_blocks_minutely\nagg_payer_share_daily · agg_health_daily\nagg_era_comparison · agg_base_fee_hourly\nagg_spread_heatmap · agg_spread_histogram\nagg_entity_position_daily\nagg_tipped_tx_hist_daily"]
+            M4["dim_entities · dim_events"]
+        end
     end
 
-    %% ── API binary ───────────────────────────────────────────────────────
-    subgraph APIB["cmd/pw-api  (Go binary)"]
-        direction TB
-        APIRT["/api/v1/blocks\n/api/v1/pricing\n/api/v1/opportunity\n/api/v1/treasury\n/api/v1/compare\n/api/v1/datasets\n/api/v1/backtest\n/healthz · /metrics\n/docs  (Scalar UI)"]
+    subgraph AF["airflow/dags/  — Airflow + Cosmos"]
+        D1["pw_dbt_incremental\nevery 10 min\nstaging → intermediate → marts"]
+        D2["pw_dbt_nightly\n02:00 UTC\nfull tests + docs + refresh"]
+        D3["pw_monitoring\nevery 5 min\nlag · gaps · freshness"]
+        D4["pw_cex_daily  01:00 UTC\npw_backfill  manual\npw_clickhouse_backup  03:00 UTC\npw_timeboost_baseline  manual"]
     end
 
-    %% ── Frontend ─────────────────────────────────────────────────────────
-    subgraph WEB["apps/web/  (Vite + React 19)"]
-        direction LR
+    RAW --> S1 & S2 & S3
+    META --> SEEDS --> STG
+    MACRO --> STG & INT
+    STG --> INT
+    I1 & I2 & I3 --> MRT
+
+    D1 -->|"dbt run"| STG
+    D2 -->|"dbt test + docs"| MRT
+    D3 -->|"healthz checks"| META
+    D4 -->|"backfill / backup"| RAW
+```
+
+---
+
+### 3 — Serving layer
+
+How transformed data reaches the API, frontend, and observability stack.
+
+```mermaid
+flowchart LR
+    subgraph CH["ClickHouse  marts.*"]
+        MRT["fct_blocks · agg_blocks_hourly\nfct_treasury_daily · dim_entities\nfct_swap_markouts · agg_spread_*\n...20 models total"]
+    end
+
+    subgraph API["cmd/pw-api  (Go — chi + huma v2)"]
+        EP["/api/v1/blocks\n/api/v1/pricing · /api/v1/backtest\n/api/v1/opportunity\n/api/v1/treasury · /api/v1/compare\n/api/v1/datasets\n/healthz · /metrics\n/docs  Scalar UI"]
+    end
+
+    subgraph MDL["internal/models"]
+        FEE["fee pricing models\nbacktest engine"]
+    end
+
+    subgraph WEB["apps/web  (Vite + React 19)"]
         R1["/blocks\nblock table · KPI cards\npayer leaderboard"]
         R2["/health\nbase-fee trends · HHI\ntreasury accounting"]
         R3["/pricing\nfee model · sliders\nbacktest eval"]
@@ -206,74 +247,23 @@ flowchart TD
         R5["/simulator\nstrategy backtester\nP&L curve"]
     end
 
-    %% ── Infra & observability ────────────────────────────────────────────
-    subgraph INFRA["infra/  (infrastructure)"]
-        direction LR
-        CADDY["caddy/\nTLS reverse proxy\nLet's Encrypt"]
-        PROM["prometheus/\nscrape config\n(api · follower · clickhouse)"]
-        GRAF["grafana/\ndashboards\nprovisioning"]
-        CHMIG["clickhouse/\nconfig.d · users.d\nmigrations/"]
+    subgraph OBS["infra/  — Observability"]
+        PROM["Prometheus\nscrapes /metrics"]
+        GRAF["Grafana\ndashboards"]
+        CADDY["Caddy\nTLS · reverse proxy\nLet's Encrypt"]
     end
 
-    %% ── CI / hooks ───────────────────────────────────────────────────────
-    subgraph CICD[".github/ + .githooks/"]
-        CI["ci.yml\nbuild · lint · test\nauthor-check"]
-        REL["release.yml\nGHCR image push"]
-        HOOKS["pre-commit · commit-msg\npre-push"]
+    subgraph CI[".github/ + .githooks/"]
+        GH["ci.yml  build · lint · test\nrelease.yml  GHCR push\npre-commit · commit-msg · pre-push"]
     end
 
-    %% ── Data flow edges ──────────────────────────────────────────────────
-    SQD --> CHN
-    HYP --> CHN
-    ARB --> CHN
-    BIN --> CEXP
-    TB  --> ITB
-
-    CHN --> ING
-    ING --> STR
-    STR --> RAW
-    CEXP --> RAW
-    ITB --> RAW
-    MIG --> META
-
-    CFG --> ING
-    CFG --> CEXP
-    CONFIG --> SEEDS
-    SEEDS --> META
-
-    RAW --> STG
-    META --> STG
-    STG --> INT
-    MACRO --> STG
-    MACRO --> INT
-    INT --> MRT
-
-    DAG1 -->|"dbt run staging+intermediate+marts"| STG
-    DAG2 -->|"dbt test + docs + full refresh"| MRT
-    DAG3 -->|"healthz · lag · gap checks"| META
-    DAG4 -->|"Binance catch-up"| RAW
-    DAG5 -->|"backfill range"| BF
-    DAG6 -->|"BACKUP DATABASE"| CH
-    DAG7 -->|"import Timeboost baseline"| ITB
-
-    MRT --> APIRT
-    MDL --> APIRT
-    API_PKG --> APIRT
-
-    APIRT --> R1
-    APIRT --> R2
-    APIRT --> R3
-    APIRT --> R4
-    APIRT --> R5
-
-    CADDY -->|"TLS termination"| APIRT
-    CADDY -->|"TLS termination"| WEB
-    PROM -->|"scrape /metrics"| APIRT
-    PROM --> GRAF
-    OBS --> APIRT
-
-    CICD -->|"validate every push"| INGESTER
-    CICD -->|"validate every push"| APIB
+    MRT --> EP
+    FEE --> EP
+    EP --> R1 & R2 & R3 & R4 & R5
+    CADDY -->|"HTTPS"| EP
+    CADDY -->|"HTTPS"| WEB
+    EP --> PROM --> GRAF
+    CI -->|"validate on push"| API
 ```
 
 ---
