@@ -1,4 +1,5 @@
-.PHONY: setup up up-obs up-test down down-obs down-test logs logs-obs \
+.PHONY: dev dev-no-follow \
+        setup up up-obs up-test down down-obs down-test logs logs-obs \
         build lint test test-integration fmt \
         migrate backfill follow \
         dbt-build dbt-docs \
@@ -17,6 +18,14 @@ COMPOSE_TEST := docker-compose.test.yml
 
 COMPOSE     := docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV)
 COMPOSE_ALL := $(COMPOSE) -f $(COMPOSE_OBS)
+
+## dev: start full local stack without Docker (ClickHouse + API + follower + web)
+dev:
+	@bash scripts/dev.sh
+
+## dev-no-follow: start local stack but skip the live follower (saves CPU/RAM)
+dev-no-follow:
+	@bash scripts/dev.sh --no-follow
 
 ## setup: one-time dev environment setup (install hooks, tools)
 setup:
